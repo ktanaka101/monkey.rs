@@ -1,0 +1,8 @@
+[package]
+name = "monkey"
+version = "0.1.0"
+authors = ["ktanaka101 <kentanaka101@gmail.com>"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
