@@ -1,5 +1,5 @@
 use crate::ast;
-use crate::builtin::BuiltinFunction;
+use crate::builtin::Function;
 use crate::env::Environment;
 use crate::object;
 use std::cell::RefCell;
@@ -268,7 +268,7 @@ fn eval_identifier(
         return Ok(id);
     }
 
-    let builtin = BuiltinFunction::try_from(node.value.as_str());
+    let builtin = Function::try_from(node.value.as_str());
     if let Ok(builtin) = builtin {
         return Ok(builtin.into());
     }

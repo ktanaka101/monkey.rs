@@ -3,7 +3,7 @@ use crate::object;
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BuiltinFunction {
+pub enum Function {
     Len,
     First,
     Last,
@@ -12,7 +12,7 @@ pub enum BuiltinFunction {
     Puts,
 }
 
-impl TryFrom<&str> for BuiltinFunction {
+impl TryFrom<&str> for Function {
     type Error = &'static str;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -28,13 +28,13 @@ impl TryFrom<&str> for BuiltinFunction {
     }
 }
 
-impl From<BuiltinFunction> for object::Object {
-    fn from(value: BuiltinFunction) -> Self {
+impl From<Function> for object::Object {
+    fn from(value: Function) -> Self {
         object::Builtin { func: value }.into()
     }
 }
 
-impl BuiltinFunction {
+impl Function {
     pub fn call(&self, args: &[object::Object]) -> Result<object::Object, object::Error> {
         match self {
             Self::Len => len(args),

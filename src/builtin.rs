@@ -1,2 +1,2 @@
 mod function;
-pub use function::BuiltinFunction;
+pub use function::Function;

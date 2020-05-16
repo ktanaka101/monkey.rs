@@ -7,7 +7,7 @@ use super::{Error, Object};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Builtin {
-    pub func: builtin::BuiltinFunction,
+    pub func: builtin::Function,
 }
 impl Display for Builtin {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
