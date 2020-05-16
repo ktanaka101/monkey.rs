@@ -1,6 +1,6 @@
-use std::fmt;
-use std::fmt::{Display, Formatter};
 use std::hash;
+
+use super::prelude::*;
 
 #[derive(Debug, Clone, Eq)]
 pub struct Integer {

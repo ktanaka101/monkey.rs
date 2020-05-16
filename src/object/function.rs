@@ -1,10 +1,10 @@
 use std::cell::RefCell;
-use std::fmt;
-use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
 use crate::ast;
 use crate::env;
+
+use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Function {

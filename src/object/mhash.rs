@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use std::fmt;
-use std::fmt::{Display, Formatter};
 
+use super::prelude::*;
 use super::{HashableObject, Object};
 
 pub type HashPairs = HashMap<HashableObject, Object>;

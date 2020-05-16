@@ -1,5 +1,8 @@
-use std::fmt;
-use std::fmt::{Display, Formatter};
+mod prelude {
+    pub use std::fmt;
+    pub use std::fmt::{Display, Formatter};
+}
+use prelude::*;
 
 mod array;
 mod boolean;
