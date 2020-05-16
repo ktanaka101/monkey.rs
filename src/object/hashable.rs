@@ -9,11 +9,13 @@ pub enum HashableObject {
     Boolean(Boolean),
     StringLit(StringLit),
 }
+
 impl Display for HashableObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", *self)
     }
 }
+
 impl hash::Hash for HashableObject {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         match self {
@@ -23,6 +25,7 @@ impl hash::Hash for HashableObject {
         };
     }
 }
+
 impl PartialEq for HashableObject {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {

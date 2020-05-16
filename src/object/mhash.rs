@@ -9,6 +9,7 @@ pub type HashPairs = HashMap<HashableObject, Object>;
 pub struct Hash {
     pub pairs: HashPairs,
 }
+
 impl Display for Hash {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let out = self
