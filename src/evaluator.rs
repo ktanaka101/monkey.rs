@@ -268,8 +268,8 @@ fn eval_identifier(
         return Ok(id);
     }
 
-    let builtin = BuiltinFunction::from_str(&node.value);
-    if let Some(builtin) = builtin {
+    let builtin = BuiltinFunction::try_from(node.value.as_str());
+    if let Ok(builtin) = builtin {
         return Ok(builtin.to_object());
     }
 

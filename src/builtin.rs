@@ -12,19 +12,23 @@ pub enum BuiltinFunction {
     Puts,
 }
 
-impl BuiltinFunction {
-    pub fn from_str(s: &str) -> Option<BuiltinFunction> {
-        Some(match s {
-            "len" => Self::Len,
-            "first" => Self::First,
-            "last" => Self::Last,
-            "rest" => Self::Rest,
-            "push" => Self::Push,
-            "puts" => Self::Puts,
-            _ => return None,
-        })
-    }
+impl TryFrom<&str> for BuiltinFunction {
+    type Error = &'static str;
 
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "len" => Ok(Self::Len),
+            "first" => Ok(Self::First),
+            "last" => Ok(Self::Last),
+            "rest" => Ok(Self::Rest),
+            "push" => Ok(Self::Push),
+            "puts" => Ok(Self::Puts),
+            _ => Err("Not found builtin function."),
+        }
+    }
+}
+
+impl BuiltinFunction {
     pub fn to_object(&self) -> object::Object {
         object::Builtin { func: self.clone() }.into()
     }
