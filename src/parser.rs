@@ -17,9 +17,9 @@ enum Priority {
     Index,
 }
 
-impl Token {
-    fn to_precedence(&self) -> Priority {
-        match self.token_t {
+impl From<&Token> for Priority {
+    fn from(value: &Token) -> Priority {
+        match value.token_t {
             TT::Equal => Priority::Equals,
             TT::NotEqual => Priority::Equals,
             TT::Lt => Priority::Lessgreater,
@@ -190,7 +190,7 @@ impl Parser {
 
         let mut left_expr = self.prefix_parse_fns(self.cur_token.token_t.clone())?;
 
-        while !self.peek_token_is(TT::Semicolon) && precedende < self.peek_token.to_precedence() {
+        while !self.peek_token_is(TT::Semicolon) && precedende < Priority::from(&self.peek_token) {
             let infix_fn = self.infix_parse_fns(self.peek_token.token_t.clone())?;
 
             self.next_token();
@@ -256,7 +256,7 @@ impl Parser {
     fn parse_infix_expr(&mut self, left: Expr) -> Result<ast::InfixExpr> {
         let token = self.cur_token.clone();
         let ope = string_to_operator(&self.cur_token.literal)?;
-        let pre = self.cur_token.to_precedence();
+        let pre = Priority::from(&self.cur_token);
 
         self.next_token();
 
