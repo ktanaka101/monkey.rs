@@ -10,15 +10,11 @@ pub enum Node {
 }
 impl Display for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Program(n) => write!(f, "{}", n),
-            Self::Stmt(n) => write!(f, "{}", n),
-            Self::Expr(n) => write!(f, "{}", n),
-        }
+        write!(f, "{}", self)
     }
 }
 impl From<Program> for Node {
-    fn from(node: Program) -> Node {
+    fn from(node: Program) -> Self {
         Node::Program(node)
     }
 }
@@ -31,18 +27,13 @@ pub enum Stmt {
     Block(Block),
 }
 impl From<Block> for Stmt {
-    fn from(stmt: Block) -> Stmt {
+    fn from(stmt: Block) -> Self {
         Stmt::Block(stmt)
     }
 }
 impl Display for Stmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ExprStmt(s) => write!(f, "{}", s),
-            Self::Let(s) => write!(f, "{}", s),
-            Self::Block(s) => write!(f, "{}", s),
-            Self::Return(s) => write!(f, "{}", s),
-        }
+        write!(f, "{}", self)
     }
 }
 
@@ -63,20 +54,7 @@ pub enum Expr {
 }
 impl Display for Expr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Identifier(e) => write!(f, "{}", e),
-            Self::PrefixExpr(e) => write!(f, "{}", e),
-            Self::InfixExpr(e) => write!(f, "{}", e),
-            Self::If(e) => write!(f, "{}", e),
-            Self::Function(e) => write!(f, "{}", e),
-            Self::Call(e) => write!(f, "{}", e),
-            Self::Integer(e) => write!(f, "{}", e),
-            Self::Boolean(e) => write!(f, "{}", e),
-            Self::StringLit(e) => write!(f, "{}", e),
-            Self::Array(e) => write!(f, "{}", e),
-            Self::Index(e) => write!(f, "{}", e),
-            Self::Hash(e) => write!(f, "{}", e),
-        }
+        write!(f, "{}", self)
     }
 }
 
