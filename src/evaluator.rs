@@ -270,7 +270,7 @@ fn eval_identifier(
 
     let builtin = BuiltinFunction::try_from(node.value.as_str());
     if let Ok(builtin) = builtin {
-        return Ok(builtin.to_object());
+        return Ok(builtin.into());
     }
 
     new_error(&format!("identifier not found: {}", node.value))

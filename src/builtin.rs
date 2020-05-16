@@ -28,11 +28,13 @@ impl TryFrom<&str> for BuiltinFunction {
     }
 }
 
-impl BuiltinFunction {
-    pub fn to_object(&self) -> object::Object {
-        object::Builtin { func: self.clone() }.into()
+impl From<BuiltinFunction> for object::Object {
+    fn from(value: BuiltinFunction) -> Self {
+        object::Builtin { func: value }.into()
     }
+}
 
+impl BuiltinFunction {
     pub fn call(&self, args: &[object::Object]) -> Result<object::Object, object::Error> {
         match self {
             Self::Len => len(args),
