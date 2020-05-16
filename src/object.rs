@@ -1,12 +1,29 @@
-use crate::ast;
-use crate::builtin;
-use crate::env;
-use std::cell::RefCell;
-use std::collections::HashMap;
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
-use std::hash;
-use std::rc::Rc;
+use std::fmt::{Display, Formatter};
+
+mod array;
+mod boolean;
+mod error;
+mod function;
+mod hashable;
+mod integer;
+mod mbuiltin;
+mod mhash;
+mod mreturn;
+mod null;
+mod string_lit;
+
+pub use array::Array;
+pub use boolean::Boolean;
+pub use error::Error;
+pub use function::Function;
+pub use hashable::HashableObject;
+pub use integer::Integer;
+pub use mbuiltin::Builtin;
+pub use mhash::{Hash, HashPairs};
+pub use mreturn::Return;
+pub use null::Null;
+pub use string_lit::StringLit;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Object {
@@ -113,196 +130,5 @@ impl Object {
             Self::StringLit(s) => HashableObject::StringLit(s),
             _ => return None,
         })
-    }
-}
-
-#[derive(Debug, Clone, Eq)]
-pub enum HashableObject {
-    Integer(Integer),
-    Boolean(Boolean),
-    StringLit(StringLit),
-}
-impl Display for HashableObject {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", *self)
-    }
-}
-impl hash::Hash for HashableObject {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        match self {
-            Self::Integer(x) => x.hash(state),
-            Self::Boolean(x) => x.hash(state),
-            Self::StringLit(x) => x.hash(state),
-        };
-    }
-}
-impl PartialEq for HashableObject {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Integer(x), Self::Integer(y)) => x.eq(y),
-            (Self::Boolean(x), Self::Boolean(y)) => x.eq(y),
-            (Self::StringLit(x), Self::StringLit(y)) => x.eq(y),
-            (_, _) => false,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Eq)]
-pub struct Integer {
-    pub value: i64,
-}
-impl Display for Integer {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-impl hash::Hash for Integer {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.value.hash(state);
-    }
-}
-impl PartialEq for Integer {
-    fn eq(&self, other: &Self) -> bool {
-        self.value.eq(&other.value)
-    }
-}
-
-#[derive(Debug, Clone, Eq)]
-pub struct Boolean {
-    pub value: bool,
-}
-impl Display for Boolean {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-impl hash::Hash for Boolean {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.value.hash(state);
-    }
-}
-impl PartialEq for Boolean {
-    fn eq(&self, other: &Self) -> bool {
-        self.value.eq(&other.value)
-    }
-}
-
-#[derive(Debug, Clone, Eq)]
-pub struct StringLit {
-    pub value: String,
-}
-impl Display for StringLit {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-impl hash::Hash for StringLit {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.value.hash(state);
-    }
-}
-impl PartialEq for StringLit {
-    fn eq(&self, other: &Self) -> bool {
-        self.value.eq(&other.value)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Null();
-impl Display for Null {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "null")
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Return {
-    pub value: Box<Object>,
-}
-impl Display for Return {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Error {
-    pub message: String,
-}
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ERROR: {}", self.message)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Function {
-    pub params: Vec<ast::Identifier>,
-    pub body: ast::Block,
-    pub env: Rc<RefCell<env::Environment>>,
-}
-impl Display for Function {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "fn({}) {{\n{}\n}}",
-            self.params
-                .iter()
-                .map(|p| p.to_string())
-                .collect::<Vec<String>>()
-                .join(""),
-            self.body
-        )
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Builtin {
-    pub func: builtin::BuiltinFunction,
-}
-impl Display for Builtin {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "builtin function.")
-    }
-}
-impl Builtin {
-    pub fn call(&self, args: &[Object]) -> Result<Object, Error> {
-        self.func.call(args)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Array {
-    pub elements: Vec<Object>,
-}
-impl Display for Array {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let out = self
-            .elements
-            .iter()
-            .map(|e| e.to_string())
-            .collect::<Vec<String>>()
-            .join(", ");
-
-        write!(f, "{}", out)
-    }
-}
-
-pub type HashPairs = HashMap<HashableObject, Object>;
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Hash {
-    pub pairs: HashPairs,
-}
-impl Display for Hash {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let out = self
-            .pairs
-            .iter()
-            .map(|(k, v)| format!("{}, {}", k, v))
-            .collect::<Vec<String>>()
-            .join("");
-
-        write!(f, "{}", out)
     }
 }
