@@ -8,6 +8,6 @@ pub struct StringLit {
 
 impl Display for StringLit {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.token.literal)
+        write!(f, "{}", self.token.literal())
     }
 }

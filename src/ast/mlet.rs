@@ -9,7 +9,7 @@ pub struct Let {
 
 impl Display for Let {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let out = format!("{} {} = {};", self.token.literal, self.name, self.value);
+        let out = format!("{} {} = {};", self.token.literal(), self.name, self.value);
 
         write!(f, "{}", out)
     }

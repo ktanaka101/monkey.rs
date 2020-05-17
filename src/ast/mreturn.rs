@@ -8,7 +8,7 @@ pub struct Return {
 
 impl Display for Return {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let out = format!("{} {};", self.token.literal, self.return_value);
+        let out = format!("{} {};", self.token.literal(), self.return_value);
         write!(f, "{}", out)
     }
 }

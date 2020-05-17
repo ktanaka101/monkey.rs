@@ -3,7 +3,6 @@ use crate::ast::{Expr, Stmt};
 use crate::error::{MonkeyError, Result};
 use crate::lexer::Lexer;
 use crate::token::Token;
-use crate::token::TokenType as TT;
 
 #[derive(PartialOrd, PartialEq, Debug)]
 enum Priority {
@@ -19,17 +18,17 @@ enum Priority {
 
 impl From<&Token> for Priority {
     fn from(value: &Token) -> Priority {
-        match value.token_t {
-            TT::Equal => Priority::Equals,
-            TT::NotEqual => Priority::Equals,
-            TT::Lt => Priority::Lessgreater,
-            TT::Gt => Priority::Lessgreater,
-            TT::Plus => Priority::Sum,
-            TT::Minus => Priority::Sum,
-            TT::Slash => Priority::Product,
-            TT::Asterisk => Priority::Product,
-            TT::Lparen => Priority::Call,
-            TT::Lbracket => Priority::Index,
+        match value {
+            Token::Equal => Priority::Equals,
+            Token::NotEqual => Priority::Equals,
+            Token::Lt => Priority::Lessgreater,
+            Token::Gt => Priority::Lessgreater,
+            Token::Plus => Priority::Sum,
+            Token::Minus => Priority::Sum,
+            Token::Slash => Priority::Product,
+            Token::Asterisk => Priority::Product,
+            Token::Lparen => Priority::Call,
+            Token::Lbracket => Priority::Index,
             _ => Priority::Lowest,
         }
     }
@@ -54,19 +53,19 @@ enum InfixFn {
     Index,
 }
 
-fn string_to_operator(s: &str) -> Result<ast::Operator> {
-    Ok(match s {
-        "=" => ast::Operator::Assign,
-        "+" => ast::Operator::Plus,
-        "-" => ast::Operator::Minus,
-        "!" => ast::Operator::Bang,
-        "*" => ast::Operator::Asterisk,
-        "/" => ast::Operator::Slash,
-        "==" => ast::Operator::Equal,
-        "!=" => ast::Operator::NotEqual,
-        "<" => ast::Operator::Lt,
-        ">" => ast::Operator::Gt,
-        s => return parse_error(&format!("Expect oeprator. {}", s)),
+fn token_to_operator(t: &Token) -> Result<ast::Operator> {
+    Ok(match t {
+        Token::Assign => ast::Operator::Assign,
+        Token::Plus => ast::Operator::Plus,
+        Token::Minus => ast::Operator::Minus,
+        Token::Bang => ast::Operator::Bang,
+        Token::Asterisk => ast::Operator::Asterisk,
+        Token::Slash => ast::Operator::Slash,
+        Token::Equal => ast::Operator::Equal,
+        Token::NotEqual => ast::Operator::NotEqual,
+        Token::Lt => ast::Operator::Lt,
+        Token::Gt => ast::Operator::Gt,
+        t => return parse_error(&format!("Expect oeprator. {:?}", t)),
     })
 }
 
@@ -88,7 +87,7 @@ impl Parser {
     pub fn parse_program(&mut self) -> Result<ast::Program> {
         let mut program = ast::Program::default();
 
-        while self.cur_token.token_t != TT::Eof {
+        while self.cur_token != Token::Eof {
             let stmt = self.parse_statement()?;
             program.statements.push(stmt);
             self.next_token();
@@ -98,27 +97,30 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Stmt> {
-        Ok(match self.cur_token.token_t {
-            TT::Let => Stmt::Let(self.parse_let_statement()?),
-            TT::Return => Stmt::Return(self.parse_return_statement()?),
+        Ok(match self.cur_token {
+            Token::Let => Stmt::Let(self.parse_let_statement()?),
+            Token::Return => Stmt::Return(self.parse_return_statement()?),
             _ => Stmt::ExprStmt(self.parse_expr_statement()?),
         })
     }
 
     fn parse_let_statement(&mut self) -> Result<ast::Let> {
         let token = self.cur_token.clone();
-        self.expect_peek(TT::Ident)?;
+        self.expect_peek(Token::Ident("_".to_string()))?;
 
         let name = ast::Identifier {
             token: self.cur_token.clone(),
-            value: self.cur_token.literal.clone(),
+            value: match &self.cur_token {
+                Token::Ident(id) => id.clone(),
+                _ => unreachable!(),
+            },
         };
 
-        self.expect_peek(TT::Assign)?;
+        self.expect_peek(Token::Assign)?;
 
         self.next_token();
         let value = self.parse_expr(Priority::Lowest)?;
-        if self.peek_token_is(TT::Semicolon) {
+        if self.peek_token_is(Token::Semicolon) {
             self.next_token();
         }
 
@@ -132,7 +134,7 @@ impl Parser {
 
         let return_value = self.parse_expr(Priority::Lowest)?;
 
-        if self.peek_token_is(TT::Semicolon) {
+        if self.peek_token_is(Token::Semicolon) {
             self.next_token();
         };
 
@@ -146,7 +148,7 @@ impl Parser {
         let token = self.cur_token.clone();
         let expr = self.parse_expr(Priority::Lowest)?;
 
-        if self.peek_token_is(TT::Semicolon) {
+        if self.peek_token_is(Token::Semicolon) {
             self.next_token();
         }
 
@@ -154,44 +156,45 @@ impl Parser {
     }
 
     fn parse_expr(&mut self, precedende: Priority) -> Result<Expr> {
-        match &self.cur_token.token_t {
-            t @ TT::Illegal
-            | t @ TT::Eof
-            | t @ TT::Assign
-            | t @ TT::Plus
-            | t @ TT::Asterisk
-            | t @ TT::Slash
-            | t @ TT::Equal
-            | t @ TT::NotEqual
-            | t @ TT::Lt
-            | t @ TT::Gt
-            | t @ TT::Comma
-            | t @ TT::Semicolon
-            | t @ TT::Colon
-            | t @ TT::Rparen
-            | t @ TT::Rbrace
-            | t @ TT::Rbracket
-            | t @ TT::Let
-            | t @ TT::Else
-            | t @ TT::Return => return parse_error(&format!("Invalid token. {:?}", t)),
-            TT::Ident
-            | TT::Int
-            | TT::Bang
-            | TT::Minus
-            | TT::True
-            | TT::False
-            | TT::Lparen
-            | TT::If
-            | TT::Function
-            | TT::StringLiteral
-            | TT::Lbracket
-            | TT::Lbrace => (),
+        match &self.cur_token {
+            t @ Token::Illegal(_)
+            | t @ Token::Eof
+            | t @ Token::Assign
+            | t @ Token::Plus
+            | t @ Token::Asterisk
+            | t @ Token::Slash
+            | t @ Token::Equal
+            | t @ Token::NotEqual
+            | t @ Token::Lt
+            | t @ Token::Gt
+            | t @ Token::Comma
+            | t @ Token::Semicolon
+            | t @ Token::Colon
+            | t @ Token::Rparen
+            | t @ Token::Rbrace
+            | t @ Token::Rbracket
+            | t @ Token::Let
+            | t @ Token::Else
+            | t @ Token::Return => return parse_error(&format!("Invalid token. {:?}", t)),
+            Token::Ident(_)
+            | Token::Int(_)
+            | Token::Bang
+            | Token::Minus
+            | Token::True
+            | Token::False
+            | Token::Lparen
+            | Token::If
+            | Token::Function
+            | Token::StringLiteral(_)
+            | Token::Lbracket
+            | Token::Lbrace => (),
         }
 
-        let mut left_expr = self.prefix_parse_fns(self.cur_token.token_t.clone())?;
+        let mut left_expr = self.prefix_parse_fns(self.cur_token.clone())?;
 
-        while !self.peek_token_is(TT::Semicolon) && precedende < Priority::from(&self.peek_token) {
-            let infix_fn = self.infix_parse_fns(self.peek_token.token_t.clone())?;
+        while !self.peek_token_is(Token::Semicolon) && precedende < Priority::from(&self.peek_token)
+        {
+            let infix_fn = self.infix_parse_fns(self.peek_token.clone())?;
 
             self.next_token();
 
@@ -208,16 +211,20 @@ impl Parser {
     fn parse_identifier(&self) -> Result<ast::Identifier> {
         Ok(ast::Identifier {
             token: self.cur_token.clone(),
-            value: self.cur_token.literal.clone(),
+            value: match &self.cur_token {
+                Token::Ident(val) => val.clone(),
+                t => parse_error(&format!("Expect identifier token. {:?}", t))?,
+            },
         })
     }
 
     fn parse_integer_literal(&self) -> Result<ast::Integer> {
-        let value = self
-            .cur_token
-            .literal
-            .parse::<i64>()
-            .or_else(|e| parse_error(&format!("Integer parse error. {}", e)))?;
+        let value = match &self.cur_token {
+            Token::Int(val) => val
+                .parse::<i64>()
+                .or_else(|e| parse_error(&format!("Integer parse error. {}", e)))?,
+            t => parse_error(&format!("Expect integer token. {:?}", t))?,
+        };
 
         Ok(ast::Integer {
             token: self.cur_token.clone(),
@@ -226,12 +233,12 @@ impl Parser {
     }
 
     fn parse_bool_literal(&self) -> Result<ast::Boolean> {
-        match &self.cur_token.token_t {
-            TT::True => Ok(ast::Boolean {
+        match &self.cur_token {
+            Token::True => Ok(ast::Boolean {
                 token: self.cur_token.clone(),
                 value: true,
             }),
-            TT::False => Ok(ast::Boolean {
+            Token::False => Ok(ast::Boolean {
                 token: self.cur_token.clone(),
                 value: false,
             }),
@@ -246,7 +253,7 @@ impl Parser {
 
     fn parse_prefix_expr(&mut self) -> Result<ast::PrefixExpr> {
         let token = self.cur_token.clone();
-        let ope = string_to_operator(&self.cur_token.literal)?;
+        let ope = token_to_operator(&self.cur_token)?;
         self.next_token();
         let right = Box::new(self.parse_expr(Priority::Prefix)?);
 
@@ -255,7 +262,7 @@ impl Parser {
 
     fn parse_infix_expr(&mut self, left: Expr) -> Result<ast::InfixExpr> {
         let token = self.cur_token.clone();
-        let ope = string_to_operator(&self.cur_token.literal)?;
+        let ope = token_to_operator(&self.cur_token)?;
         let pre = Priority::from(&self.cur_token);
 
         self.next_token();
@@ -272,20 +279,20 @@ impl Parser {
 
     fn parse_if_expr(&mut self) -> Result<ast::If> {
         let token = self.cur_token.clone();
-        self.expect_peek(TT::Lparen)?;
+        self.expect_peek(Token::Lparen)?;
 
         self.next_token();
 
         let cond = Box::new(self.parse_expr(Priority::Lowest)?);
 
-        self.expect_peek(TT::Rparen)?;
-        self.expect_peek(TT::Lbrace)?;
+        self.expect_peek(Token::Rparen)?;
+        self.expect_peek(Token::Lbrace)?;
 
         let consequence = self.parse_block_statement()?;
 
-        let alternative = if self.peek_token_is(TT::Else) {
+        let alternative = if self.peek_token_is(Token::Else) {
             self.next_token();
-            self.expect_peek(TT::Lbrace)?;
+            self.expect_peek(Token::Lbrace)?;
 
             Some(self.parse_block_statement()?)
         } else {
@@ -306,7 +313,7 @@ impl Parser {
 
         self.next_token();
 
-        while !(self.cur_token_is(TT::Rbrace) || self.cur_token_is(TT::Eof)) {
+        while !(self.cur_token_is(Token::Rbrace) || self.cur_token_is(Token::Eof)) {
             statements.push(self.parse_statement()?);
             self.next_token();
         }
@@ -316,10 +323,10 @@ impl Parser {
 
     fn parse_function_literal(&mut self) -> Result<ast::Function> {
         let token = self.cur_token.clone();
-        self.expect_peek(TT::Lparen)?;
+        self.expect_peek(Token::Lparen)?;
 
         let params = self.parse_function_params()?;
-        self.expect_peek(TT::Lbrace)?;
+        self.expect_peek(Token::Lbrace)?;
 
         let body = self.parse_block_statement()?;
 
@@ -333,7 +340,7 @@ impl Parser {
     fn parse_function_params(&mut self) -> Result<Vec<ast::Identifier>> {
         let mut identifiers = Vec::<ast::Identifier>::new();
 
-        if self.peek_token_is(TT::Rparen) {
+        if self.peek_token_is(Token::Rparen) {
             self.next_token();
             return Ok(identifiers);
         }
@@ -342,18 +349,24 @@ impl Parser {
 
         identifiers.push(ast::Identifier {
             token: self.cur_token.clone(),
-            value: self.cur_token.literal.clone(),
+            value: match &self.cur_token {
+                Token::Ident(t) => t.clone(),
+                t => parse_error(&format!("Expect Identifier token. {:?}", t))?,
+            },
         });
 
-        while self.peek_token_is(TT::Comma) {
+        while self.peek_token_is(Token::Comma) {
             self.next_token();
             self.next_token();
             identifiers.push(ast::Identifier {
                 token: self.cur_token.clone(),
-                value: self.cur_token.literal.clone(),
+                value: match &self.cur_token {
+                    Token::Ident(t) => t.clone(),
+                    t => parse_error(&format!("Expect Identifier token. {:?}", t))?,
+                },
             })
         }
-        self.expect_peek(TT::Rparen)?;
+        self.expect_peek(Token::Rparen)?;
 
         Ok(identifiers)
     }
@@ -362,11 +375,11 @@ impl Parser {
         Ok(ast::Call {
             token: self.cur_token.clone(),
             func: Box::new(func),
-            args: self.parse_expr_list(TT::Rparen)?,
+            args: self.parse_expr_list(Token::Rparen)?,
         })
     }
 
-    fn parse_expr_list(&mut self, end_token_t: TT) -> Result<Vec<Expr>> {
+    fn parse_expr_list(&mut self, end_token_t: Token) -> Result<Vec<Expr>> {
         let mut expr_list = Vec::<Expr>::new();
 
         if self.peek_token_is(end_token_t.clone()) {
@@ -377,7 +390,7 @@ impl Parser {
         self.next_token();
         expr_list.push(self.parse_expr(Priority::Lowest)?);
 
-        while self.peek_token_is(TT::Comma) {
+        while self.peek_token_is(Token::Comma) {
             self.next_token();
             self.next_token();
             expr_list.push(self.parse_expr(Priority::Lowest)?);
@@ -391,14 +404,17 @@ impl Parser {
     fn parse_string_literal(&self) -> Result<ast::StringLit> {
         Ok(ast::StringLit {
             token: self.cur_token.clone(),
-            value: self.cur_token.literal.clone(),
+            value: match &self.cur_token {
+                Token::StringLiteral(s) => s.clone(),
+                t => parse_error(&format!("Expect StringLiteral token. {:?}", t))?,
+            },
         })
     }
 
     fn parse_array_literal(&mut self) -> Result<ast::Array> {
         Ok(ast::Array {
             token: self.cur_token.clone(),
-            elements: self.parse_expr_list(TT::Rbracket)?,
+            elements: self.parse_expr_list(Token::Rbracket)?,
         })
     }
 
@@ -406,7 +422,7 @@ impl Parser {
         let token = self.cur_token.clone();
         self.next_token();
         let index = self.parse_expr(Priority::Lowest)?;
-        self.expect_peek(TT::Rbracket)?;
+        self.expect_peek(Token::Rbracket)?;
 
         Ok(ast::Index {
             token,
@@ -419,32 +435,68 @@ impl Parser {
         let token = self.cur_token.clone();
         let mut pairs = Vec::<ast::Pair>::new();
 
-        while !self.peek_token_is(TT::Rbrace) {
+        while !self.peek_token_is(Token::Rbrace) {
             self.next_token();
             let key = self.parse_expr(Priority::Lowest)?;
-            self.expect_peek(TT::Colon)?;
+            self.expect_peek(Token::Colon)?;
             self.next_token();
             let value = self.parse_expr(Priority::Lowest)?;
             pairs.push(ast::Pair { key, value });
 
-            if !self.peek_token_is(TT::Rbrace) && self.expect_peek(TT::Comma).is_err() {
+            if !self.peek_token_is(Token::Rbrace) && self.expect_peek(Token::Comma).is_err() {
                 return parse_error(&format!("Expect `}}` or `,`. {:?}", &self.cur_token));
             }
         }
-        self.expect_peek(TT::Rbrace)?;
+        self.expect_peek(Token::Rbrace)?;
 
         Ok(ast::Hash { token, pairs })
     }
 
-    fn cur_token_is(&self, token_t: TT) -> bool {
-        self.cur_token.token_t == token_t
+    fn cur_token_is(&self, token_t: Token) -> bool {
+        match token_t {
+            Token::Illegal(_) => match self.cur_token {
+                Token::Illegal(_) => true,
+                _ => false,
+            },
+            Token::Ident(_) => match self.cur_token {
+                Token::Ident(_) => true,
+                _ => false,
+            },
+            Token::Int(_) => match self.cur_token {
+                Token::Int(_) => true,
+                _ => false,
+            },
+            Token::StringLiteral(_) => match self.cur_token {
+                Token::StringLiteral(_) => true,
+                _ => false,
+            },
+            t => self.cur_token == t,
+        }
     }
 
-    fn peek_token_is(&self, token_t: TT) -> bool {
-        self.peek_token.token_t == token_t
+    fn peek_token_is(&self, token_t: Token) -> bool {
+        match token_t {
+            Token::Illegal(_) => match self.peek_token {
+                Token::Illegal(_) => true,
+                _ => false,
+            },
+            Token::Ident(_) => match self.peek_token {
+                Token::Ident(_) => true,
+                _ => false,
+            },
+            Token::Int(_) => match self.peek_token {
+                Token::Int(_) => true,
+                _ => false,
+            },
+            Token::StringLiteral(_) => match self.peek_token {
+                Token::StringLiteral(_) => true,
+                _ => false,
+            },
+            t => self.peek_token == t,
+        }
     }
 
-    fn expect_peek(&mut self, token_t: TT) -> Result<()> {
+    fn expect_peek(&mut self, token_t: Token) -> Result<()> {
         if self.peek_token_is(token_t.clone()) {
             self.next_token();
             Ok(())
@@ -456,34 +508,34 @@ impl Parser {
         }
     }
 
-    fn prefix_parse_fns(&mut self, token_t: TT) -> Result<Expr> {
+    fn prefix_parse_fns(&mut self, token_t: Token) -> Result<Expr> {
         Ok(match token_t {
-            TT::Ident => Expr::Identifier(self.parse_identifier()?),
-            TT::Int => Expr::Integer(self.parse_integer_literal()?),
-            TT::Bang | TT::Minus => Expr::PrefixExpr(self.parse_prefix_expr()?),
-            TT::True | TT::False => Expr::Boolean(self.parse_bool_literal()?),
-            TT::Lparen => self.parse_grouped_expr()?,
-            TT::If => Expr::If(self.parse_if_expr()?),
-            TT::Function => Expr::Function(self.parse_function_literal()?),
-            TT::StringLiteral => Expr::StringLit(self.parse_string_literal()?),
-            TT::Lbracket => Expr::Array(self.parse_array_literal()?),
-            TT::Lbrace => Expr::Hash(self.parse_hash_literal()?),
+            Token::Ident(_) => Expr::Identifier(self.parse_identifier()?),
+            Token::Int(_) => Expr::Integer(self.parse_integer_literal()?),
+            Token::Bang | Token::Minus => Expr::PrefixExpr(self.parse_prefix_expr()?),
+            Token::True | Token::False => Expr::Boolean(self.parse_bool_literal()?),
+            Token::Lparen => self.parse_grouped_expr()?,
+            Token::If => Expr::If(self.parse_if_expr()?),
+            Token::Function => Expr::Function(self.parse_function_literal()?),
+            Token::StringLiteral(_) => Expr::StringLit(self.parse_string_literal()?),
+            Token::Lbracket => Expr::Array(self.parse_array_literal()?),
+            Token::Lbrace => Expr::Hash(self.parse_hash_literal()?),
             t => return parse_error(&format!("Invalid token. {:?}", t)),
         })
     }
 
-    fn infix_parse_fns(&self, token_t: TT) -> Result<InfixFn> {
+    fn infix_parse_fns(&self, token_t: Token) -> Result<InfixFn> {
         Ok(match token_t {
-            TT::Plus
-            | TT::Minus
-            | TT::Slash
-            | TT::Asterisk
-            | TT::Equal
-            | TT::NotEqual
-            | TT::Lt
-            | TT::Gt => InfixFn::Infix,
-            TT::Lparen => InfixFn::Call,
-            TT::Lbracket => InfixFn::Index,
+            Token::Plus
+            | Token::Minus
+            | Token::Slash
+            | Token::Asterisk
+            | Token::Equal
+            | Token::NotEqual
+            | Token::Lt
+            | Token::Gt => InfixFn::Infix,
+            Token::Lparen => InfixFn::Call,
+            Token::Lbracket => InfixFn::Index,
             t => return parse_error(&format!("Invalid token. {:?}", t)),
         })
     }
@@ -617,13 +669,7 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt");
         };
-        assert_eq!(
-            expr_stmt.token,
-            Token {
-                token_t: TT::If,
-                literal: "if".to_string()
-            },
-        );
+        assert_eq!(expr_stmt.token, Token::If);
 
         let if_expr = if let Expr::If(x) = &expr_stmt.expr {
             x
@@ -631,13 +677,7 @@ mod tests {
             panic!("Expect type is Expr::If");
         };
 
-        assert_eq!(
-            if_expr.token,
-            Token {
-                token_t: TT::If,
-                literal: "if".to_string()
-            }
-        );
+        assert_eq!(if_expr.token, Token::If);
 
         test_infix_by_expr(
             if_expr.cond.as_ref(),
@@ -646,13 +686,7 @@ mod tests {
             &Val::Id(Id("y")),
         );
 
-        assert_eq!(
-            if_expr.consequence.token,
-            Token {
-                token_t: TT::Lbrace,
-                literal: "{".to_string()
-            }
-        );
+        assert_eq!(if_expr.consequence.token, Token::Lbrace);
         assert_eq!(if_expr.consequence.statements.len(), 1);
         test_identifier_by_stmt(&if_expr.consequence.statements[0], "x");
         assert_eq!(if_expr.alternative, None);
@@ -674,13 +708,7 @@ mod tests {
             } else {
                 panic!("Expect type is Stmt::ExprStmt");
             };
-            assert_eq!(
-                expr_stmt.token,
-                Token {
-                    token_t: TT::If,
-                    literal: "if".to_string()
-                },
-            );
+            assert_eq!(expr_stmt.token, Token::If);
 
             let if_expr = if let Expr::If(x) = &expr_stmt.expr {
                 x
@@ -688,13 +716,7 @@ mod tests {
                 panic!("Expect type is Expr::If");
             };
 
-            assert_eq!(
-                if_expr.token,
-                Token {
-                    token_t: TT::If,
-                    literal: "if".to_string()
-                }
-            );
+            assert_eq!(if_expr.token, Token::If);
 
             test_infix_by_expr(
                 if_expr.cond.as_ref(),
@@ -703,13 +725,7 @@ mod tests {
                 &Val::Id(Id("y")),
             );
 
-            assert_eq!(
-                if_expr.consequence.token,
-                Token {
-                    token_t: TT::Lbrace,
-                    literal: "{".to_string()
-                }
-            );
+            assert_eq!(if_expr.consequence.token, Token::Lbrace);
             assert_eq!(if_expr.consequence.statements.len(), 1);
             test_identifier_by_stmt(&if_expr.consequence.statements[0], "x");
 
@@ -718,13 +734,7 @@ mod tests {
             } else {
                 panic!("Expect some Expr::Block");
             };
-            assert_eq!(
-                alt.token,
-                Token {
-                    token_t: TT::Lbrace,
-                    literal: "{".to_string()
-                }
-            );
+            assert_eq!(alt.token, Token::Lbrace);
             assert_eq!(alt.statements.len(), 1);
             test_identifier_by_stmt(&alt.statements[0], "y");
         }
@@ -744,13 +754,7 @@ mod tests {
                 panic!("Expect type is Stmt::ExprStmt");
             };
 
-            assert_eq!(
-                expr_stmt.token,
-                Token {
-                    token_t: TT::Function,
-                    literal: "fn".to_string()
-                }
-            );
+            assert_eq!(expr_stmt.token, Token::Function);
 
             let fn_expr = if let Expr::Function(x) = &expr_stmt.expr {
                 x
@@ -758,24 +762,12 @@ mod tests {
                 panic!("Expect type is Expr::Function")
             };
 
-            assert_eq!(
-                fn_expr.token,
-                Token {
-                    token_t: TT::Function,
-                    literal: "fn".to_string()
-                }
-            );
+            assert_eq!(fn_expr.token, Token::Function);
             assert_eq!(fn_expr.params.len(), 2);
             test_identifier(&fn_expr.params[0], "x");
             test_identifier(&fn_expr.params[1], "y");
 
-            assert_eq!(
-                fn_expr.body.token,
-                Token {
-                    token_t: TT::Lbrace,
-                    literal: "{".to_string()
-                }
-            );
+            assert_eq!(fn_expr.body.token, Token::Lbrace);
             assert_eq!(fn_expr.body.statements.len(), 1);
             test_infix_by_stmt(
                 &fn_expr.body.statements[0],
@@ -803,26 +795,14 @@ mod tests {
             } else {
                 panic!("Expect type is Stmt::ExprStmt.");
             };
-            assert_eq!(
-                stmt_expr.token,
-                Token {
-                    token_t: TT::Function,
-                    literal: "fn".to_string()
-                }
-            );
+            assert_eq!(stmt_expr.token, Token::Function);
 
             let fn_expr = if let Expr::Function(x) = &stmt_expr.expr {
                 x
             } else {
                 panic!("Expect type is Expr::Function.");
             };
-            assert_eq!(
-                fn_expr.token,
-                Token {
-                    token_t: TT::Function,
-                    literal: "fn".to_string()
-                }
-            );
+            assert_eq!(fn_expr.token, Token::Function);
             assert_eq!(fn_expr.params.len(), ids.len());
 
             for (i, id) in ids.into_iter().enumerate() {
@@ -842,26 +822,14 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt");
         };
-        assert_eq!(
-            stmt_expr.token,
-            Token {
-                token_t: TT::Ident,
-                literal: "add".to_string()
-            }
-        );
+        assert_eq!(stmt_expr.token, Token::Ident("add".into()));
 
         let call_expr = if let Expr::Call(x) = &stmt_expr.expr {
             x
         } else {
             panic!("Expect type is Expr::Call");
         };
-        assert_eq!(
-            call_expr.token,
-            Token {
-                token_t: TT::Lparen,
-                literal: "(".to_string()
-            }
-        );
+        assert_eq!(call_expr.token, Token::Lparen);
 
         test_expr(call_expr.func.as_ref(), &Val::Id(Id("add")));
         assert_eq!(call_expr.args.len(), 3);
@@ -881,13 +849,7 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt.");
         };
-        assert_eq!(
-            stmt_expr.token,
-            Token {
-                token_t: TT::StringLiteral,
-                literal: "hello world".to_string()
-            }
-        );
+        assert_eq!(stmt_expr.token, Token::StringLiteral("hello world".into()));
 
         test_expr(&stmt_expr.expr, &Val::S("hello world"));
     }
@@ -903,26 +865,14 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt.");
         };
-        assert_eq!(
-            stmt_expr.token,
-            Token {
-                token_t: TT::Lbracket,
-                literal: "[".to_string()
-            }
-        );
+        assert_eq!(stmt_expr.token, Token::Lbracket);
 
         let array_expr = if let Expr::Array(x) = &stmt_expr.expr {
             x
         } else {
             panic!("Expect type is Expr::Array.");
         };
-        assert_eq!(
-            array_expr.token,
-            Token {
-                token_t: TT::Lbracket,
-                literal: "[".to_string()
-            }
-        );
+        assert_eq!(array_expr.token, Token::Lbracket);
         assert_eq!(array_expr.elements.len(), 3);
         test_expr(&array_expr.elements[0], &Val::I(1));
         test_infix_by_expr(&array_expr.elements[1], &Val::I(2), "*", &Val::I(2));
@@ -940,26 +890,14 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt.");
         };
-        assert_eq!(
-            stmt_expr.token,
-            Token {
-                token_t: TT::Ident,
-                literal: "myArray".to_string()
-            }
-        );
+        assert_eq!(stmt_expr.token, Token::Ident("myArray".into()));
 
         let index_expr = if let Expr::Index(x) = &stmt_expr.expr {
             x
         } else {
             panic!("Expect type is Expr::Index.");
         };
-        assert_eq!(
-            index_expr.token,
-            Token {
-                token_t: TT::Lbracket,
-                literal: "[".to_string()
-            }
-        );
+        assert_eq!(index_expr.token, Token::Lbracket);
         test_expr(index_expr.left.as_ref(), &Val::Id(Id("myArray")));
         test_infix_by_expr(index_expr.index.as_ref(), &Val::I(1), "+", &Val::I(1));
     }
@@ -1016,26 +954,14 @@ mod tests {
             } else {
                 panic!("Expect type is Stmt::ExprStmt.");
             };
-            assert_eq!(
-                expr_stmt.token,
-                Token {
-                    token_t: TT::Lbrace,
-                    literal: "{".to_string()
-                }
-            );
+            assert_eq!(expr_stmt.token, Token::Lbrace);
 
             let hash_expr = if let Expr::Hash(x) = &expr_stmt.expr {
                 x
             } else {
                 panic!("Expect type is Expr::Hash.");
             };
-            assert_eq!(
-                hash_expr.token,
-                Token {
-                    token_t: TT::Lbrace,
-                    literal: "{".to_string()
-                }
-            );
+            assert_eq!(hash_expr.token, Token::Lbrace);
             assert_eq!(hash_expr.pairs.len(), expect_list.len());
             for (i, expect) in expect_list.into_iter().enumerate() {
                 test_expr(&hash_expr.pairs[i].key, &expect.0);
@@ -1063,25 +989,17 @@ mod tests {
 
         assert_eq!(
             expr_stmt.token,
-            Token {
-                token_t: match l {
-                    Val::I(_) => TT::Int,
-                    Val::B(b) => {
-                        if *b {
-                            TT::True
-                        } else {
-                            TT::False
-                        }
+            match l {
+                Val::I(v) => Token::Int(v.to_string()),
+                Val::B(b) => {
+                    if *b {
+                        Token::True
+                    } else {
+                        Token::False
                     }
-                    Val::Id(_) => TT::Ident,
-                    _ => panic!("Invalid Val."),
-                },
-                literal: match l {
-                    Val::I(i) => i.to_string(),
-                    Val::B(b) => if *b { "true" } else { "false" }.to_string(),
-                    Val::Id(id) => id.0.to_string(),
-                    _ => panic!("Invalid Val."),
-                },
+                }
+                Val::Id(id) => Token::Ident(id.0.into()),
+                _ => panic!("Invalid Val."),
             }
         );
 
@@ -1097,20 +1015,17 @@ mod tests {
     fn test_infix(infix: &ast::InfixExpr, l: &Val, o: &str, r: &Val) {
         assert_eq!(
             infix.token,
-            Token {
-                token_t: match o {
-                    "+" => TT::Plus,
-                    "-" => TT::Minus,
-                    "/" => TT::Slash,
-                    "*" => TT::Asterisk,
-                    "==" => TT::Equal,
-                    "!=" => TT::NotEqual,
-                    "<" => TT::Lt,
-                    ">" => TT::Gt,
-                    _ => panic!("Invalid token."),
-                },
-                literal: o.to_string(),
-            }
+            match o {
+                "+" => Token::Plus,
+                "-" => Token::Minus,
+                "/" => Token::Slash,
+                "*" => Token::Asterisk,
+                "==" => Token::Equal,
+                "!=" => Token::NotEqual,
+                "<" => Token::Lt,
+                ">" => Token::Gt,
+                _ => panic!("Invalid token."),
+            },
         );
 
         test_expr(&infix.left, l);
@@ -1127,13 +1042,10 @@ mod tests {
 
         assert_eq!(
             expr_stmt.token,
-            Token {
-                token_t: match ope {
-                    "!" => TT::Bang,
-                    "-" => TT::Minus,
-                    _ => panic!("Expect operator is '!' or '-'"),
-                },
-                literal: ope.to_string()
+            match ope {
+                "!" => Token::Bang,
+                "-" => Token::Minus,
+                _ => panic!("Expect operator is '!' or '-'"),
             }
         );
 
@@ -1144,14 +1056,11 @@ mod tests {
         };
         assert_eq!(
             prefix_expr.token,
-            Token {
-                token_t: match ope {
-                    "!" => TT::Bang,
-                    "-" => TT::Minus,
-                    _ => panic!("Expect operator is '!' or '-'"),
-                },
-                literal: ope.to_string()
-            }
+            match ope {
+                "!" => Token::Bang,
+                "-" => Token::Minus,
+                _ => panic!("Expect operator is '!' or '-'"),
+            },
         );
         test_operator(&prefix_expr.ope, ope);
         test_expr(&prefix_expr.right, &r);
@@ -1182,10 +1091,7 @@ mod tests {
             panic!("Expect type is Stmt::ExprStmt");
         };
 
-        let expected_token = Token {
-            token_t: if v { TT::True } else { TT::False },
-            literal: if v { "true" } else { "false" }.to_string(),
-        };
+        let expected_token = if v { Token::True } else { Token::False };
 
         assert_eq!(expr_stmt.token, expected_token);
         let boolean_expr = if let Expr::Boolean(x) = &expr_stmt.expr {
@@ -1210,13 +1116,7 @@ mod tests {
             panic!("Expect type is Stmt::Let");
         };
 
-        assert_eq!(
-            let_stmt.token,
-            Token {
-                token_t: TT::Let,
-                literal: "let".to_string()
-            }
-        );
+        assert_eq!(let_stmt.token, Token::Let);
         test_identifier(&let_stmt.name, id.0);
         test_expr(&let_stmt.value, v);
     }
@@ -1228,13 +1128,7 @@ mod tests {
             panic!("Expect type is Stmt::Return");
         };
 
-        assert_eq!(
-            return_stmt.token,
-            Token {
-                token_t: TT::Return,
-                literal: "return".to_string()
-            }
-        );
+        assert_eq!(return_stmt.token, Token::Return);
         test_expr(&return_stmt.return_value, v);
     }
 
@@ -1245,13 +1139,7 @@ mod tests {
             panic!("Expect type is Stmt::ExprStmt");
         };
 
-        assert_eq!(
-            expr_stmt.token,
-            Token {
-                token_t: TT::Ident,
-                literal: literal.to_string()
-            }
-        );
+        assert_eq!(expr_stmt.token, Token::Ident(literal.into()));
 
         let identifier = if let Expr::Identifier(x) = &expr_stmt.expr {
             x
@@ -1268,13 +1156,7 @@ mod tests {
             panic!("Expect type is Stmt::ExprStmt");
         };
 
-        assert_eq!(
-            expr_stmt.token,
-            Token {
-                token_t: TT::Int,
-                literal: v.to_string()
-            }
-        );
+        assert_eq!(expr_stmt.token, Token::Int(v.to_string()));
 
         let integer = if let Expr::Integer(x) = &expr_stmt.expr {
             x
@@ -1288,11 +1170,8 @@ mod tests {
         assert_eq!(
             *integer,
             ast::Integer {
-                token: Token {
-                    token_t: TT::Int,
-                    literal: v.to_string()
-                },
-                value: v
+                token: Token::Int(v.to_string()),
+                value: v.into()
             }
         );
     }
@@ -1301,11 +1180,8 @@ mod tests {
         assert_eq!(
             *identifier,
             ast::Identifier {
-                token: Token {
-                    token_t: TT::Ident,
-                    literal: literal.to_string(),
-                },
-                value: literal.to_string(),
+                token: Token::Ident(literal.into()),
+                value: literal.into(),
             }
         );
     }
@@ -1321,10 +1197,7 @@ mod tests {
             Val::S(v) => assert_eq!(
                 *expr,
                 Expr::StringLit(ast::StringLit {
-                    token: Token {
-                        token_t: TT::StringLiteral,
-                        literal: v.to_string()
-                    },
+                    token: Token::StringLiteral(v.to_string()),
                     value: v.to_string()
                 })
             ),
@@ -1332,14 +1205,8 @@ mod tests {
                 *expr,
                 Expr::Boolean(ast::Boolean {
                     token: match v {
-                        true => Token {
-                            token_t: TT::True,
-                            literal: "true".to_string()
-                        },
-                        false => Token {
-                            token_t: TT::False,
-                            literal: "false".to_string()
-                        },
+                        true => Token::True,
+                        false => Token::False,
                     },
                     value: *v
                 })
@@ -1347,20 +1214,14 @@ mod tests {
             Val::Id(v) => assert_eq!(
                 *expr,
                 Expr::Identifier(ast::Identifier {
-                    token: Token {
-                        token_t: TT::Ident,
-                        literal: v.0.to_string()
-                    },
+                    token: Token::Ident(v.0.to_string()),
                     value: v.0.to_string()
                 })
             ),
             Val::I(v) => assert_eq!(
                 *expr,
                 Expr::Integer(ast::Integer {
-                    token: Token {
-                        token_t: TT::Int,
-                        literal: v.to_string()
-                    },
+                    token: Token::Int(v.to_string()),
                     value: *v
                 })
             ),

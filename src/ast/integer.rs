@@ -8,6 +8,6 @@ pub struct Integer {
 
 impl Display for Integer {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.token.literal)
+        write!(f, "{}", self.token.literal())
     }
 }

@@ -11,7 +11,7 @@ impl Display for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let out = format!(
             "{}({}) {}",
-            self.token.literal,
+            self.token.literal(),
             self.params
                 .iter()
                 .map(|p| p.to_string())
