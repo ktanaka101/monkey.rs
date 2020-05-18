@@ -17,6 +17,11 @@ impl From<Block> for Stmt {
 
 impl Display for Stmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
+        match self {
+            Self::ExprStmt(s) => write!(f, "{}", s),
+            Self::Let(s) => write!(f, "{}", s),
+            Self::Block(s) => write!(f, "{}", s),
+            Self::Return(s) => write!(f, "{}", s),
+        }
     }
 }
