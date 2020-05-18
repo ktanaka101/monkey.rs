@@ -1,7 +1,8 @@
+use std::convert::TryFrom;
 use std::hash;
 
 use super::prelude::*;
-use super::{Boolean, Integer, StringLit};
+use super::{Boolean, Integer, Object, StringLit};
 
 #[derive(Debug, Clone, Eq)]
 pub enum HashableObject {
@@ -34,5 +35,17 @@ impl PartialEq for HashableObject {
             (Self::StringLit(x), Self::StringLit(y)) => x.eq(y),
             (_, _) => false,
         }
+    }
+}
+
+impl TryFrom<Object> for HashableObject {
+    type Error = String;
+    fn try_from(value: Object) -> Result<HashableObject, String> {
+        Ok(match value {
+            Object::Integer(i) => HashableObject::Integer(i),
+            Object::Boolean(b) => HashableObject::Boolean(b),
+            Object::StringLit(s) => HashableObject::StringLit(s),
+            _ => return Err(format!("Unsupported object.({:?})", value)),
+        })
     }
 }

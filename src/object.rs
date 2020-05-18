@@ -124,13 +124,4 @@ impl Object {
             Self::Null(_) => "Null",
         }
     }
-
-    pub fn try_into_hashable_object(self) -> Option<HashableObject> {
-        Some(match self {
-            Self::Integer(i) => HashableObject::Integer(i),
-            Self::Boolean(b) => HashableObject::Boolean(b),
-            Self::StringLit(s) => HashableObject::StringLit(s),
-            _ => return None,
-        })
-    }
 }

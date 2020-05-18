@@ -358,9 +358,9 @@ fn eval_hash_literal(node: &ast::Hash, env: Rc<RefCell<Environment>>) -> Result<
         let value = eval_expr(&pair.value, Rc::clone(&env))?;
         let key_type = key.o_type();
 
-        match key.try_into_hashable_object() {
-            Some(o) => pairs.insert(o, value),
-            None => new_error(&format!("unusable as hash key: {}", key_type))?,
+        match object::HashableObject::try_from(key) {
+            Ok(o) => pairs.insert(o, value),
+            Err(_) => new_error(&format!("unusable as hash key: {}", key_type))?,
         };
     }
 
@@ -372,11 +372,11 @@ fn eval_hash_index_expr<'a>(
     key: &object::Object,
 ) -> Result<&'a object::Object> {
     let key_type = key.o_type();
-    match key.clone().try_into_hashable_object() {
-        Some(o) => Ok(match hash.pairs.get(&o) {
+    match object::HashableObject::try_from(key.clone()) {
+        Ok(o) => Ok(match hash.pairs.get(&o) {
             Some(value) => &value,
             None => &object::Object::Null(NULL),
         }),
-        None => new_error(&format!("unusable as hash key: {}", key_type))?,
+        Err(_) => new_error(&format!("unusable as hash key: {}", key_type))?,
     }
 }
