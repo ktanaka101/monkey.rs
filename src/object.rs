@@ -109,6 +109,7 @@ impl Display for Object {
         }
     }
 }
+
 impl Object {
     pub fn o_type(&self) -> &'static str {
         match self {
