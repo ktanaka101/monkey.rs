@@ -40,10 +40,7 @@ pub enum Token {
 impl Token {
     pub fn literal(&self) -> &str {
         match self {
-            Self::Illegal(s) => s,
-            Self::Ident(s) => s,
-            Self::Int(s) => s,
-            Self::StringLiteral(s) => s,
+            Self::Illegal(s) | Self::Ident(s) | Self::Int(s) | Self::StringLiteral(s) => s,
             Self::Eof => "",
             Self::Assign => "=",
             Self::Plus => "+",
