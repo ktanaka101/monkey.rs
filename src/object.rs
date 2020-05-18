@@ -110,7 +110,7 @@ impl Display for Object {
     }
 }
 impl Object {
-    pub fn o_type(&self) -> String {
+    pub fn o_type(&self) -> &'static str {
         match self {
             Self::Integer(_) => "Integer",
             Self::Boolean(_) => "Boolean",
@@ -123,7 +123,6 @@ impl Object {
             Self::Hash(_) => "Hash",
             Self::Null(_) => "Null",
         }
-        .to_string()
     }
 
     pub fn try_into_hashable_object(self) -> Option<HashableObject> {
