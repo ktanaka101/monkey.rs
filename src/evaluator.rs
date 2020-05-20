@@ -398,3 +398,64 @@ fn eval_hash_index_expr<'a>(
         Err(_) => new_error(&format!("unusable as hash key: {}", key_type))?,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_eval_integer_expression() {
+        let tests = vec![
+            ("5", 5_i64),
+            ("5", 5_i64),
+            ("10", 10_i64),
+            ("-5", -5_i64),
+            ("-10", -10_i64),
+            ("5 + 5 + 5 + 5 - 10", 10_i64),
+            ("2 * 2 * 2 * 2 * 2", 32_i64),
+            ("-50 + 100 + -50", 0_i64),
+            ("5 * 2 + 10", 20_i64),
+            ("5 + 2 * 10", 25_i64),
+            ("20 + 2 * -10", 0_i64),
+            ("50 / 2 * 2 + 10", 60_i64),
+            ("2 * (5 + 10)", 30_i64),
+            ("3 * 3 * 3 + 10", 37_i64),
+            ("3 * (3 * 3) + 10", 37_i64),
+            ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50_i64),
+        ];
+
+        tests
+            .iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), *expected));
+    }
+
+    fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
+    where
+        E: std::fmt::Debug,
+    {
+        result
+            .map_err(move |e| format!("{} //=> {:?}", input, e))
+            .unwrap()
+    }
+
+    fn eval(input: &str) -> object::Object {
+        let l = crate::lexer::Lexer::new(input.to_string());
+        let mut p = crate::parser::Parser::new(l);
+
+        let program = p.parse_program();
+        let program = check_err_and_unrwap(program, input);
+
+        let env = Rc::new(RefCell::new(Environment::new(None)));
+        let evaluated = eval_program(&program, env);
+        check_err_and_unrwap(evaluated, input)
+    }
+
+    fn assert_integer_object(obj: object::Object, expected: i64) {
+        match obj {
+            object::Object::Integer(o) => {
+                assert_eq!(o.value, expected);
+            }
+            o => panic!(format!("expected Integer. received {:?}", o)),
+        }
+    }
+}
