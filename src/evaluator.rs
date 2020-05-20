@@ -210,6 +210,24 @@ fn eval_integer_infix_expr(
             };
             object::Integer { value }.into()
         }
+        Asterisk => {
+            let value = match left.value.checked_mul(right.value) {
+                Some(v) => v,
+                None => new_error(&format!("overflow: {} - {}", left.value, right.value))?,
+            };
+            object::Integer { value }.into()
+        }
+        Slash => {
+            let value = match left.value.checked_div(right.value) {
+                Some(v) => v,
+                None => new_error(&format!("overflow: {} - {}", left.value, right.value))?,
+            };
+            object::Integer { value }.into()
+        }
+        Lt => native_bool_to_boolean_object(left.value < right.value),
+        Gt => native_bool_to_boolean_object(left.value > right.value),
+        Equal => native_bool_to_boolean_object(left.value == right.value),
+        NotEqual => native_bool_to_boolean_object(left.value != right.value),
         unknown => new_error(&format!("unknown operator: {}", unknown))?,
     };
 
