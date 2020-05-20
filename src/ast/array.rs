@@ -13,8 +13,8 @@ impl Display for Array {
             .iter()
             .map(|e| e.to_string())
             .collect::<Vec<String>>()
-            .join("");
+            .join(", ");
 
-        write!(f, "{}", out)
+        write!(f, "[{}]", out)
     }
 }
