@@ -15,6 +15,6 @@ impl Display for Array {
             .collect::<Vec<String>>()
             .join(", ");
 
-        write!(f, "{}", out)
+        write!(f, "[{}]", out)
     }
 }
