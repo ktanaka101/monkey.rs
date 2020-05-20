@@ -248,7 +248,9 @@ impl Parser {
 
     fn parse_grouped_expr(&mut self) -> Result<Expr> {
         self.next_token();
-        self.parse_expr(Priority::Lowest)
+        let expr = self.parse_expr(Priority::Lowest)?;
+        self.expect_peek(Token::Rparen)?;
+        Ok(expr)
     }
 
     fn parse_prefix_expr(&mut self) -> Result<ast::PrefixExpr> {
