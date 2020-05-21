@@ -492,6 +492,33 @@ mod tests {
             .into_iter()
             .for_each(|input| assert_null_object(eval(input)));
     }
+
+    #[test]
+    fn test_return_statements() {
+        let tests = vec![
+            ("return 10;", 10_i64),
+            ("return 10; 9;", 10_i64),
+            ("return 2 * 5; 9;", 10_i64),
+            ("9; return 2 * 5; 9;", 10_i64),
+            (
+                r#"
+                    if (10 > 1) {
+                        if (10 > 1) {
+                            return 10;
+                        }
+                    }
+
+                    retrun 1;
+                "#,
+                10_i64,
+            ),
+        ];
+
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
