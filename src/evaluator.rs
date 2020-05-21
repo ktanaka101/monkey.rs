@@ -168,7 +168,7 @@ fn eval_infix_expr(
             eval_string_infix_expr(o, l, r)
         }
         (ast::Operator::Equal, l, r) => Ok(native_bool_to_boolean_object(l == r)),
-        (ast::Operator::NotEqual, l, r) => Ok(native_bool_to_boolean_object(l == r)),
+        (ast::Operator::NotEqual, l, r) => Ok(native_bool_to_boolean_object(l != r)),
         (o, l, r) => {
             if l.o_type() == r.o_type() {
                 new_error(&format!(
