@@ -474,6 +474,24 @@ mod tests {
             .for_each(|(input, expected)| assert_boolean_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_if_else_expression() {
+        let tests = vec![
+            ("if (true) { 10 }", 10_i64),
+            ("if (1) { 10 }", 10_i64),
+            ("if ( 1 < 2 ) { 10 }", 10_i64),
+            ("if ( 1 > 2 ) { 10 } else { 20 }", 20_i64),
+            ("if ( 1 < 2 ) { 10 } else { 20 }", 10_i64),
+        ];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+
+        let tests = vec!["if (false) { 10 }", "if ( 1 > 2 ) { 10 }"];
+        tests
+            .into_iter()
+            .for_each(|input| assert_null_object(eval(input)));
+    }
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
@@ -506,6 +524,13 @@ mod tests {
         match obj {
             object::Object::Boolean(o) => assert_eq!(o.value, expected),
             o => panic!(format!("expected Boolean. received {:?}", o)),
+        }
+    }
+
+    fn assert_null_object(obj: object::Object) {
+        match obj {
+            object::Object::Null(_) => (),
+            o => panic!(format!("expected Null. received {:?}", o)),
         }
     }
 }
