@@ -555,6 +555,20 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_let_statements() {
+        let tests = vec![
+            ("let a = 5; a;", 5_i64),
+            ("let a = 5 * 5; a;", 25_i64),
+            ("let a = 5; let b = a; b;", 5_i64),
+            ("let a = 5; let b = a; let c = a + b + 5; c;", 15_i64),
+        ];
+
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
