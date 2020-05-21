@@ -458,6 +458,22 @@ mod tests {
             .for_each(|(input, expected)| assert_boolean_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_bang_operator() {
+        let tests = vec![
+            ("!true", false),
+            ("!false", true),
+            ("!5", false),
+            ("!!true", true),
+            ("!!false", false),
+            ("!!5", true),
+        ];
+
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_boolean_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
