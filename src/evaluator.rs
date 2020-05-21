@@ -245,7 +245,7 @@ fn eval_string_infix_expr(
             value.push_str(&right.value);
             Ok(object::StringLit { value }.into())
         }
-        unknown => new_error(&format!("unknown operator: {} {} {}", unknown, left, right)),
+        unknown => new_error(&format!("unknown operator: String {} String", unknown)),
     }
 }
 
