@@ -429,6 +429,35 @@ mod tests {
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_eval_boolean_expression() {
+        let tests = vec![
+            ("true", true),
+            ("false", false),
+            ("1 < 2", true),
+            ("1 > 2", false),
+            ("1 < 1", false),
+            ("1 > 1", false),
+            ("1 == 1", true),
+            ("1 != 1", false),
+            ("1 == 2", false),
+            ("1 != 2", true),
+            ("true == true", true),
+            ("false == false", true),
+            ("true == false", false),
+            ("true != false", true),
+            ("false != true", true),
+            ("(1 < 2) == true", true),
+            ("(1 < 2) == false", false),
+            ("(1 > 2) == true", false),
+            ("(1 > 2) == false", true),
+        ];
+
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_boolean_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
@@ -454,6 +483,13 @@ mod tests {
         match obj {
             object::Object::Integer(o) => assert_eq!(o.value, expected),
             o => panic!(format!("expected Integer. received {:?}", o)),
+        }
+    }
+
+    fn assert_boolean_object(obj: object::Object, expected: bool) {
+        match obj {
+            object::Object::Boolean(o) => assert_eq!(o.value, expected),
+            o => panic!(format!("expected Boolean. received {:?}", o)),
         }
     }
 }
