@@ -425,8 +425,8 @@ mod tests {
         ];
 
         tests
-            .iter()
-            .for_each(|(input, expected)| assert_integer_object(eval(input), *expected));
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
     }
 
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
