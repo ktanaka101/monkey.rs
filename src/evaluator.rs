@@ -569,6 +569,25 @@ mod tests {
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_function_object() {
+        let tests = vec![("fn(x) { x + 2; };", 1, "x", "(x + 2)")];
+
+        tests.into_iter().for_each(
+            |(input, expected_params_size, expected_params, expected_body)| {
+                let obj = eval(input);
+                match obj {
+                    object::Object::Function(o) => {
+                        assert_eq!(o.params.len(), expected_params_size);
+                        assert_eq!(o.params[0].to_string(), expected_params);
+                        assert_eq!(o.body.to_string(), expected_body);
+                    }
+                    o => panic!(format!("expected Function. received {}", o)),
+                }
+            },
+        );
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
