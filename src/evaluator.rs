@@ -452,9 +452,7 @@ mod tests {
 
     fn assert_integer_object(obj: object::Object, expected: i64) {
         match obj {
-            object::Object::Integer(o) => {
-                assert_eq!(o.value, expected);
-            }
+            object::Object::Integer(o) => assert_eq!(o.value, expected),
             o => panic!(format!("expected Integer. received {:?}", o)),
         }
     }
