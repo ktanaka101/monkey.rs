@@ -519,6 +519,42 @@ mod tests {
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_error_handling() {
+        let tests = vec![
+            ("5 + true;", "type mismatch: Integer + Boolean"),
+            ("5 + true; 5;", "type mismatch: Integer + Boolean"),
+            ("-true", "unknown operator: -Boolean"),
+            ("true + false;", "unknown operator: Boolean + Boolean"),
+            ("5; true + false; 5", "unknown operator: Boolean + Boolean"),
+            (
+                "if (10 > 1 ) { true + false; }",
+                "unknown operator: Boolean + Boolean",
+            ),
+            (
+                r#"
+                if (10 > 1) {
+                if (10 > 1) {
+                    return true + false;
+                }
+                return 1;
+                }
+            "#,
+                "unknown operator: Boolean + Boolean",
+            ),
+            ("foobar", "identifier not found: foobar"),
+            (r#""Hello" - "World""#, "unknown operator: String - String"),
+            (
+                r#"{"name": "Monkey"}[fn(x) { x }];"#,
+                "unusable as hash key: Function",
+            ),
+        ];
+
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_error_object(eval_non_check(input).unwrap_err(), expected)
+        });
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
@@ -529,6 +565,11 @@ mod tests {
     }
 
     fn eval(input: &str) -> object::Object {
+        let evaluated = eval_non_check(input);
+        check_err_and_unrwap(evaluated, input)
+    }
+
+    fn eval_non_check(input: &str) -> Result<object::Object> {
         let l = crate::lexer::Lexer::new(input.to_string());
         let mut p = crate::parser::Parser::new(l);
 
@@ -536,8 +577,7 @@ mod tests {
         let program = check_err_and_unrwap(program, input);
 
         let env = Rc::new(RefCell::new(Environment::new(None)));
-        let evaluated = eval_program(&program, env);
-        check_err_and_unrwap(evaluated, input)
+        eval_program(&program, env)
     }
 
     fn assert_integer_object(obj: object::Object, expected: i64) {
@@ -559,5 +599,9 @@ mod tests {
             object::Object::Null(_) => (),
             o => panic!(format!("expected Null. received {:?}", o)),
         }
+    }
+
+    fn assert_error_object(err: object::Error, expected: &str) {
+        assert_eq!(err.message, expected)
     }
 }
