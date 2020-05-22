@@ -112,7 +112,7 @@ fn last(args: &[object::Object]) -> Result<object::Object, object::Error> {
             })
         }
         not_arr => new_error(&format!(
-            "argument to 'first' must be Array, got {}",
+            "argument to 'last' must be Array, got {}",
             not_arr.o_type()
         )),
     }
@@ -132,7 +132,7 @@ fn rest(args: &[object::Object]) -> Result<object::Object, object::Error> {
         }
         .into()),
         not_arr => new_error(&format!(
-            "argument to 'last' must be Array, got {}",
+            "argument to 'rest' must be Array, got {}",
             not_arr.o_type()
         )),
     }
