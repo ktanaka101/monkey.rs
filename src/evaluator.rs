@@ -830,6 +830,14 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_array_literal() {
+        let tests = vec![("[1, 2 * 2, 3 + 3]", vec![1_i64, 4_i64, 6_i64])];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_array_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
