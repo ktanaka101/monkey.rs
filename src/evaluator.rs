@@ -644,6 +644,15 @@ mod tests {
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_string_literal() {
+        let tests = vec![(r#""Hello World!""#, "Hello World!")];
+
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_string_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
@@ -692,5 +701,12 @@ mod tests {
 
     fn assert_error_object(err: object::Error, expected: &str) {
         assert_eq!(err.message, expected)
+    }
+
+    fn assert_string_object(obj: object::Object, expected: &str) {
+        match obj {
+            object::Object::StringLit(o) => assert_eq!(o.value, expected),
+            o => panic!(format!("expected StringLit. received {:?}", o)),
+        }
     }
 }
