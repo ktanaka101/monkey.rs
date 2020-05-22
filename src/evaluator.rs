@@ -710,6 +710,40 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_builtin_function_last() {
+        let tests = vec![("last([1, 2, 3])", 3_i64)];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+
+        let tests = vec![(r#"last(["one", "two"])"#, "two")];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_string_object(eval(input), expected));
+
+        let tests = vec!["last([])"];
+        tests
+            .into_iter()
+            .for_each(|input| assert_null_object(eval(input)));
+
+        let tests = vec![("let a = [1, 2, 3]; last(a); last(a) == last(a)", true)];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_boolean_object(eval(input), expected));
+
+        let tests = vec![
+            (
+                "last([1, 2, 3], [1, 2, 3])",
+                "wrong number of arguments. got=2, want=1",
+            ),
+            ("last(1)", "argument to 'last' must be Array, got Integer"),
+        ];
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_error_object(eval_non_check(input).unwrap_err(), expected)
+        });
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
