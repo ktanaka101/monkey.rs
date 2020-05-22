@@ -588,6 +588,43 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_function_application() {
+        let tests = vec![
+            ("let identity = fn(x) { x; }; identity(5);", 5_i64),
+            ("let identity = fn(x) { return x; }; identity(5);", 5_i64),
+            ("let double = fn(x) { x * 2; }; double(5);", 10_i64),
+            ("let add = fn(x, y) { x + y; }; add(5, 5);", 10_i64),
+            (
+                "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));",
+                20_i64,
+            ),
+            ("fn(x) { x; }(5)", 5_i64),
+            (
+                r#"
+                    let add = fn(a, b) { a + b };
+                    let sub = fn(a, b) { a - b };
+                    let apply_func = fn(a, b, func) { func(a, b) };
+                    apply_func(2, 2, add);
+                "#,
+                4_i64,
+            ),
+            (
+                r#"
+                    let add = fn(a, b) { a + b };
+                    let sub = fn(a, b) { a - b };
+                    let apply_func = fn(a, b, func) { func(a, b) };
+                    apply_func(10, 2, sub);
+                "#,
+                8_i64,
+            ),
+        ];
+
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
