@@ -423,7 +423,6 @@ mod tests {
             ("3 * (3 * 3) + 10", 37_i64),
             ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50_i64),
         ];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
@@ -452,7 +451,6 @@ mod tests {
             ("(1 > 2) == true", false),
             ("(1 > 2) == false", true),
         ];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_boolean_object(eval(input), expected));
@@ -468,7 +466,6 @@ mod tests {
             ("!!false", false),
             ("!!5", true),
         ];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_boolean_object(eval(input), expected));
@@ -513,7 +510,6 @@ mod tests {
                 10_i64,
             ),
         ];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
@@ -549,7 +545,6 @@ mod tests {
                 "unusable as hash key: Function",
             ),
         ];
-
         tests.into_iter().for_each(|(input, expected)| {
             assert_error_object(eval_non_check(input).unwrap_err(), expected)
         });
@@ -563,7 +558,6 @@ mod tests {
             ("let a = 5; let b = a; b;", 5_i64),
             ("let a = 5; let b = a; let c = a + b + 5; c;", 15_i64),
         ];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
@@ -572,7 +566,6 @@ mod tests {
     #[test]
     fn test_function_object() {
         let tests = vec![("fn(x) { x + 2; };", 1, "x", "(x + 2)")];
-
         tests.into_iter().for_each(
             |(input, expected_params_size, expected_params, expected_body)| {
                 let obj = eval(input);
@@ -619,7 +612,6 @@ mod tests {
                 8_i64,
             ),
         ];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
@@ -638,7 +630,6 @@ mod tests {
                 "#,
             4_i64,
         )];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
@@ -647,7 +638,6 @@ mod tests {
     #[test]
     fn test_string_literal() {
         let tests = vec![(r#""Hello World!""#, "Hello World!")];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_string_object(eval(input), expected));
@@ -656,7 +646,6 @@ mod tests {
     #[test]
     fn test_string_concatenation() {
         let tests = vec![(r#""Hello" + " " + "World!""#, "Hello World!")];
-
         tests
             .into_iter()
             .for_each(|(input, expected)| assert_string_object(eval(input), expected));
