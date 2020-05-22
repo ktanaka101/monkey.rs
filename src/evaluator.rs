@@ -841,6 +841,34 @@ mod tests {
             .for_each(|(input, expected)| assert_integer_array_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_array_index_expression() {
+        let tests = vec![
+            ("[1, 2, 3][0]", 1_i64),
+            ("[1, 2, 3][1]", 2_i64),
+            ("[1, 2, 3][2]", 3_i64),
+            ("let i = 0; [1][i];", 1_i64),
+            ("[1, 2, 3][1 + 1];", 3_i64),
+            ("let myArray = [1, 2, 3]; myArray[2];", 3_i64),
+            (
+                "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+                6_i64,
+            ),
+            (
+                "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i];",
+                2_i64,
+            ),
+        ];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+
+        let tests = vec!["[1, 2, 3][3]", "[1, 2, 3][-1]"];
+        tests
+            .into_iter()
+            .for_each(|input| assert_null_object(eval(input)));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
