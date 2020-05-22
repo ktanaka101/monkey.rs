@@ -662,6 +662,31 @@ mod tests {
             .for_each(|(input, expected)| assert_string_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_builtin_function_len() {
+        let tests = vec![
+            (r#"len("")"#, 0_i64),
+            (r#"len("four")"#, 4_i64),
+            (r#"len("hello world")"#, 11_i64),
+            ("len([])", 0_i64),
+            (r#"len([1, "hello", 33])"#, 3_i64),
+        ];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+
+        let tests = vec![
+            ("len(1)", "argument to 'len' not supported, got Integer"),
+            (
+                r#"len("one", "two")"#,
+                "wrong number of arguments. got=2, want=1",
+            ),
+        ];
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_error_object(eval_non_check(input).unwrap_err(), expected)
+        });
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
