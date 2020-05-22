@@ -653,6 +653,15 @@ mod tests {
             .for_each(|(input, expected)| assert_string_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_string_concatenation() {
+        let tests = vec![(r#""Hello" + " " + "World!""#, "Hello World!")];
+
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_string_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
