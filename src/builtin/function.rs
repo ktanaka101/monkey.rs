@@ -127,10 +127,16 @@ fn rest(args: &[object::Object]) -> Result<object::Object, object::Error> {
     }
 
     match &args[0] {
-        object::Object::Array(ref arr) => Ok(object::Array {
-            elements: arr.elements[1..].to_vec(),
+        object::Object::Array(arr) => {
+            if arr.elements.is_empty() {
+                return Ok(NULL.into());
+            }
+
+            Ok(object::Array {
+                elements: arr.elements[1..].to_vec(),
+            }
+            .into())
         }
-        .into()),
         not_arr => new_error(&format!(
             "argument to 'rest' must be Array, got {}",
             not_arr.o_type()
