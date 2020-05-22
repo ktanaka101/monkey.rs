@@ -783,6 +783,53 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_builtin_function_push() {
+        let tests = vec![
+            ("push([1, 2, 3], 4)", vec![1_i64, 2_i64, 3_i64, 4_i64]),
+            ("push([1, 2, 3], 3)", vec![1_i64, 2_i64, 3_i64, 3_i64]),
+            ("push([], 1)", vec![1_i64]),
+            (
+                "let a = [1, 2]; push(push(a, 3), 4);",
+                vec![1_i64, 2_i64, 3_i64, 4_i64],
+            ),
+        ];
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_integer_array_object(eval(input), expected.into())
+        });
+
+        let input = "push([1, 2, 3], [4, 5])";
+        let expected1 = 1_i64;
+        let expected2 = 2_i64;
+        let expected3 = 3_i64;
+        let expected4 = vec![4_i64, 5_i64];
+        let evaluated = eval(input);
+        match evaluated {
+            object::Object::Array(o) => {
+                assert_eq!(o.elements.len(), 4);
+                assert_integer_object(o.elements[0].clone(), expected1);
+                assert_integer_object(o.elements[1].clone(), expected2);
+                assert_integer_object(o.elements[2].clone(), expected3);
+                assert_integer_array_object(o.elements[3].clone(), expected4)
+            }
+            o => panic!(format!("expected Array, received {:?}.", o)),
+        }
+
+        let tests = vec![
+            (
+                "push([1, 2, 3], 1, 2)",
+                "wrong number of arguments. got=3, want=2",
+            ),
+            (
+                "push(1, 2)",
+                "argument to 'push' must be Array, got Integer",
+            ),
+        ];
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_error_object(eval_non_check(input).unwrap_err(), expected)
+        });
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
