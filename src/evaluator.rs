@@ -744,6 +744,45 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_builtin_function_rest() {
+        let tests = vec![("rest([1, 2, 3])", [2_i64, 3_i64])];
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_integer_array_object(eval(input), expected.into())
+        });
+
+        let tests = vec![(r#"rest(["one", "two"])"#, ["two"])];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_string_array_object(eval(input), expected.into()));
+
+        let tests = vec!["rest([])"];
+        tests
+            .into_iter()
+            .for_each(|input| assert_null_object(eval(input)));
+
+        let tests = vec![("let a = [1, 2, 3, 4]; rest(rest(a));", [3_i64, 4_i64])];
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_integer_array_object(eval(input), expected.into())
+        });
+
+        let tests = vec!["let a = [1, 2, 3, 4]; rest(rest(a)); rest(rest(rest(rest(rest(a)))));"];
+        tests
+            .into_iter()
+            .for_each(|input| assert_null_object(eval(input)));
+
+        let tests = vec![
+            (
+                "rest([1, 2, 3], [1, 2, 3])",
+                "wrong number of arguments. got=2, want=1",
+            ),
+            ("rest(1)", "argument to 'rest' must be Array, got Integer"),
+        ];
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_error_object(eval_non_check(input).unwrap_err(), expected)
+        });
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
@@ -798,6 +837,34 @@ mod tests {
         match obj {
             object::Object::StringLit(o) => assert_eq!(o.value, expected),
             o => panic!(format!("expected StringLit. received {:?}", o)),
+        }
+    }
+
+    fn assert_integer_array_object(obj: object::Object, expected_arr: Vec<i64>) {
+        match obj {
+            object::Object::Array(o) => o
+                .elements
+                .into_iter()
+                .zip(expected_arr.into_iter())
+                .for_each(|(ele, expected)| match ele {
+                    object::Object::Integer(o) => assert_eq!(o.value, expected),
+                    o => panic!(format!("expected Array<Integer>. received {:?}", o)),
+                }),
+            o => panic!(format!("expected Array<Integer>. received {:?}", o)),
+        }
+    }
+
+    fn assert_string_array_object(obj: object::Object, expected_arr: Vec<&str>) {
+        match obj {
+            object::Object::Array(o) => o
+                .elements
+                .into_iter()
+                .zip(expected_arr.into_iter())
+                .for_each(|(ele, expected)| match ele {
+                    object::Object::StringLit(o) => assert_eq!(o.value, expected),
+                    o => panic!(format!("expected Array<Integer>. received {:?}", o)),
+                }),
+            o => panic!(format!("expected Array<Integer>. received {:?}", o)),
         }
     }
 }
