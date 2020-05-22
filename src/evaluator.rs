@@ -676,6 +676,40 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_builtin_function_first() {
+        let tests = vec![("first([1, 2, 3])", 1_i64)];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+
+        let tests = vec![(r#"first(["one", "two"])"#, "one")];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_string_object(eval(input), expected));
+
+        let tests = vec!["first([])"];
+        tests
+            .into_iter()
+            .for_each(|input| assert_null_object(eval(input)));
+
+        let tests = vec![("let a = [1, 2, 3]; first(a); first(a) == first(a)", true)];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_boolean_object(eval(input), expected));
+
+        let tests = vec![
+            (
+                "first([1, 2, 3], [1, 2, 3])",
+                "wrong number of arguments. got=2, want=1",
+            ),
+            ("first(1)", "argument to 'first' must be Array, got Integer"),
+        ];
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_error_object(eval_non_check(input).unwrap_err(), expected)
+        });
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
