@@ -625,6 +625,25 @@ mod tests {
             .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
     }
 
+    #[test]
+    fn test_closures() {
+        let tests = vec![(
+            r#"
+                    let new_addr = fn(x) {
+                    fn(y) { x + y};
+                    }
+
+                    let addTwo = new_addr(2);
+                    addTwo(2);
+                "#,
+            4_i64,
+        )];
+
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
