@@ -13,7 +13,11 @@ pub enum HashableObject {
 
 impl Display for HashableObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", *self)
+        match self {
+            HashableObject::Integer(o) => write!(f, "{}", o),
+            HashableObject::Boolean(o) => write!(f, "{}", o),
+            HashableObject::StringLit(o) => write!(f, "{}", o),
+        }        
     }
 }
 
