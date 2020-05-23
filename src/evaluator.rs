@@ -869,6 +869,80 @@ mod tests {
             .for_each(|input| assert_null_object(eval(input)));
     }
 
+    #[test]
+    fn test_hash_literal() {
+        let input = r#"
+            let two = "two";
+            {
+                "one": 10 - 9,
+                two: 1 + 1,
+                "thr" + "ee": 6 / 2,
+                4: 4,
+                true: 5,
+                false: 6
+            }
+        "#;
+
+        let evaluated = eval(input);
+        match evaluated {
+            object::Object::Hash(evaluated) => {
+                assert_eq!(evaluated.pairs.len(), 6);
+
+                let expected = vec![
+                    (
+                        object::HashableObject::try_from(object::Object::from(object::StringLit {
+                            value: "one".into(),
+                        }))
+                        .unwrap(),
+                        1_i64,
+                    ),
+                    (
+                        object::HashableObject::try_from(object::Object::from(object::StringLit {
+                            value: "two".into(),
+                        }))
+                        .unwrap(),
+                        2_i64,
+                    ),
+                    (
+                        object::HashableObject::try_from(object::Object::from(object::StringLit {
+                            value: "three".into(),
+                        }))
+                        .unwrap(),
+                        3_i64,
+                    ),
+                    (
+                        object::HashableObject::try_from(object::Object::from(object::Integer {
+                            value: 4_i64,
+                        }))
+                        .unwrap(),
+                        4_i64,
+                    ),
+                    (
+                        object::HashableObject::try_from(object::Object::from(object::Boolean {
+                            value: true,
+                        }))
+                        .unwrap(),
+                        5_i64,
+                    ),
+                    (
+                        object::HashableObject::try_from(object::Object::from(object::Boolean {
+                            value: false,
+                        }))
+                        .unwrap(),
+                        6_i64,
+                    ),
+                ];
+                expected
+                    .into_iter()
+                    .for_each(|(expected_key, expected_value)| {
+                        let value = evaluated.pairs.get(&expected_key).unwrap();
+                        assert_integer_object(value.clone(), expected_value);
+                    });
+            }
+            o => panic!(format!("expected Hash. received {:?}", o)),
+        }
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
