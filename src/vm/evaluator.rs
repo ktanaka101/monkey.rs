@@ -1019,28 +1019,34 @@ mod tests {
 
     fn assert_integer_array_object(obj: object::Object, expected_arr: Vec<i64>) {
         match obj {
-            object::Object::Array(o) => o
-                .elements
-                .into_iter()
-                .zip(expected_arr.into_iter())
-                .for_each(|(ele, expected)| match ele {
-                    object::Object::Integer(o) => assert_eq!(o.value, expected),
-                    o => panic!(format!("expected Array<Integer>. received {:?}", o)),
-                }),
+            object::Object::Array(o) => {
+                assert_eq!(o.elements.len(), expected_arr.len());
+
+                expected_arr
+                    .into_iter()
+                    .zip(o.elements)
+                    .for_each(|(expected, ele)| match ele {
+                        object::Object::Integer(o) => assert_eq!(o.value, expected),
+                        o => panic!(format!("expected Array<Integer>. received {:?}", o)),
+                    })
+            }
             o => panic!(format!("expected Array<Integer>. received {:?}", o)),
         }
     }
 
     fn assert_string_array_object(obj: object::Object, expected_arr: Vec<&str>) {
         match obj {
-            object::Object::Array(o) => o
-                .elements
-                .into_iter()
-                .zip(expected_arr.into_iter())
-                .for_each(|(ele, expected)| match ele {
-                    object::Object::StringLit(o) => assert_eq!(o.value, expected),
-                    o => panic!(format!("expected Array<Integer>. received {:?}", o)),
-                }),
+            object::Object::Array(o) => {
+                assert_eq!(o.elements.len(), expected_arr.len());
+
+                expected_arr
+                    .into_iter()
+                    .zip(o.elements)
+                    .for_each(|(expected, ele)| match ele {
+                        object::Object::StringLit(o) => assert_eq!(o.value, expected),
+                        o => panic!(format!("expected Array<Integer>. received {:?}", o)),
+                    })
+            }
             o => panic!(format!("expected Array<Integer>. received {:?}", o)),
         }
     }
