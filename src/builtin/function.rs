@@ -1,6 +1,8 @@
-use crate::evaluator::{new_error, NULL};
+use crate::evaluator::new_error;
 use crate::object;
 use std::convert::TryFrom;
+
+use super::NULL;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Function {

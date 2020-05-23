@@ -1,15 +1,11 @@
 use crate::ast;
-use crate::builtin::Function;
+use crate::builtin::{Function, FALSE, NULL, TRUE};
 use crate::env::Environment;
 use crate::object;
 use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::rc::Rc;
 use std::result;
-
-pub const TRUE: object::Boolean = object::Boolean { value: true };
-pub const FALSE: object::Boolean = object::Boolean { value: false };
-pub const NULL: object::Null = object::Null {};
 
 type Result<T> = result::Result<T, object::Error>;
 
