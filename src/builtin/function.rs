@@ -1,6 +1,7 @@
+use std::convert::TryFrom;
+
 use crate::evaluator::new_error;
 use crate::object;
-use std::convert::TryFrom;
 
 use super::NULL;
 

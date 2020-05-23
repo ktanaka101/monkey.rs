@@ -1,12 +1,13 @@
+use std::cell::RefCell;
+use std::io;
+use std::io::Write;
+use std::rc::Rc;
+
 use crate::env::Environment;
 use crate::evaluator::eval_node;
 use crate::lexer::Lexer;
 use crate::object;
 use crate::parser::Parser;
-use std::cell::RefCell;
-use std::io;
-use std::io::Write;
-use std::rc::Rc;
 
 const PROMPT: &str = ">> ";
 

@@ -1,11 +1,12 @@
-use crate::ast;
-use crate::builtin::{Function, FALSE, NULL, TRUE};
-use crate::env::Environment;
-use crate::object;
 use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::rc::Rc;
 use std::result;
+
+use crate::ast;
+use crate::builtin::{Function, FALSE, NULL, TRUE};
+use crate::env::Environment;
+use crate::object;
 
 type Result<T> = result::Result<T, object::Error>;
 
