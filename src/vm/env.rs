@@ -38,3 +38,19 @@ impl Environment {
         self.scope.insert(key.to_string(), value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get() {
+        let mut env = Environment::new(None);
+        let obj = object::Object::Boolean(object::Boolean { value: true });
+
+        env.insert("key_a", obj.clone());
+        let get_obj = env.get("key_a").unwrap();
+
+        assert_eq!(obj, get_obj);
+    }
+}
