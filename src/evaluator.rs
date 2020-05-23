@@ -3,10 +3,10 @@ use std::convert::TryFrom;
 use std::rc::Rc;
 use std::result;
 
-use crate::ast;
 use crate::builtin::{Function, FALSE, NULL, TRUE};
 use crate::env::Environment;
 use crate::object;
+use crate::parser::ast;
 
 type Result<T> = result::Result<T, object::Error>;
 
@@ -191,7 +191,7 @@ fn eval_integer_infix_expr(
     left: &object::Integer,
     right: &object::Integer,
 ) -> Result<object::Object> {
-    use crate::ast::Operator::*;
+    use ast::Operator::*;
     let res = match ope {
         Plus => {
             let value = match left.value.checked_add(right.value) {
