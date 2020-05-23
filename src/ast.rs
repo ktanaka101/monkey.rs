@@ -7,7 +7,7 @@ mod prelude {
         InfixExpr, Integer, Let, Node, Operator, Pair, PrefixExpr, Program, Return, Stmt,
         StringLit,
     };
-    pub use crate::token::Token;
+    pub use crate::lexer::token::Token;
 }
 
 mod array;

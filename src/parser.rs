@@ -1,8 +1,8 @@
 use crate::ast;
 use crate::ast::{Expr, Stmt};
 use crate::error::{ParserError, Result};
+use crate::lexer::token::Token;
 use crate::lexer::Lexer;
-use crate::token::Token;
 
 #[derive(PartialOrd, PartialEq, Debug)]
 enum Priority {
