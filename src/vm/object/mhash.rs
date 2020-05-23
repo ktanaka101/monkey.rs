@@ -15,10 +15,10 @@ impl Display for Hash {
         let out = self
             .pairs
             .iter()
-            .map(|(k, v)| format!("{}, {}", k, v))
+            .map(|(k, v)| format!("{}: {}", k, v))
             .collect::<Vec<String>>()
-            .join("");
+            .join(", ");
 
-        write!(f, "{}", out)
+        write!(f, "{{{}}}", out)
     }
 }
