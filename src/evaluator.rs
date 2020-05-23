@@ -360,6 +360,9 @@ fn eval_array_index_expr<'a>(
     array: &'a object::Array,
     index: &object::Integer,
 ) -> Result<&'a object::Object> {
+    if index.value < 0 {
+        return Ok(&object::Object::Null(NULL));
+    }
     let idx = usize::try_from(index.value).or_else(|e| new_error(&e.to_string()))?;
 
     match array.elements.get(idx) {
