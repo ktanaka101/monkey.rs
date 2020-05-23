@@ -3,10 +3,11 @@ use std::convert::TryFrom;
 use std::rc::Rc;
 use std::result;
 
-use crate::builtin::{Function, FALSE, NULL, TRUE};
-use crate::env::Environment;
-use crate::object;
 use crate::parser::ast;
+
+use super::builtin::{Function, FALSE, NULL, TRUE};
+use super::env::Environment;
+use super::object;
 
 type Result<T> = result::Result<T, object::Error>;
 

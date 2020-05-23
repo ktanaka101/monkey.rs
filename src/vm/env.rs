@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::object;
+use super::object;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Environment {

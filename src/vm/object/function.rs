@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::env;
 use crate::parser::ast;
 
+use super::super::env;
 use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]

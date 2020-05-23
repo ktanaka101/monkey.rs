@@ -1,5 +1,4 @@
-use crate::builtin;
-
+use super::super::builtin;
 use super::prelude::*;
 use super::{Error, Object};
 

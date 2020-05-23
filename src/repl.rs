@@ -3,11 +3,11 @@ use std::io;
 use std::io::Write;
 use std::rc::Rc;
 
-use crate::env::Environment;
-use crate::evaluator::eval_node;
 use crate::lexer::Lexer;
-use crate::object;
 use crate::parser::Parser;
+use crate::vm::env::Environment;
+use crate::vm::evaluator::eval_node;
+use crate::vm::object;
 
 const PROMPT: &str = ">> ";
 

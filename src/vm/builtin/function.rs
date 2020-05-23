@@ -1,8 +1,7 @@
 use std::convert::TryFrom;
 
-use crate::evaluator::new_error;
-use crate::object;
-
+use super::super::evaluator::new_error;
+use super::super::object;
 use super::NULL;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
