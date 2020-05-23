@@ -6,3 +6,5 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
+anyhow = "1.0"
+thiserror = "1.0"
