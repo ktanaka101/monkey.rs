@@ -943,6 +943,25 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_hash_index_expression() {
+        let tests = vec![
+            (r#"{"foo": 5}["foo"]"#, 5_i64),
+            (r#"let key = "foo"; {"foo": 5}[key]"#, 5_i64),
+            ("{5: 5}[5]", 5_i64),
+            ("{true: 5}[true]", 5_i64),
+            ("{false: 5}[false]", 5_i64),
+        ];
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_object(eval(input), expected));
+
+        let tests = vec![(r#"{"foo": 5}["bar"]"#), (r#"{}["foo"]"#)];
+        tests
+            .into_iter()
+            .for_each(|input| assert_null_object(eval(input)));
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
