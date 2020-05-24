@@ -43,6 +43,10 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
         }
         ast::Expr::Boolean(expr) => Ok(native_bool_to_boolean_object(expr.value)),
         ast::Expr::Call(expr) => {
+            if expr.func.to_string() == "quote" {
+                return Ok(quote(ast::Node::Expr(expr.args[0].clone())));
+            }
+
             let func = eval_expr(&expr.func, Rc::clone(&env))?;
             let args = eval_expressions(&expr.args, Rc::clone(&env))?;
             Ok(apply_function(&func, &args)?)
@@ -389,6 +393,10 @@ fn eval_hash_index_expr<'a>(
         }),
         Err(_) => new_error(&format!("unusable as hash key: {}", key_type))?,
     }
+}
+
+fn quote(node: ast::Node) -> object::Object {
+    object::Quote { node }.into()
 }
 
 #[cfg(test)]
@@ -949,6 +957,23 @@ mod tests {
         tests
             .into_iter()
             .for_each(|input| assert_null_object(eval(input)));
+    }
+
+    #[test]
+    fn test_quote() {
+        let tests = vec![
+            ("quote(5)", "5"),
+            ("quote(5 + 8)", "(5 + 8)"),
+            ("quote(foobar)", "foobar"),
+            ("quote(foobar + barfoo)", "(foobar + barfoo)"),
+        ];
+        tests.into_iter().for_each(|(input, expected)| {
+            let evaluated = eval(input);
+            match evaluated {
+                object::Object::Quote(o) => assert_eq!(o.to_string(), expected),
+                o => panic!(format!("expected Quote. received {:?}", o)),
+            }
+        });
     }
 
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T

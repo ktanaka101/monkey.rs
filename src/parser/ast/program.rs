@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct Program {
     pub statements: Vec<Stmt>,
 }

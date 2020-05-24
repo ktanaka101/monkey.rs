@@ -14,6 +14,7 @@ mod mhash;
 mod mreturn;
 mod null;
 mod object;
+mod quote;
 mod string_lit;
 
 pub use array::Array;
@@ -27,4 +28,5 @@ pub use mhash::{Hash, HashPairs};
 pub use mreturn::Return;
 pub use null::Null;
 pub use object::Object;
+pub use quote::Quote;
 pub use string_lit::StringLit;

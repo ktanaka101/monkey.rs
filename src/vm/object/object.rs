@@ -1,5 +1,7 @@
 use super::prelude::*;
-use super::{Array, Boolean, Builtin, Error, Function, Hash, Integer, Null, Return, StringLit};
+use super::{
+    Array, Boolean, Builtin, Error, Function, Hash, Integer, Null, Quote, Return, StringLit,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Object {
@@ -13,6 +15,7 @@ pub enum Object {
     Array(Array),
     Hash(Hash),
     Null(Null),
+    Quote(Quote),
 }
 
 impl From<Integer> for Object {
@@ -65,6 +68,11 @@ impl From<Null> for Object {
         Object::Null(obj)
     }
 }
+impl From<Quote> for Object {
+    fn from(obj: Quote) -> Object {
+        Object::Quote(obj)
+    }
+}
 
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -79,6 +87,7 @@ impl Display for Object {
             Self::Array(o) => write!(f, "{}", o),
             Self::Hash(o) => write!(f, "{}", o),
             Self::Null(o) => write!(f, "{}", o),
+            Self::Quote(o) => write!(f, "{}", o),
         }
     }
 }
@@ -96,6 +105,7 @@ impl Object {
             Self::Array(_) => "Array",
             Self::Hash(_) => "Hash",
             Self::Null(_) => "Null",
+            Self::Quote(_) => "Quote",
         }
     }
 }

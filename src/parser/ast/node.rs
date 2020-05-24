@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Program(Program),
     Stmt(Stmt),
