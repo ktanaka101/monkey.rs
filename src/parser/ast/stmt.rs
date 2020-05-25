@@ -8,9 +8,41 @@ pub enum Stmt {
     Block(Block),
 }
 
+impl From<ExprStmt> for Stmt {
+    fn from(stmt: ExprStmt) -> Self {
+        Stmt::ExprStmt(stmt)
+    }
+}
+
+impl From<Let> for Stmt {
+    fn from(stmt: Let) -> Self {
+        Stmt::Let(stmt)
+    }
+}
+
+impl From<Return> for Stmt {
+    fn from(stmt: Return) -> Self {
+        Stmt::Return(stmt)
+    }
+}
+
 impl From<Block> for Stmt {
     fn from(stmt: Block) -> Self {
         Stmt::Block(stmt)
+    }
+}
+
+impl TryFrom<Node> for Stmt {
+    type Error = Error;
+    fn try_from(value: Node) -> Result<Self> {
+        match value {
+            Node::Stmt(stmt) => Ok(stmt),
+            Node::Program(program) => Err(ParserError::Convert(
+                format!("{:?}", program),
+                "Stmt".into(),
+            ))?,
+            Node::Expr(expr) => Ok(Stmt::ExprStmt(ExprStmt { expr })),
+        }
     }
 }
 
