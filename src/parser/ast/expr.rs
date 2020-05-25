@@ -107,3 +107,9 @@ impl From<Hash> for Expr {
     }
 }
 
+impl From<ExprStmt> for Expr {
+    fn from(value: ExprStmt) -> Self {
+        value.expr
+    }
+}
+
