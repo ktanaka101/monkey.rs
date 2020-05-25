@@ -18,3 +18,16 @@ impl Display for Program {
         )
     }
 }
+
+impl TryFrom<Node> for Program {
+    type Error = Error;
+    fn try_from(value: Node) -> Result<Self> {
+        match value {
+            Node::Program(program) => Ok(program),
+            node => Err(ParserError::Convert(
+                format!("{:?}", node),
+                "Program".into(),
+            ))?,
+        }
+    }
+}

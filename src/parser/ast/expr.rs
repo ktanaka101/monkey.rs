@@ -113,3 +113,12 @@ impl From<ExprStmt> for Expr {
     }
 }
 
+impl TryFrom<Node> for Expr {
+    type Error = Error;
+    fn try_from(value: Node) -> Result<Self> {
+        match value {
+            Node::Expr(expr) => Ok(expr),
+            node => Err(ParserError::Convert(format!("{:?}", node), "Expr".into()))?,
+        }
+    }
+}
