@@ -26,4 +26,6 @@ pub enum ParserError {
     InvalidIntegerLiteral(String),
     #[error("Integer parse error. {0}")]
     InvalidInteger(String),
+    #[error("Convert error. try {0} into {1}")]
+    Convert(String, String),
 }
