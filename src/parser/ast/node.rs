@@ -22,3 +22,15 @@ impl From<Program> for Node {
         Node::Program(node)
     }
 }
+
+impl From<Stmt> for Node {
+    fn from(node: Stmt) -> Self {
+        Node::Stmt(node)
+    }
+}
+
+impl From<Expr> for Node {
+    fn from(node: Expr) -> Self {
+        Node::Expr(node)
+    }
+}
