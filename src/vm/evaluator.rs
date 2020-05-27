@@ -749,13 +749,13 @@ mod tests {
     fn test_builtin_function_rest() {
         let tests = vec![("rest([1, 2, 3])", [2_i64, 3_i64])];
         tests.into_iter().for_each(|(input, expected)| {
-            assert_integer_array_object(eval(input), expected.into())
+            assert_integer_array_object(eval(input), expected.to_vec())
         });
 
         let tests = vec![(r#"rest(["one", "two"])"#, ["two"])];
-        tests
-            .into_iter()
-            .for_each(|(input, expected)| assert_string_array_object(eval(input), expected.into()));
+        tests.into_iter().for_each(|(input, expected)| {
+            assert_string_array_object(eval(input), expected.to_vec())
+        });
 
         let tests = vec!["rest([])"];
         tests
@@ -764,7 +764,7 @@ mod tests {
 
         let tests = vec![("let a = [1, 2, 3, 4]; rest(rest(a));", [3_i64, 4_i64])];
         tests.into_iter().for_each(|(input, expected)| {
-            assert_integer_array_object(eval(input), expected.into())
+            assert_integer_array_object(eval(input), expected.to_vec())
         });
 
         let tests = vec!["let a = [1, 2, 3, 4]; rest(rest(a)); rest(rest(rest(rest(rest(a)))));"];
