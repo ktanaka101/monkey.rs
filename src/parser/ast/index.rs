@@ -2,7 +2,6 @@ use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Index {
-    pub token: Token,
     pub left: Box<Expr>,
     pub index: Box<Expr>,
 }

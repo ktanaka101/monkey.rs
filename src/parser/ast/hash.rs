@@ -2,7 +2,6 @@ use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Hash {
-    pub token: Token,
     pub pairs: Vec<Pair>,
 }
 

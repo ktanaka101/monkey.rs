@@ -102,11 +102,9 @@ impl Parser {
     }
 
     fn parse_let_statement(&mut self) -> Result<ast::Let> {
-        let token = self.cur_token.clone();
         self.expect_peek(Token::Ident("_".to_string()))?;
 
         let name = ast::Identifier {
-            token: self.cur_token.clone(),
             value: match &self.cur_token {
                 Token::Ident(id) => id.clone(),
                 _ => unreachable!(),
@@ -121,12 +119,10 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(ast::Let { token, name, value })
+        Ok(ast::Let { name, value })
     }
 
     fn parse_return_statement(&mut self) -> Result<ast::Return> {
-        let token = self.cur_token.clone();
-
         self.next_token();
 
         let return_value = self.parse_expr(Priority::Lowest)?;
@@ -135,21 +131,17 @@ impl Parser {
             self.next_token();
         };
 
-        Ok(ast::Return {
-            token,
-            return_value,
-        })
+        Ok(ast::Return { return_value })
     }
 
     fn parse_expr_statement(&mut self) -> Result<ast::ExprStmt> {
-        let token = self.cur_token.clone();
         let expr = self.parse_expr(Priority::Lowest)?;
 
         if self.peek_token_is(Token::Semicolon) {
             self.next_token();
         }
 
-        Ok(ast::ExprStmt { token, expr })
+        Ok(ast::ExprStmt { expr })
     }
 
     fn parse_expr(&mut self, precedende: Priority) -> Result<Expr> {
@@ -207,7 +199,6 @@ impl Parser {
 
     fn parse_identifier(&self) -> Result<ast::Identifier> {
         Ok(ast::Identifier {
-            token: self.cur_token.clone(),
             value: match &self.cur_token {
                 Token::Ident(val) => val.clone(),
                 t => Err(ParserError::ExpectIdentifier(format!("{:?}", t)))?,
@@ -223,22 +214,13 @@ impl Parser {
             t => Err(ParserError::InvalidIntegerLiteral(format!("{:?}", t)))?,
         };
 
-        Ok(ast::Integer {
-            token: self.cur_token.clone(),
-            value,
-        })
+        Ok(ast::Integer { value })
     }
 
     fn parse_bool_literal(&self) -> Result<ast::Boolean> {
         match &self.cur_token {
-            Token::True => Ok(ast::Boolean {
-                token: self.cur_token.clone(),
-                value: true,
-            }),
-            Token::False => Ok(ast::Boolean {
-                token: self.cur_token.clone(),
-                value: false,
-            }),
+            Token::True => Ok(ast::Boolean { value: true }),
+            Token::False => Ok(ast::Boolean { value: false }),
             t => Err(ParserError::InvalidBooleanLiteral(format!("{:?}", t)))?,
         }
     }
@@ -251,16 +233,14 @@ impl Parser {
     }
 
     fn parse_prefix_expr(&mut self) -> Result<ast::PrefixExpr> {
-        let token = self.cur_token.clone();
         let ope = token_to_operator(&self.cur_token)?;
         self.next_token();
         let right = Box::new(self.parse_expr(Priority::Prefix)?);
 
-        Ok(ast::PrefixExpr { token, ope, right })
+        Ok(ast::PrefixExpr { ope, right })
     }
 
     fn parse_infix_expr(&mut self, left: Expr) -> Result<ast::InfixExpr> {
-        let token = self.cur_token.clone();
         let ope = token_to_operator(&self.cur_token)?;
         let pre = Priority::from(&self.cur_token);
 
@@ -269,7 +249,6 @@ impl Parser {
         let right = Box::new(self.parse_expr(pre)?);
 
         Ok(ast::InfixExpr {
-            token,
             left: Box::new(left),
             ope,
             right,
@@ -277,7 +256,6 @@ impl Parser {
     }
 
     fn parse_if_expr(&mut self) -> Result<ast::If> {
-        let token = self.cur_token.clone();
         self.expect_peek(Token::Lparen)?;
 
         self.next_token();
@@ -299,7 +277,6 @@ impl Parser {
         };
 
         Ok(ast::If {
-            token,
             cond,
             consequence,
             alternative,
@@ -307,7 +284,6 @@ impl Parser {
     }
 
     fn parse_block_statement(&mut self) -> Result<ast::Block> {
-        let token = self.cur_token.clone();
         let mut statements = Vec::<Stmt>::new();
 
         self.next_token();
@@ -317,11 +293,10 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(ast::Block { token, statements })
+        Ok(ast::Block { statements })
     }
 
     fn parse_function_literal(&mut self) -> Result<ast::Function> {
-        let token = self.cur_token.clone();
         self.expect_peek(Token::Lparen)?;
 
         let params = self.parse_function_params()?;
@@ -329,11 +304,7 @@ impl Parser {
 
         let body = self.parse_block_statement()?;
 
-        Ok(ast::Function {
-            token,
-            params,
-            body,
-        })
+        Ok(ast::Function { params, body })
     }
 
     fn parse_function_params(&mut self) -> Result<Vec<ast::Identifier>> {
@@ -347,7 +318,6 @@ impl Parser {
         self.next_token();
 
         identifiers.push(ast::Identifier {
-            token: self.cur_token.clone(),
             value: match &self.cur_token {
                 Token::Ident(t) => t.clone(),
                 t => Err(ParserError::InvalidFunctionParam(format!("{:?}", t)))?,
@@ -358,7 +328,6 @@ impl Parser {
             self.next_token();
             self.next_token();
             identifiers.push(ast::Identifier {
-                token: self.cur_token.clone(),
                 value: match &self.cur_token {
                     Token::Ident(t) => t.clone(),
                     t => Err(ParserError::InvalidFunctionParam(format!("{:?}", t)))?,
@@ -372,7 +341,6 @@ impl Parser {
 
     fn parse_call_expr(&mut self, func: Expr) -> Result<ast::Call> {
         Ok(ast::Call {
-            token: self.cur_token.clone(),
             func: Box::new(func),
             args: self.parse_expr_list(Token::Rparen)?,
         })
@@ -402,7 +370,6 @@ impl Parser {
 
     fn parse_string_literal(&self) -> Result<ast::StringLit> {
         Ok(ast::StringLit {
-            token: self.cur_token.clone(),
             value: match &self.cur_token {
                 Token::StringLiteral(s) => s.clone(),
                 t => Err(ParserError::InvalidStringLiteral(format!("{:?}", t)))?,
@@ -412,26 +379,22 @@ impl Parser {
 
     fn parse_array_literal(&mut self) -> Result<ast::Array> {
         Ok(ast::Array {
-            token: self.cur_token.clone(),
             elements: self.parse_expr_list(Token::Rbracket)?,
         })
     }
 
     fn parse_index_expr(&mut self, left: Expr) -> Result<ast::Index> {
-        let token = self.cur_token.clone();
         self.next_token();
         let index = self.parse_expr(Priority::Lowest)?;
         self.expect_peek(Token::Rbracket)?;
 
         Ok(ast::Index {
-            token,
             left: Box::new(left),
             index: Box::new(index),
         })
     }
 
     fn parse_hash_literal(&mut self) -> Result<ast::Hash> {
-        let token = self.cur_token.clone();
         let mut pairs = Vec::<ast::Pair>::new();
 
         while !self.peek_token_is(Token::Rbrace) {
@@ -451,7 +414,7 @@ impl Parser {
         }
         self.expect_peek(Token::Rbrace)?;
 
-        Ok(ast::Hash { token, pairs })
+        Ok(ast::Hash { pairs })
     }
 
     fn cur_token_is(&self, token_t: Token) -> bool {
@@ -724,15 +687,12 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt");
         };
-        assert_eq!(expr_stmt.token, Token::If);
 
         let if_expr = if let Expr::If(x) = &expr_stmt.expr {
             x
         } else {
             panic!("Expect type is Expr::If");
         };
-
-        assert_eq!(if_expr.token, Token::If);
 
         test_infix_by_expr(
             if_expr.cond.as_ref(),
@@ -741,7 +701,6 @@ mod tests {
             &Val::Id(Id("y")),
         );
 
-        assert_eq!(if_expr.consequence.token, Token::Lbrace);
         assert_eq!(if_expr.consequence.statements.len(), 1);
         test_identifier_by_stmt(&if_expr.consequence.statements[0], "x");
         assert_eq!(if_expr.alternative, None);
@@ -763,15 +722,12 @@ mod tests {
             } else {
                 panic!("Expect type is Stmt::ExprStmt");
             };
-            assert_eq!(expr_stmt.token, Token::If);
 
             let if_expr = if let Expr::If(x) = &expr_stmt.expr {
                 x
             } else {
                 panic!("Expect type is Expr::If");
             };
-
-            assert_eq!(if_expr.token, Token::If);
 
             test_infix_by_expr(
                 if_expr.cond.as_ref(),
@@ -780,7 +736,6 @@ mod tests {
                 &Val::Id(Id("y")),
             );
 
-            assert_eq!(if_expr.consequence.token, Token::Lbrace);
             assert_eq!(if_expr.consequence.statements.len(), 1);
             test_identifier_by_stmt(&if_expr.consequence.statements[0], "x");
 
@@ -789,7 +744,6 @@ mod tests {
             } else {
                 panic!("Expect some Expr::Block");
             };
-            assert_eq!(alt.token, Token::Lbrace);
             assert_eq!(alt.statements.len(), 1);
             test_identifier_by_stmt(&alt.statements[0], "y");
         }
@@ -809,20 +763,16 @@ mod tests {
                 panic!("Expect type is Stmt::ExprStmt");
             };
 
-            assert_eq!(expr_stmt.token, Token::Function);
-
             let fn_expr = if let Expr::Function(x) = &expr_stmt.expr {
                 x
             } else {
                 panic!("Expect type is Expr::Function")
             };
 
-            assert_eq!(fn_expr.token, Token::Function);
             assert_eq!(fn_expr.params.len(), 2);
             test_identifier(&fn_expr.params[0], "x");
             test_identifier(&fn_expr.params[1], "y");
 
-            assert_eq!(fn_expr.body.token, Token::Lbrace);
             assert_eq!(fn_expr.body.statements.len(), 1);
             test_infix_by_stmt(
                 &fn_expr.body.statements[0],
@@ -850,14 +800,12 @@ mod tests {
             } else {
                 panic!("Expect type is Stmt::ExprStmt.");
             };
-            assert_eq!(stmt_expr.token, Token::Function);
 
             let fn_expr = if let Expr::Function(x) = &stmt_expr.expr {
                 x
             } else {
                 panic!("Expect type is Expr::Function.");
             };
-            assert_eq!(fn_expr.token, Token::Function);
             assert_eq!(fn_expr.params.len(), ids.len());
 
             for (i, id) in ids.into_iter().enumerate() {
@@ -877,14 +825,12 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt");
         };
-        assert_eq!(stmt_expr.token, Token::Ident("add".into()));
 
         let call_expr = if let Expr::Call(x) = &stmt_expr.expr {
             x
         } else {
             panic!("Expect type is Expr::Call");
         };
-        assert_eq!(call_expr.token, Token::Lparen);
 
         test_expr(call_expr.func.as_ref(), &Val::Id(Id("add")));
         assert_eq!(call_expr.args.len(), 3);
@@ -904,7 +850,6 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt.");
         };
-        assert_eq!(stmt_expr.token, Token::StringLiteral("hello world".into()));
 
         test_expr(&stmt_expr.expr, &Val::S("hello world"));
     }
@@ -920,14 +865,12 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt.");
         };
-        assert_eq!(stmt_expr.token, Token::Lbracket);
 
         let array_expr = if let Expr::Array(x) = &stmt_expr.expr {
             x
         } else {
             panic!("Expect type is Expr::Array.");
         };
-        assert_eq!(array_expr.token, Token::Lbracket);
         assert_eq!(array_expr.elements.len(), 3);
         test_expr(&array_expr.elements[0], &Val::I(1));
         test_infix_by_expr(&array_expr.elements[1], &Val::I(2), "*", &Val::I(2));
@@ -945,14 +888,12 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt.");
         };
-        assert_eq!(stmt_expr.token, Token::Ident("myArray".into()));
 
         let index_expr = if let Expr::Index(x) = &stmt_expr.expr {
             x
         } else {
             panic!("Expect type is Expr::Index.");
         };
-        assert_eq!(index_expr.token, Token::Lbracket);
         test_expr(index_expr.left.as_ref(), &Val::Id(Id("myArray")));
         test_infix_by_expr(index_expr.index.as_ref(), &Val::I(1), "+", &Val::I(1));
     }
@@ -1009,14 +950,12 @@ mod tests {
             } else {
                 panic!("Expect type is Stmt::ExprStmt.");
             };
-            assert_eq!(expr_stmt.token, Token::Lbrace);
 
             let hash_expr = if let Expr::Hash(x) = &expr_stmt.expr {
                 x
             } else {
                 panic!("Expect type is Expr::Hash.");
             };
-            assert_eq!(hash_expr.token, Token::Lbrace);
             assert_eq!(hash_expr.pairs.len(), expect_list.len());
             for (i, expect) in expect_list.into_iter().enumerate() {
                 test_expr(&hash_expr.pairs[i].key, &expect.0);
@@ -1042,22 +981,6 @@ mod tests {
             panic!("Expect type is Stmt::ExprStmt");
         };
 
-        assert_eq!(
-            expr_stmt.token,
-            match l {
-                Val::I(v) => Token::Int(v.to_string()),
-                Val::B(b) => {
-                    if *b {
-                        Token::True
-                    } else {
-                        Token::False
-                    }
-                }
-                Val::Id(id) => Token::Ident(id.0.into()),
-                _ => panic!("Invalid Val."),
-            }
-        );
-
         let infix = if let Expr::InfixExpr(x) = &expr_stmt.expr {
             x
         } else {
@@ -1068,21 +991,6 @@ mod tests {
     }
 
     fn test_infix(infix: &ast::InfixExpr, l: &Val, o: &str, r: &Val) {
-        assert_eq!(
-            infix.token,
-            match o {
-                "+" => Token::Plus,
-                "-" => Token::Minus,
-                "/" => Token::Slash,
-                "*" => Token::Asterisk,
-                "==" => Token::Equal,
-                "!=" => Token::NotEqual,
-                "<" => Token::Lt,
-                ">" => Token::Gt,
-                _ => panic!("Invalid token."),
-            },
-        );
-
         test_expr(&infix.left, l);
         test_expr(&infix.right, r);
         test_operator(&infix.ope, o);
@@ -1095,28 +1003,11 @@ mod tests {
             panic!("Expect type is Stmt::ExprStmt");
         };
 
-        assert_eq!(
-            expr_stmt.token,
-            match ope {
-                "!" => Token::Bang,
-                "-" => Token::Minus,
-                _ => panic!("Expect operator is '!' or '-'"),
-            }
-        );
-
         let prefix_expr = if let Expr::PrefixExpr(x) = &expr_stmt.expr {
             x
         } else {
             panic!("Expect type is Expr::PrefixExpr");
         };
-        assert_eq!(
-            prefix_expr.token,
-            match ope {
-                "!" => Token::Bang,
-                "-" => Token::Minus,
-                _ => panic!("Expect operator is '!' or '-'"),
-            },
-        );
         test_operator(&prefix_expr.ope, ope);
         test_expr(&prefix_expr.right, &r);
     }
@@ -1146,22 +1037,12 @@ mod tests {
             panic!("Expect type is Stmt::ExprStmt");
         };
 
-        let expected_token = if v { Token::True } else { Token::False };
-
-        assert_eq!(expr_stmt.token, expected_token);
         let boolean_expr = if let Expr::Boolean(x) = &expr_stmt.expr {
             x
         } else {
             panic!("Expect type is Expr::Boolean");
         };
-        assert_eq!(boolean_expr.token, expected_token);
-        assert_eq!(
-            *boolean_expr,
-            ast::Boolean {
-                token: expected_token,
-                value: v
-            }
-        );
+        assert_eq!(*boolean_expr, ast::Boolean { value: v });
     }
 
     fn test_let_by_stmt(stmt: &ast::Stmt, id: &Id, v: &Val) {
@@ -1171,7 +1052,6 @@ mod tests {
             panic!("Expect type is Stmt::Let");
         };
 
-        assert_eq!(let_stmt.token, Token::Let);
         test_identifier(&let_stmt.name, id.0);
         test_expr(&let_stmt.value, v);
     }
@@ -1183,7 +1063,6 @@ mod tests {
             panic!("Expect type is Stmt::Return");
         };
 
-        assert_eq!(return_stmt.token, Token::Return);
         test_expr(&return_stmt.return_value, v);
     }
 
@@ -1193,8 +1072,6 @@ mod tests {
         } else {
             panic!("Expect type is Stmt::ExprStmt");
         };
-
-        assert_eq!(expr_stmt.token, Token::Ident(literal.into()));
 
         let identifier = if let Expr::Identifier(x) = &expr_stmt.expr {
             x
@@ -1211,8 +1088,6 @@ mod tests {
             panic!("Expect type is Stmt::ExprStmt");
         };
 
-        assert_eq!(expr_stmt.token, Token::Int(v.to_string()));
-
         let integer = if let Expr::Integer(x) = &expr_stmt.expr {
             x
         } else {
@@ -1222,20 +1097,13 @@ mod tests {
     }
 
     fn test_integer(integer: &ast::Integer, v: i64) {
-        assert_eq!(
-            *integer,
-            ast::Integer {
-                token: Token::Int(v.to_string()),
-                value: v.into()
-            }
-        );
+        assert_eq!(*integer, ast::Integer { value: v.into() });
     }
 
     fn test_identifier(identifier: &ast::Identifier, literal: &str) {
         assert_eq!(
             *identifier,
             ast::Identifier {
-                token: Token::Ident(literal.into()),
                 value: literal.into(),
             }
         );
@@ -1252,34 +1120,17 @@ mod tests {
             Val::S(v) => assert_eq!(
                 *expr,
                 Expr::StringLit(ast::StringLit {
-                    token: Token::StringLiteral(v.to_string()),
                     value: v.to_string()
                 })
             ),
-            Val::B(v) => assert_eq!(
-                *expr,
-                Expr::Boolean(ast::Boolean {
-                    token: match v {
-                        true => Token::True,
-                        false => Token::False,
-                    },
-                    value: *v
-                })
-            ),
+            Val::B(v) => assert_eq!(*expr, Expr::Boolean(ast::Boolean { value: *v })),
             Val::Id(v) => assert_eq!(
                 *expr,
                 Expr::Identifier(ast::Identifier {
-                    token: Token::Ident(v.0.to_string()),
                     value: v.0.to_string()
                 })
             ),
-            Val::I(v) => assert_eq!(
-                *expr,
-                Expr::Integer(ast::Integer {
-                    token: Token::Int(v.to_string()),
-                    value: *v
-                })
-            ),
+            Val::I(v) => assert_eq!(*expr, Expr::Integer(ast::Integer { value: *v })),
             Val::Infix(l, o, r) => test_infix_by_expr(expr, l, o, r),
         }
     }

@@ -2,7 +2,6 @@ use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Array {
-    pub token: Token,
     pub elements: Vec<Expr>,
 }
 

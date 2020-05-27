@@ -2,7 +2,6 @@ use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct If {
-    pub token: Token,
     pub cond: Box<Expr>,
     pub consequence: Block,
     pub alternative: Option<Block>,

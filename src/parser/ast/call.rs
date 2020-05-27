@@ -2,7 +2,6 @@ use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Call {
-    pub token: Token,
     pub func: Box<Expr>,
     pub args: Vec<Expr>,
 }
