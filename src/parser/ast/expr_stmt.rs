@@ -3,7 +3,6 @@ use super::prelude::*;
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExprStmt {
     pub expr: Expr,
-    pub token: Token,
 }
 
 impl Display for ExprStmt {

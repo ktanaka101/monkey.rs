@@ -16,7 +16,7 @@ pub enum Operator {
 
 impl Display for Operator {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let out = match self {
+        let out: &'static str = match self {
             Self::Assign => "=",
             Self::Plus => "+",
             Self::Minus => "-",

@@ -1,7 +1,6 @@
 use super::prelude::*;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Block {
-    pub token: Token,
     pub statements: Vec<Stmt>,
 }
 

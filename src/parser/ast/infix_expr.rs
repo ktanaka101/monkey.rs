@@ -2,7 +2,6 @@ use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InfixExpr {
-    pub token: Token,
     pub left: Box<Expr>,
     pub ope: Operator,
     pub right: Box<Expr>,

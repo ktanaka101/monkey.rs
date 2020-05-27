@@ -2,7 +2,6 @@ use super::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Identifier {
-    pub token: Token,
     pub value: String,
 }
 
