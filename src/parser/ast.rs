@@ -7,6 +7,7 @@ mod prelude {
 
     pub use crate::lexer::token::Token;
 
+    pub use super::super::error::ParserError;
     pub use super::{
         Array, Block, Boolean, Call, Expr, ExprStmt, Function, Hash, Identifier, If, Index,
         InfixExpr, Integer, Let, Node, Operator, Pair, PrefixExpr, Program, Return, Stmt,
