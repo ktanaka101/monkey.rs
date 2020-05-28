@@ -566,7 +566,7 @@ mod tests {
 
     #[test]
     fn test_function_object() {
-        let tests = vec![("fn(x) { x + 2; };", 1, "x", "(x + 2)")];
+        let tests = vec![("fn(x) { x + 2; };", 1, "x", "{ (x + 2) }")];
         tests.into_iter().for_each(
             |(input, expected_params_size, expected_params, expected_body)| {
                 let obj = eval(input);
