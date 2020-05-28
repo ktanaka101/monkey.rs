@@ -81,9 +81,7 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
 }
 
 pub(crate) fn new_error<T>(message: &str) -> Result<T> {
-    Err(object::Error {
-        message: message.to_string(),
-    })
+    Err(object::Error::Eval(message.into()))?
 }
 
 fn eval_program(program: &ast::Program, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
@@ -1007,7 +1005,7 @@ mod tests {
     }
 
     fn assert_error_object(err: object::Error, expected: &str) {
-        assert_eq!(err.message, expected)
+        assert_eq!(err.to_string(), expected)
     }
 
     fn assert_string_object(obj: object::Object, expected: &str) {

@@ -1,12 +1,7 @@
-use super::prelude::*;
+use thiserror::Error as Err;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Error {
-    pub message: String,
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ERROR: {}", self.message)
-    }
+#[derive(Err, Debug, Clone, PartialEq)]
+pub enum Error {
+    #[error("{0}")]
+    Eval(String),
 }
