@@ -17,3 +17,14 @@ impl Display for Return {
         write!(f, "{}", out)
     }
 }
+
+impl TryFrom<Stmt> for Return {
+    type Error = Error;
+
+    fn try_from(value: Stmt) -> Result<Self> {
+        match value {
+            Stmt::Return(mreturn) => Ok(mreturn),
+            stmt => Err(ParserError::Convert(format!("{:?}", stmt), "Return".into()))?,
+        }
+    }
+}

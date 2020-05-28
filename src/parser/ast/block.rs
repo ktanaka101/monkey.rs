@@ -18,3 +18,14 @@ impl Display for Block {
         )
     }
 }
+
+impl TryFrom<Stmt> for Block {
+    type Error = Error;
+
+    fn try_from(value: Stmt) -> Result<Self> {
+        match value {
+            Stmt::Block(block) => Ok(block),
+            stmt => Err(ParserError::Convert(format!("{:?}", stmt), "Block".into()))?,
+        }
+    }
+}
