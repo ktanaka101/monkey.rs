@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use anyhow::Result;
 
-use crate::parser::ast;
+use crate::parser::{ast, tools};
 
 use super::builtin::{Function, FALSE, NULL, TRUE};
 use super::env::Environment;
@@ -397,6 +397,43 @@ fn eval_hash_index_expr<'a>(
 
 fn quote(node: ast::Node) -> object::Object {
     object::Quote { node }.into()
+}
+
+fn eval_unquote_calls(quoted: ast::Node, env: Rc<RefCell<Environment>>) -> Result<ast::Node> {
+    tools::modify(quoted, |node: ast::Node| -> Result<ast::Node> {
+        if !is_unquote_call(&node) {
+            return Ok(node);
+        }
+
+        match &node {
+            ast::Node::Expr(ast::Expr::Call(call)) => {
+                if call.args.len() == 1 {
+                    let arg = call.args[0].clone();
+                    Ok(convert_object_to_ast_node(eval_node(
+                        &arg.into(),
+                        Rc::clone(&env),
+                    )?))
+                } else {
+                    unimplemented!()
+                }
+            }
+            _ => unimplemented!(),
+        }
+    })
+}
+
+fn convert_object_to_ast_node(obj: object::Object) -> ast::Node {
+    match obj {
+        object::Object::Integer(int) => ast::Expr::from(ast::Integer { value: int.value }).into(),
+        _ => unimplemented!(),
+    }
+}
+
+fn is_unquote_call(node: &ast::Node) -> bool {
+    match node {
+        ast::Node::Expr(ast::Expr::Call(call)) => (*call.func).to_string() == "unquote",
+        _ => false,
+    }
 }
 
 #[cfg(test)]
@@ -966,6 +1003,23 @@ mod tests {
             ("quote(5 + 8)", "(5 + 8)"),
             ("quote(foobar)", "foobar"),
             ("quote(foobar + barfoo)", "(foobar + barfoo)"),
+        ];
+        tests.into_iter().for_each(|(input, expected)| {
+            let evaluated = eval(input);
+            match evaluated {
+                object::Object::Quote(o) => assert_eq!(o.to_string(), expected),
+                o => panic!(format!("expected Quote. received {:?}", o)),
+            }
+        });
+    }
+
+    #[test]
+    fn test_quote_unquote() {
+        let tests = vec![
+            ("quote(unquote(4))", "4"),
+            ("quote(unquote(4 + 4))", "8"),
+            ("quote(8 + unquote(4 + 4))", "(8 + 8)"),
+            ("quote(unquote(4 + 4) + 8)", "(8 + 8)"),
         ];
         tests.into_iter().for_each(|(input, expected)| {
             let evaluated = eval(input);
