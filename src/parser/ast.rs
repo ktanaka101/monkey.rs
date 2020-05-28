@@ -1,13 +1,17 @@
 mod prelude {
+    pub use std::convert::{TryFrom, TryInto};
     pub use std::fmt;
     pub use std::fmt::{Display, Formatter};
+
+    pub use anyhow::{Error, Result};
+
+    pub use crate::lexer::token::Token;
 
     pub use super::{
         Array, Block, Boolean, Call, Expr, ExprStmt, Function, Hash, Identifier, If, Index,
         InfixExpr, Integer, Let, Node, Operator, Pair, PrefixExpr, Program, Return, Stmt,
         StringLit,
     };
-    pub use crate::lexer::token::Token;
 }
 
 mod array;
