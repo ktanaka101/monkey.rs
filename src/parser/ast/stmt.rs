@@ -8,6 +8,17 @@ pub enum Stmt {
     Block(Block),
 }
 
+impl Display for Stmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ExprStmt(s) => write!(f, "{}", s),
+            Self::Let(s) => write!(f, "{}", s),
+            Self::Block(s) => write!(f, "{}", s),
+            Self::Return(s) => write!(f, "{}", s),
+        }
+    }
+}
+
 impl From<ExprStmt> for Stmt {
     fn from(stmt: ExprStmt) -> Self {
         Stmt::ExprStmt(stmt)
@@ -42,17 +53,6 @@ impl TryFrom<Node> for Stmt {
                 "Stmt".into(),
             ))?,
             Node::Expr(expr) => Ok(Stmt::ExprStmt(ExprStmt { expr })),
-        }
-    }
-}
-
-impl Display for Stmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ExprStmt(s) => write!(f, "{}", s),
-            Self::Let(s) => write!(f, "{}", s),
-            Self::Block(s) => write!(f, "{}", s),
-            Self::Return(s) => write!(f, "{}", s),
         }
     }
 }
