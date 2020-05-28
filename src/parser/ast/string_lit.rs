@@ -10,3 +10,17 @@ impl Display for StringLit {
         write!(f, "{}", self.value)
     }
 }
+
+impl TryFrom<Expr> for StringLit {
+    type Error = Error;
+
+    fn try_from(value: Expr) -> Result<Self> {
+        match value {
+            Expr::StringLit(string) => Ok(string),
+            expr => Err(ParserError::Convert(
+                format!("{:?}", expr),
+                "StringLit".into(),
+            ))?,
+        }
+    }
+}

@@ -10,3 +10,17 @@ impl Display for Boolean {
         write!(f, "{}", self.value)
     }
 }
+
+impl TryFrom<Expr> for Boolean {
+    type Error = Error;
+
+    fn try_from(value: Expr) -> Result<Self> {
+        match value {
+            Expr::Boolean(b) => Ok(b),
+            expr => Err(ParserError::Convert(
+                format!("{:?}", expr),
+                "Boolean".into(),
+            ))?,
+        }
+    }
+}

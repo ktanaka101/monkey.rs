@@ -10,3 +10,17 @@ impl Display for Integer {
         write!(f, "{}", self.value)
     }
 }
+
+impl TryFrom<Expr> for Integer {
+    type Error = Error;
+
+    fn try_from(value: Expr) -> Result<Self> {
+        match value {
+            Expr::Integer(int) => Ok(int),
+            expr => Err(ParserError::Convert(
+                format!("{:?}", expr),
+                "Integer".into(),
+            ))?,
+        }
+    }
+}

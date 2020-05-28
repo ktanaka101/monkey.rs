@@ -28,3 +28,17 @@ impl Display for Function {
         write!(f, "{}", out)
     }
 }
+
+impl TryFrom<Expr> for Function {
+    type Error = Error;
+
+    fn try_from(value: Expr) -> Result<Self> {
+        match value {
+            Expr::Function(func) => Ok(func),
+            expr => Err(ParserError::Convert(
+                format!("{:?}", expr),
+                "Function".into(),
+            ))?,
+        }
+    }
+}
