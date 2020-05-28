@@ -1,9 +1,11 @@
 use crate::lexer::token::Token;
 use crate::lexer::Lexer;
 
+use anyhow::Result;
+
 use super::ast;
 use super::ast::{Expr, Stmt};
-use super::error::{ParserError, Result};
+use super::error::ParserError;
 
 #[derive(PartialOrd, PartialEq, Debug)]
 enum Priority {

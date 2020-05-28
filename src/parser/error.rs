@@ -1,7 +1,5 @@
 use thiserror::Error;
 
-pub use anyhow::Result;
-
 #[derive(Error, Debug)]
 pub enum ParserError {
     #[error("Expect operator. {0}")]
