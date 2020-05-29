@@ -1,6 +1,8 @@
+use anyhow::Result;
+
 use super::super::builtin;
 use super::prelude::*;
-use super::{Error, Object};
+use super::Object;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Builtin {
@@ -14,7 +16,7 @@ impl Display for Builtin {
 }
 
 impl Builtin {
-    pub fn call(&self, args: &[Object]) -> Result<Object, Error> {
+    pub fn call(&self, args: &[Object]) -> Result<Object> {
         self.func.call(args)
     }
 }

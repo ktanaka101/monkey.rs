@@ -1,15 +1,14 @@
 use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::rc::Rc;
-use std::result;
+
+use anyhow::Result;
 
 use crate::parser::ast;
 
 use super::builtin::{Function, FALSE, NULL, TRUE};
 use super::env::Environment;
 use super::object;
-
-type Result<T> = result::Result<T, object::Error>;
 
 pub fn eval_node(node: &ast::Node, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
     match node {
@@ -1004,7 +1003,7 @@ mod tests {
         }
     }
 
-    fn assert_error_object(err: object::Error, expected: &str) {
+    fn assert_error_object(err: anyhow::Error, expected: &str) {
         assert_eq!(err.to_string(), expected)
     }
 

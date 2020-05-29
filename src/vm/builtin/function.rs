@@ -1,5 +1,7 @@
 use std::convert::TryFrom;
 
+use anyhow::Result;
+
 use super::super::evaluator::new_error;
 use super::super::object;
 use super::NULL;
@@ -37,7 +39,7 @@ impl From<Function> for object::Object {
 }
 
 impl Function {
-    pub fn call(&self, args: &[object::Object]) -> Result<object::Object, object::Error> {
+    pub fn call(&self, args: &[object::Object]) -> Result<object::Object> {
         match self {
             Self::Len => len(args),
             Self::First => first(args),
@@ -49,7 +51,7 @@ impl Function {
     }
 }
 
-fn len(args: &[object::Object]) -> Result<object::Object, object::Error> {
+fn len(args: &[object::Object]) -> Result<object::Object> {
     if args.len() != 1 {
         return new_error(&format!(
             "wrong number of arguments. got={}, want=1",
@@ -74,7 +76,7 @@ fn len(args: &[object::Object]) -> Result<object::Object, object::Error> {
     .into())
 }
 
-fn first(args: &[object::Object]) -> Result<object::Object, object::Error> {
+fn first(args: &[object::Object]) -> Result<object::Object> {
     if args.len() != 1 {
         return new_error(&format!(
             "wrong number of arguments. got={}, want=1",
@@ -97,7 +99,7 @@ fn first(args: &[object::Object]) -> Result<object::Object, object::Error> {
     }
 }
 
-fn last(args: &[object::Object]) -> Result<object::Object, object::Error> {
+fn last(args: &[object::Object]) -> Result<object::Object> {
     if args.len() != 1 {
         return new_error(&format!(
             "wrong number of arguments. got={}, want=1",
@@ -120,7 +122,7 @@ fn last(args: &[object::Object]) -> Result<object::Object, object::Error> {
     }
 }
 
-fn rest(args: &[object::Object]) -> Result<object::Object, object::Error> {
+fn rest(args: &[object::Object]) -> Result<object::Object> {
     if args.len() != 1 {
         return new_error(&format!(
             "wrong number of arguments. got={}, want=1",
@@ -146,7 +148,7 @@ fn rest(args: &[object::Object]) -> Result<object::Object, object::Error> {
     }
 }
 
-fn push(args: &[object::Object]) -> Result<object::Object, object::Error> {
+fn push(args: &[object::Object]) -> Result<object::Object> {
     if args.len() != 2 {
         return new_error(&format!(
             "wrong number of arguments. got={}, want=2",
@@ -168,7 +170,7 @@ fn push(args: &[object::Object]) -> Result<object::Object, object::Error> {
     }
 }
 
-fn puts(args: &[object::Object]) -> Result<object::Object, object::Error> {
+fn puts(args: &[object::Object]) -> Result<object::Object> {
     for arg in args.iter() {
         println!("{}", arg);
     }
