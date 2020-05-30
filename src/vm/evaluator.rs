@@ -44,7 +44,7 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
         ast::Expr::Boolean(expr) => Ok(native_bool_to_boolean_object(expr.value)),
         ast::Expr::Call(expr) => {
             if expr.func.to_string() == "quote" {
-                return Ok(quote(ast::Node::Expr(expr.args[0].clone())));
+                return quote(ast::Node::Expr(expr.args[0].clone()), Rc::clone(&env));
             }
 
             let func = eval_expr(&expr.func, Rc::clone(&env))?;
@@ -395,8 +395,9 @@ fn eval_hash_index_expr<'a>(
     }
 }
 
-fn quote(node: ast::Node) -> object::Object {
-    object::Quote { node }.into()
+fn quote(node: ast::Node, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
+    let node = eval_unquote_calls(node, env)?;
+    Ok(object::Quote { node }.into())
 }
 
 fn eval_unquote_calls(quoted: ast::Node, env: Rc<RefCell<Environment>>) -> Result<ast::Node> {
