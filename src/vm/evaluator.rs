@@ -426,6 +426,7 @@ fn eval_unquote_calls(quoted: ast::Node, env: Rc<RefCell<Environment>>) -> Resul
 fn convert_object_to_ast_node(obj: object::Object) -> ast::Node {
     match obj {
         object::Object::Integer(int) => ast::Expr::from(ast::Integer { value: int.value }).into(),
+        object::Object::Boolean(b) => ast::Expr::from(ast::Boolean { value: b.value }).into(),
         _ => unimplemented!(),
     }
 }
@@ -1035,6 +1036,8 @@ mod tests {
                 ",
                 "8",
             ),
+            ("quote(unquote(true))", "true"),
+            ("quote(unquote(true == false))", "false"),
         ];
         tests.into_iter().for_each(|(input, expected)| {
             let evaluated = eval(input);
