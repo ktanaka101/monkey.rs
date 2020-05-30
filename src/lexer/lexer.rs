@@ -181,6 +181,7 @@ mod tests {
             \"foo bar\"
             [1, 2];
             {\"foo\": \"bar\"}
+            macro(x, y) { x + y; };
             ";
 
         let mut lexer = Lexer::new(input.to_string());
@@ -271,6 +272,19 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::Colon);
         assert_eq!(lexer.next_token(), Token::StringLiteral("bar".into()));
         assert_eq!(lexer.next_token(), Token::Rbrace);
+        assert_eq!(lexer.next_token(), Token::Macro);
+        assert_eq!(lexer.next_token(), Token::Lparen);
+        assert_eq!(lexer.next_token(), Token::Ident("x".into()));
+        assert_eq!(lexer.next_token(), Token::Comma);
+        assert_eq!(lexer.next_token(), Token::Ident("y".into()));
+        assert_eq!(lexer.next_token(), Token::Rparen);
+        assert_eq!(lexer.next_token(), Token::Lbrace);
+        assert_eq!(lexer.next_token(), Token::Ident("x".into()));
+        assert_eq!(lexer.next_token(), Token::Plus);
+        assert_eq!(lexer.next_token(), Token::Ident("y".into()));
+        assert_eq!(lexer.next_token(), Token::Semicolon);
+        assert_eq!(lexer.next_token(), Token::Rbrace);
+        assert_eq!(lexer.next_token(), Token::Semicolon);
         assert_eq!(lexer.next_token(), Token::Eof);
     }
 }

@@ -35,6 +35,7 @@ pub enum Token {
     If,
     Else,
     Return,
+    Macro,
 }
 
 pub fn lookup_ident(ident: &str) -> Token {
@@ -46,6 +47,7 @@ pub fn lookup_ident(ident: &str) -> Token {
         "if" => Token::If,
         "else" => Token::Else,
         "return" => Token::Return,
+        "macro" => Token::Macro,
         id => Token::Ident(id.into()),
     }
 }
