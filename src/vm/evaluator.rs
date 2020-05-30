@@ -427,6 +427,7 @@ fn convert_object_to_ast_node(obj: object::Object) -> ast::Node {
     match obj {
         object::Object::Integer(int) => ast::Expr::from(ast::Integer { value: int.value }).into(),
         object::Object::Boolean(b) => ast::Expr::from(ast::Boolean { value: b.value }).into(),
+        object::Object::Quote(q) => q.node,
         _ => unimplemented!(),
     }
 }
@@ -1038,6 +1039,14 @@ mod tests {
             ),
             ("quote(unquote(true))", "true"),
             ("quote(unquote(true == false))", "false"),
+            ("quote(unquote(quote(4 + 4)))", "(4 + 4)"),
+            (
+                "
+                    let quotedInfixExpression = quote(4 + 4);
+                    quote(unquote(4 + 4) + unquote(quotedInfixExpression))
+                ",
+                "(8 + (4 + 4))",
+            ),
         ];
         tests.into_iter().for_each(|(input, expected)| {
             let evaluated = eval(input);
