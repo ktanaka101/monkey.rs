@@ -21,3 +21,14 @@ impl Display for Call {
         write!(f, "{}", out)
     }
 }
+
+impl TryFrom<Expr> for Call {
+    type Error = Error;
+
+    fn try_from(value: Expr) -> Result<Self> {
+        match value {
+            Expr::Call(call) => Ok(call),
+            expr => Err(ParserError::Convert(format!("{:?}", expr), "Call".into()))?,
+        }
+    }
+}

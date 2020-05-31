@@ -12,3 +12,17 @@ impl Display for InfixExpr {
         write!(f, "({} {} {})", self.left, self.ope, self.right)
     }
 }
+
+impl TryFrom<Expr> for InfixExpr {
+    type Error = Error;
+
+    fn try_from(value: Expr) -> Result<Self> {
+        match value {
+            Expr::InfixExpr(infix_expr) => Ok(infix_expr),
+            expr => Err(ParserError::Convert(
+                format!("{:?}", expr),
+                "InfixExpr".into(),
+            ))?,
+        }
+    }
+}

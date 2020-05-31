@@ -17,3 +17,14 @@ impl Display for If {
         write!(f, "{}", out)
     }
 }
+
+impl TryFrom<Expr> for If {
+    type Error = Error;
+
+    fn try_from(value: Expr) -> Result<Self> {
+        match value {
+            Expr::If(mif) => Ok(mif),
+            expr => Err(ParserError::Convert(format!("{:?}", expr), "If".into()))?,
+        }
+    }
+}

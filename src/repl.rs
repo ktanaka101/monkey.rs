@@ -6,13 +6,14 @@ use std::rc::Rc;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 use crate::vm::env::Environment;
-use crate::vm::evaluator::eval_node;
+use crate::vm::evaluator::{define_macros, eval_node, expand_macros};
 use crate::vm::object;
 
 const PROMPT: &str = ">> ";
 
 pub fn start() {
     let env = Rc::new(RefCell::new(Environment::new(None)));
+    let macro_env = Rc::new(RefCell::new(Environment::new(None)));
 
     loop {
         print!("{}", PROMPT);
@@ -26,7 +27,7 @@ pub fn start() {
         let lexer = Lexer::new(line);
         let mut parser = Parser::new(lexer);
 
-        let program = match parser.parse_program() {
+        let mut program = match parser.parse_program() {
             Ok(p) => p,
             Err(x) => {
                 println!("Parse error: {}", x);
@@ -34,7 +35,21 @@ pub fn start() {
             }
         };
 
-        let evaluated = eval_node(&program.into(), Rc::clone(&env));
+        let res = define_macros(&mut program, Rc::clone(&macro_env));
+        if let Err(e) = res {
+            println!("Define macro error: {}", e);
+            continue;
+        }
+
+        let expanded = match expand_macros(program.into(), Rc::clone(&macro_env)) {
+            Ok(expanded) => expanded,
+            Err(e) => {
+                println!("Expand macro error: {}", e);
+                continue;
+            }
+        };
+
+        let evaluated = eval_node(&expanded, Rc::clone(&env));
         match evaluated {
             Ok(o) => match o {
                 object::Object::Null(_) => continue,

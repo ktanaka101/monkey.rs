@@ -13,3 +13,14 @@ impl Display for Let {
         write!(f, "{}", out)
     }
 }
+
+impl TryFrom<Stmt> for Let {
+    type Error = Error;
+
+    fn try_from(value: Stmt) -> Result<Self> {
+        match value {
+            Stmt::Let(mlet) => Ok(mlet),
+            stmt => Err(ParserError::Convert(format!("{:?}", stmt), "Let".into()))?,
+        }
+    }
+}

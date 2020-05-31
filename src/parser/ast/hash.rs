@@ -17,3 +17,14 @@ impl Display for Hash {
         write!(f, "{}", out)
     }
 }
+
+impl TryFrom<Expr> for Hash {
+    type Error = Error;
+
+    fn try_from(value: Expr) -> Result<Self> {
+        match value {
+            Expr::Hash(hs) => Ok(hs),
+            expr => Err(ParserError::Convert(format!("{:?}", expr), "Hash".into()))?,
+        }
+    }
+}
