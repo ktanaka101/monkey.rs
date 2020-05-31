@@ -84,33 +84,27 @@ pub(crate) fn new_error<T>(message: &str) -> Result<T> {
 }
 
 fn eval_program(program: &ast::Program, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
-    let mut result = None;
+    let mut obj: object::Object = NULL.into();
     for stmt in program.statements.iter() {
         match eval_stmt(stmt, Rc::clone(&env))? {
             object::Object::Return(r) => return Ok(r.value.as_ref().clone()),
-            o => result = Some(o),
+            o => obj = o,
         }
     }
 
-    match result {
-        Some(r) => Ok(r),
-        _ => new_error(&format!("program statements empty: {}", program)),
-    }
+    Ok(obj)
 }
 
 fn eval_block(block: &ast::Block, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
-    let mut result = None;
+    let mut obj: object::Object = NULL.into();
     for stmt in block.statements.iter() {
         match eval_stmt(stmt, Rc::clone(&env))? {
             object::Object::Return(r) => return Ok(r.into()),
-            o => result = Some(o),
+            o => obj = o,
         }
     }
 
-    match result {
-        Some(r) => Ok(r),
-        _ => new_error(&format!("program statements empty: {}", block)),
-    }
+    Ok(obj)
 }
 
 fn eval_prefix_expr(ope: &ast::Operator, right: &object::Object) -> Result<object::Object> {
