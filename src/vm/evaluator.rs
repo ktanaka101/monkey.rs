@@ -80,6 +80,7 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
             value: expr.value.clone(),
         }
         .into()),
+        _ => unreachable!(),
     }
 }
 
@@ -437,6 +438,125 @@ fn is_unquote_call(node: &ast::Node) -> bool {
         ast::Node::Expr(ast::Expr::Call(call)) => (*call.func).to_string() == "unquote",
         _ => false,
     }
+}
+
+pub fn define_macros(program: &mut ast::Program, env: Rc<RefCell<Environment>>) -> Result<()> {
+    program
+        .statements
+        .iter()
+        .filter(|stmt| is_macro_definition(stmt))
+        .try_for_each(|stmt| add_macro(stmt, Rc::clone(&env)))?;
+
+    program.statements = program
+        .statements
+        .clone()
+        .into_iter()
+        .filter(|stmt| !is_macro_definition(stmt))
+        .collect::<Vec<ast::Stmt>>();
+
+    Ok(())
+}
+
+fn is_macro_definition(stmt: &ast::Stmt) -> bool {
+    match stmt {
+        ast::Stmt::Let(ast::Let { value, .. }) => match value {
+            ast::Expr::MacroLit(_) => true,
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+fn add_macro(stmt: &ast::Stmt, env: Rc<RefCell<Environment>>) -> Result<()> {
+    let let_stmt = match stmt {
+        ast::Stmt::Let(l) => l,
+        stmt => Err(anyhow::format_err!("expect Let. received {}", stmt))?,
+    };
+    let ast::Let { name, value } = let_stmt;
+
+    let m_macro = match value {
+        ast::Expr::MacroLit(m) => m,
+        stmt => Err(anyhow::format_err!("expect Macro. received {}", stmt))?,
+    };
+    let ast::MacroLit { params, body, .. } = m_macro;
+
+    let m_macro = object::Macro {
+        params: params.clone(),
+        body: body.clone(),
+        env: Rc::clone(&env),
+    };
+
+    env.borrow_mut().insert(&name.to_string(), m_macro.into());
+
+    Ok(())
+}
+
+pub fn expand_macros(program: ast::Node, env: Rc<RefCell<Environment>>) -> Result<ast::Node> {
+    tools::modify(program, |node| {
+        let call = match &node {
+            ast::Node::Expr(ast::Expr::Call(call)) => call,
+            _ => return Ok(node),
+        };
+
+        let m_macro = get_macro_in_env(call, Rc::clone(&env));
+        let m_macro = if let Some(m) = m_macro {
+            m
+        } else {
+            return Ok(node);
+        };
+
+        let args = quote_args(call.clone());
+        let eval_env = extend_macro_env(m_macro.clone(), args);
+
+        let evaluated = eval_stmt(
+            &m_macro.body.clone().into(),
+            Rc::new(RefCell::new(eval_env)),
+        )?;
+
+        let quote = match evaluated {
+            object::Object::Quote(q) => q,
+            o => Err(anyhow::format_err!(
+                "we only support returning AST-nodes from macros. {}",
+                o
+            ))?,
+        };
+
+        Ok(quote.node)
+    })
+}
+
+fn get_macro_in_env(call: &ast::Call, env: Rc<RefCell<Environment>>) -> Option<object::Macro> {
+    let ident = match &(*call.func) {
+        ast::Expr::Identifier(id) => id,
+        _ => return None,
+    };
+
+    let obj = env.borrow().get(&ident.value)?;
+    match obj {
+        object::Object::Macro(m) => Some(m),
+        _ => None,
+    }
+}
+
+fn quote_args(call: ast::Call) -> Vec<object::Quote> {
+    call.args
+        .into_iter()
+        .map(|arg| object::Quote { node: arg.into() })
+        .collect::<Vec<object::Quote>>()
+}
+
+fn extend_macro_env(m_macro: object::Macro, args: Vec<object::Quote>) -> Environment {
+    let mut extended = Environment::new(Some(Rc::clone(&m_macro.env)));
+
+    m_macro
+        .params
+        .into_iter()
+        .zip(args)
+        .for_each(|(id, quote)| {
+            extended.insert(&id.value, quote.into());
+        });
+
+    extended
 }
 
 #[cfg(test)]
@@ -1054,6 +1174,85 @@ mod tests {
                 object::Object::Quote(o) => assert_eq!(o.to_string(), expected),
                 o => panic!(format!("expected Quote. received {:?}", o)),
             }
+        });
+    }
+
+    #[test]
+    fn test_define_macro() {
+        let input = "
+            let number = 1;
+            let function = fn(x, y) { x + y; };
+            let mymacro = macro(x, y) { x + y; };
+        ";
+
+        let env = Rc::new(RefCell::new(Environment::new(None)));
+        let mut program = {
+            let l = crate::lexer::Lexer::new(input.into());
+            let mut p = crate::parser::Parser::new(l);
+            p.parse_program().unwrap()
+        };
+
+        define_macros(&mut program, Rc::clone(&env)).unwrap();
+
+        assert_eq!(program.statements.len(), 2);
+
+        assert_eq!(env.borrow().get("number").is_none(), true);
+        assert_eq!(env.borrow().get("function").is_none(), true);
+
+        let obj = env.borrow().get("mymacro");
+        assert_eq!(obj.is_some(), true);
+
+        let m_macro = match obj.unwrap() {
+            object::Object::Macro(m) => m,
+            obj => panic!(format!("expect Macro. received {}", obj)),
+        };
+
+        assert_eq!(m_macro.params.len(), 2);
+        assert_eq!(m_macro.params[0].to_string(), "x");
+        assert_eq!(m_macro.params[1].to_string(), "y");
+
+        let expected_body = "{ (x + y) }";
+        assert_eq!(m_macro.body.to_string(), expected_body);
+    }
+
+    #[test]
+    fn test_expand_macros() {
+        let tests = vec![
+            (
+                "
+                    let infix_expr = macro() { quote(1 + 2) };
+                    infix_expr();
+                ",
+                "(1 + 2)",
+            ),
+            (
+                "
+                    let reverse = macro(a, b) { quote(unquote(b) - unquote(a)); };
+                    reverse(2 + 2, 10 - 5);
+                ",
+                "(10 - 5) - (2 + 2)",
+            ),
+        ];
+
+        tests.into_iter().for_each(|(input, expected)| {
+            let expected = {
+                let l = crate::lexer::Lexer::new(expected.into());
+                let mut p = crate::parser::Parser::new(l);
+                p.parse_program().unwrap()
+            };
+
+            let mut program = {
+                let l = crate::lexer::Lexer::new(input.into());
+                let mut p = crate::parser::Parser::new(l);
+                p.parse_program().unwrap()
+            };
+            let env = Rc::new(RefCell::new(Environment::new(None)));
+            define_macros(&mut program, Rc::clone(&env)).unwrap();
+
+            let expanded = expand_macros(program.into(), Rc::clone(&env)).unwrap();
+
+            assert_eq!(expanded.to_string(), expected.to_string());
+            assert_eq!(expanded, expected.into());
         });
     }
 
