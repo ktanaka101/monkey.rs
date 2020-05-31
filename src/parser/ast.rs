@@ -10,7 +10,7 @@ mod prelude {
     pub use super::super::error::ParserError;
     pub use super::{
         Array, Block, Boolean, Call, Expr, ExprStmt, Function, Hash, Identifier, If, Index,
-        InfixExpr, Integer, Let, Node, Operator, Pair, PrefixExpr, Program, Return, Stmt,
+        InfixExpr, Integer, Let, MacroLit, Node, Operator, Pair, PrefixExpr, Program, Return, Stmt,
         StringLit,
     };
 }
@@ -27,6 +27,7 @@ mod identifier;
 mod index;
 mod infix_expr;
 mod integer;
+mod macro_lit;
 mod mif;
 mod mlet;
 mod mreturn;
@@ -50,6 +51,7 @@ pub use identifier::Identifier;
 pub use index::Index;
 pub use infix_expr::InfixExpr;
 pub use integer::Integer;
+pub use macro_lit::MacroLit;
 pub use mif::If;
 pub use mlet::Let;
 pub use mreturn::Return;
