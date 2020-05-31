@@ -469,8 +469,8 @@ impl Parser {
             Ok(())
         } else {
             Err(ParserError::ExpectPeek(
-                format!("{:?}", &self.peek_token),
                 format!("{:?}", &token_t),
+                format!("{:?}", &self.peek_token),
             ))?
         }
     }
