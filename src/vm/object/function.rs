@@ -17,7 +17,7 @@ impl Display for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "fn({}) {{\n{}\n}}",
+            "fn({}) {}",
             self.params
                 .iter()
                 .map(|p| p.to_string())
