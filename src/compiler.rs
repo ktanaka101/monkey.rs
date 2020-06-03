@@ -74,6 +74,37 @@ mod tests {
         assert_eq!(actual, expected.into());
     }
 
+    #[test]
+    fn test_instructions_string() {
+        let instructions: Vec<code::Instructions> = vec![
+            code::OpConstant(1).into(),
+            code::OpConstant(2).into(),
+            code::OpConstant(65535).into(),
+        ]
+        .into();
+        let instructions = code::Instructions::from(instructions);
+
+        let expected = "\
+            0000 OpConstant 1¥n\
+            0003 OpConstant 2¥n\
+            0006 OpConstant 65535¥n";
+
+        assert_eq!(instructions.to_string(), expected);
+    }
+
+    #[test]
+    fn test_read_operands() {
+        let tests = vec![(
+            code::OpConstant::read,
+            code::Opcode::from(code::OpConstant(65535)),
+            65535,
+        )];
+
+        tests.into_iter().for_each(|(read, input, expected_value)| {
+            let instructions = code::Instructions::from(input.to_bytes());
+            let read_value = read(&instructions.0[1..]);
+            assert_eq!(read_value, expected_value);
+        });
     }
 
     fn test_constants(actual: Vec<object::Object>, expected: Vec<Type>) {
