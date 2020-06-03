@@ -1,4 +1,8 @@
-pub type Instructions = Vec<u8>;
+use std::fmt;
+use std::fmt::{Display, Formatter};
+
+#[derive(Debug, Default, PartialEq)]
+pub struct Instructions(pub Vec<u8>);
 
 #[derive(Debug)]
 pub struct Definition {
