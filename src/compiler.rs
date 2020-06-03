@@ -43,19 +43,14 @@ mod tests {
 
     #[test]
     fn test_compiler() {
-        let tests = vec![(
-            "1 + 2",
-            vec![Type::Int(1), Type::Int(2)],
-            vec![
-                code::OpConstant(0).to_bytes().to_vec(),
-                code::OpConstant(1).to_bytes().to_vec(),
-            ],
-        )];
+        let expected: Vec<code::Opcode> =
+            vec![code::OpConstant(0).into(), code::OpConstant(1).into()];
+        let tests = vec![("1 + 2", vec![Type::Int(1), Type::Int(2)], expected.into())];
 
         run_compiler_tests(tests);
     }
 
-    fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, Vec<code::Instructions>)>) {
+    fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, code::Instructions)>) {
         tests
             .into_iter()
             .for_each(|(input, expected_constants, expected_instructure)| {
@@ -75,9 +70,10 @@ mod tests {
             });
     }
 
-    fn test_instructions(actual: code::Instructions, expected: Vec<code::Instructions>) {
-        let expected = expected.into_iter().flatten().collect::<Vec<_>>();
-        assert_eq!(actual, expected);
+    fn test_instructions(actual: code::Instructions, expected: code::Instructions) {
+        assert_eq!(actual, expected.into());
+    }
+
     }
 
     fn test_constants(actual: Vec<object::Object>, expected: Vec<Type>) {
