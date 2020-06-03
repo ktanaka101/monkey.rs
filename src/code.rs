@@ -97,6 +97,12 @@ impl Opcode {
     }
 }
 
+impl From<OpConstant> for Opcode {
+    fn from(value: OpConstant) -> Self {
+        Opcode::OpConstant(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
