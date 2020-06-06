@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use crate::code;
 use crate::code::Read;
 use crate::parser::ast;
@@ -11,9 +13,51 @@ pub struct Compiler {
     constants: Vec<object::Object>,
 }
 
+pub type Pos = u16;
+
 impl Compiler {
-    pub fn compile(&self, node: ast::Node) -> Result<()> {
+    pub fn compile(&mut self, node: ast::Node) -> Result<()> {
+        match node {
+            ast::Node::Program(pg) => {
+                pg.statements
+                    .into_iter()
+                    .try_for_each(|stmt| self.compile(stmt.into()))?;
+            }
+            ast::Node::Stmt(stmt) => match stmt {
+                ast::Stmt::ExprStmt(stmt) => self.compile(stmt.expr.into())?,
+                _ => unimplemented!(),
+            },
+            ast::Node::Expr(expr) => match expr {
+                ast::Expr::InfixExpr(expr) => {
+                    self.compile((*expr.left).into())?;
+                    self.compile((*expr.right).into())?;
+                }
+                ast::Expr::Integer(int) => {
+                    let int = object::Integer { value: int.value };
+                    let op = code::OpConstant::from(self.add_constant(int.into()));
+                    self.emit(op.into());
+                }
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
+        }
         Ok(())
+    }
+
+    fn add_constant(&mut self, obj: object::Object) -> Pos {
+        self.constants.push(obj);
+        Pos::try_from(self.constants.len()).unwrap() - 1
+    }
+
+    fn add_instruction(&mut self, mut ins: Vec<code::Instruction>) -> Pos {
+        let len = Pos::try_from(self.instructions.0.len()).unwrap();
+        self.instructions.0.append(&mut ins);
+        len
+    }
+
+    fn emit(&mut self, op: code::Opcode) -> Pos {
+        let ins = op.to_bytes();
+        self.add_instruction(ins)
     }
 }
 
@@ -56,7 +100,7 @@ mod tests {
             .into_iter()
             .for_each(|(input, expected_constants, expected_instructure)| {
                 let program = parse_test_input(input);
-                let compiler = Compiler::default();
+                let mut compiler = Compiler::default();
                 if let Err(e) = compiler.compile(program.into()) {
                     panic!("{}", e);
                 };
