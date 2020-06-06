@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 
 use anyhow::Result;
 
-type Instruction = u8;
+pub type Instruction = u8;
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Instructions(pub Vec<Instruction>);
