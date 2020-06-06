@@ -36,7 +36,17 @@ impl From<Vec<Opcode>> for Instructions {
 
 impl Display for Instructions {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "",)
+        let mut pos = 0;
+        let mut buf = String::new();
+
+        while pos < self.0.len() {
+            let bytes = [self.0[pos + 1], self.0[pos + 2]];
+            let read = OpConstant::read(bytes);
+            buf.push_str(format!("{:>04} {} {}¥n", pos, OpConstant::name(), read).as_str());
+            pos = pos + 1 + usize::from(OpConstant::readsize());
+        }
+
+        write!(f, "{}", buf)
     }
 }
 
@@ -123,6 +133,26 @@ mod tests {
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
             assert_eq!(bytes.to_vec(), expected_bytes);
+        });
+    }
+
+    #[test]
+    fn test_format_instructions() {
+        let tests = vec![
+            (
+                vec![OpConstant(65534), OpConstant(1)],
+                "0000 OpConstant 65534¥n0003 OpConstant 1¥n",
+            ),
+            (vec![OpConstant(65534)], "0000 OpConstant 65534¥n"),
+        ];
+
+        tests.into_iter().for_each(|(input, expected)| {
+            let instructions: Instructions = input
+                .into_iter()
+                .flat_map(|v| v.to_bytes().to_vec())
+                .collect::<Vec<Instruction>>()
+                .into();
+            assert_eq!(format!("{}", instructions), expected);
         });
     }
 }
