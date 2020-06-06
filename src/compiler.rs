@@ -102,7 +102,7 @@ mod tests {
 
         tests.into_iter().for_each(|(read, input, expected_value)| {
             let instructions = code::Instructions::from(input.to_bytes());
-            let read_value = read(&instructions.0[1..]);
+            let read_value = read([instructions.0[1], instructions.0[2]]);
             assert_eq!(read_value, expected_value);
         });
     }

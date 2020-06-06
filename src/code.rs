@@ -72,8 +72,7 @@ impl OpConstant {
         v
     }
 
-    pub fn read(bytes: &[u8]) -> u16 {
-        let bytes: [u8; 2] = [bytes[0], bytes[1]];
+    pub fn read(bytes: [u8; 2]) -> u16 {
         u16::from_be_bytes(bytes)
     }
 }
