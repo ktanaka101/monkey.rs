@@ -1,6 +1,4 @@
 use crate::code;
-use crate::lexer;
-use crate::parser;
 use crate::parser::ast;
 use crate::vm::object;
 
@@ -36,6 +34,8 @@ impl From<Compiler> for Bytecode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lexer;
+    use crate::parser;
 
     enum Type {
         Int(i64),
