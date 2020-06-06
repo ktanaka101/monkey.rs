@@ -14,7 +14,7 @@ impl From<Vec<Instruction>> for Instructions {
 
 impl From<OpConstant> for Instructions {
     fn from(value: OpConstant) -> Self {
-        Instructions(value.to_bytes().to_vec())
+        value.to_bytes().to_vec().into()
     }
 }
 
