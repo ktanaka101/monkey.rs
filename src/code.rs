@@ -1,6 +1,8 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
+use anyhow::Result;
+
 type Instruction = u8;
 
 #[derive(Debug, Default, PartialEq)]
@@ -40,9 +42,12 @@ impl Display for Instructions {
         let mut buf = String::new();
 
         while pos < self.0.len() {
-            let bytes = [self.0[pos + 1], self.0[pos + 2]];
-            let read = OpConstant::read(bytes);
-            buf.push_str(format!("{:>04} {} {}¥n", pos, OpConstant::name(), read).as_str());
+            let read = OpConstant::try_read(&self.0[pos + 1..]);
+            let msg = match read {
+                Ok(read) => format!("{:>04} {} {}¥n", pos, OpConstant::name(), read),
+                Err(e) => format!("{:>04} {} Error: {}¥n", pos, OpConstant::name(), e),
+            };
+            buf.push_str(msg.as_str());
             pos = pos + 1 + usize::from(OpConstant::readsize());
         }
 
@@ -66,34 +71,81 @@ pub struct Definition {
     pub operand_widths: Vec<i32>,
 }
 
-#[derive(Debug)]
-pub struct OpConstant(pub u16);
-impl OpConstant {
-    pub const fn code() -> u8 {
-        0
+pub trait Read<T, const SIZE: usize> {
+    fn read(bytes: [Instruction; SIZE]) -> T;
+    fn readsize() -> usize {
+        SIZE
     }
+}
 
-    pub const fn name() -> &'static str {
-        "OpConstant"
+pub trait TryRead<T, const SIZE: usize>
+where
+    Self: Read<T, SIZE>,
+{
+    fn try_read(bytes: &[Instruction]) -> Result<T> {
+        if bytes.len() < SIZE {
+            Err(anyhow::format_err!("expected bytes length <= {}", SIZE))?
+        }
+
+        let mut b: [Instruction; SIZE] = [0; SIZE];
+        for i in 0..SIZE {
+            b[i] = bytes[i];
+        }
+
+        Ok(Self::read(b))
     }
+}
 
-    pub const fn readsize() -> u8 {
-        2
-    }
-
-    pub fn to_bytes(&self) -> [u8; 3] {
-        let mut v = [0; 3];
+// TODO: Remove "TARGET" after the expression is supported
+pub trait ToBytes<const SIZE: usize, const TARGET_SIZE: usize>
+where
+    Self: OperandCode,
+{
+    fn to_bytes(&self) -> [Instruction; SIZE] {
+        let mut v: [Instruction; SIZE] = [0; SIZE];
         v[0] = Self::code();
-        let v2 = self.0.to_be_bytes();
-        v[1] = v2[0];
-        v[2] = v2[1];
+        let v2: [Instruction; TARGET_SIZE] = self.target_to_bytes();
+        for i in 0..TARGET_SIZE {
+            v[i + 1] = v2[i];
+        }
+
         v
     }
 
-    pub fn read(bytes: [u8; 2]) -> u16 {
+    fn target_to_bytes(&self) -> [Instruction; TARGET_SIZE];
+}
+
+pub trait OperandCode {
+    const CODE: u8;
+    fn code() -> u8 {
+        Self::CODE
+    }
+    fn name() -> &'static str;
+}
+
+#[derive(Debug)]
+pub struct OpConstant(pub u16);
+
+impl OperandCode for OpConstant {
+    const CODE: u8 = 0;
+    fn name() -> &'static str {
+        "OpConstant"
+    }
+}
+
+impl ToBytes<3, 2> for OpConstant {
+    fn target_to_bytes(&self) -> [Instruction; 2] {
+        self.0.to_be_bytes()
+    }
+}
+
+impl Read<u16, 2> for OpConstant {
+    fn read(bytes: [Instruction; 2]) -> u16 {
         u16::from_be_bytes(bytes)
     }
 }
+
+impl<T: Read<U, S>, U, const S: usize> TryRead<U, S> for T {}
 
 impl From<u16> for OpConstant {
     fn from(value: u16) -> Self {

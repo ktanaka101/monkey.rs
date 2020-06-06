@@ -1,4 +1,5 @@
 use crate::code;
+use crate::code::Read;
 use crate::parser::ast;
 use crate::vm::object;
 
