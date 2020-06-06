@@ -1,11 +1,13 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Default, PartialEq)]
-pub struct Instructions(pub Vec<u8>);
+type Instruction = u8;
 
-impl From<Vec<u8>> for Instructions {
-    fn from(value: Vec<u8>) -> Self {
+#[derive(Debug, Default, PartialEq)]
+pub struct Instructions(pub Vec<Instruction>);
+
+impl From<Vec<Instruction>> for Instructions {
+    fn from(value: Vec<Instruction>) -> Self {
         Instructions(value)
     }
 }
@@ -16,7 +18,7 @@ impl From<OpConstant> for Instructions {
     }
 }
 
-impl From<Instructions> for Vec<u8> {
+impl From<Instructions> for Vec<Instruction> {
     fn from(value: Instructions) -> Self {
         value.0
     }
