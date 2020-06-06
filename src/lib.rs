@@ -1,3 +1,5 @@
+#![feature(const_generics)]
+
 mod code;
 mod compiler;
 mod lexer;
