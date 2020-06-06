@@ -26,8 +26,7 @@ impl From<Vec<Opcode>> for Instructions {
     fn from(value: Vec<Opcode>) -> Self {
         value
             .into_iter()
-            .map(|v| v.to_bytes())
-            .flatten()
+            .flat_map(|v| v.to_bytes())
             .collect::<Vec<_>>()
             .into()
     }
@@ -43,8 +42,7 @@ impl From<Vec<Instructions>> for Instructions {
     fn from(value: Vec<Instructions>) -> Self {
         value
             .into_iter()
-            .map(|e| e.0.to_vec())
-            .flatten()
+            .flat_map(|v| v.0.to_vec())
             .collect::<Vec<_>>()
             .into()
     }
