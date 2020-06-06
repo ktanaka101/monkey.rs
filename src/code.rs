@@ -63,6 +63,14 @@ impl OpConstant {
         0
     }
 
+    pub const fn name() -> &'static str {
+        "OpConstant"
+    }
+
+    pub const fn readsize() -> u8 {
+        2
+    }
+
     pub fn to_bytes(&self) -> [u8; 3] {
         let mut v = [0; 3];
         v[0] = Self::code();
