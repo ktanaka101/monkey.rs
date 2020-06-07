@@ -63,8 +63,8 @@ impl Compiler {
 
 #[derive(Debug, Default, Clone)]
 pub struct Bytecode {
-    instructions: code::Instructions,
-    constants: Vec<object::Object>,
+    pub instructions: code::Instructions,
+    pub constants: Vec<object::Object>,
 }
 
 impl From<Compiler> for Bytecode {
