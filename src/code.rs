@@ -84,7 +84,7 @@ where
 {
     fn try_read(bytes: &[Instruction]) -> Result<T> {
         if bytes.len() < SIZE {
-            Err(anyhow::format_err!("expected bytes length <= {}", SIZE))?
+            Err(anyhow::format_err!("expected bytes length >= {}", SIZE))?
         }
 
         let mut b: [Instruction; SIZE] = [0; SIZE];
