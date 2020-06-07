@@ -33,8 +33,6 @@ impl ToBytes<1, 0> for vm::opcode::Add {
 
 #[cfg(test)]
 mod tests {
-    use vm::opcode::OperandCode;
-
     use super::*;
 
     #[test]

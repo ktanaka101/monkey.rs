@@ -1,9 +1,7 @@
 use super::preludes::*;
 
 use vm::compiler::convert::ToBytes;
-use vm::convert::{Read, TryRead};
 use vm::opcode;
-use vm::opcode::OperandCode;
 
 pub type Instruction = u8;
 
