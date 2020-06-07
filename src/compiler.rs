@@ -34,6 +34,11 @@ impl Compiler {
                 ast::Expr::InfixExpr(expr) => {
                     self.compile((*expr.left).into())?;
                     self.compile((*expr.right).into())?;
+
+                    match expr.ope {
+                        ast::Operator::Plus => self.emit(opcode::Add.into()),
+                        unknown => Err(anyhow::format_err!("unknown operator {}", unknown))?,
+                    };
                 }
                 ast::Expr::Integer(int) => {
                     let int = object::Integer { value: int.value };
@@ -88,8 +93,11 @@ mod tests {
 
     #[test]
     fn test_compiler() {
-        let expected: Vec<opcode::Opcode> =
-            vec![opcode::Constant(0).into(), opcode::Constant(1).into()];
+        let expected: Vec<opcode::Opcode> = vec![
+            opcode::Constant(0).into(),
+            opcode::Constant(1).into(),
+            opcode::Add.into(),
+        ];
         let tests = vec![("1 + 2", vec![Type::Int(1), Type::Int(2)], expected.into())];
 
         run_compiler_tests(tests);
