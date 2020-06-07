@@ -97,7 +97,7 @@ impl VM {
             Err(anyhow::format_err!("stack overflow"))?;
         }
 
-        self.stacks.push(o);
+        self.stacks.insert(self.sp, o);
         self.sp += 1;
 
         Ok(())
