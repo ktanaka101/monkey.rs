@@ -13,7 +13,7 @@ pub struct Compiler {
     constants: Vec<object::Object>,
 }
 
-pub type Pos = u16;
+type Pos = u16;
 
 impl Compiler {
     pub fn compile(&mut self, node: ast::Node) -> Result<()> {
