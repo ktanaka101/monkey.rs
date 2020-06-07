@@ -1,6 +1,6 @@
 mod constant;
 
-pub use constant::OpConstant;
+pub use constant::Constant;
 
 use crate::compiler::convert::ToBytes;
 
@@ -15,20 +15,20 @@ use preludes::*;
 
 #[derive(Debug)]
 pub enum Opcode {
-    OpConstant(OpConstant),
+    Constant(Constant),
 }
 
 impl Opcode {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
-            Opcode::OpConstant(o) => o.to_bytes().to_vec(),
+            Opcode::Constant(o) => o.to_bytes().to_vec(),
         }
     }
 }
 
-impl From<OpConstant> for Opcode {
-    fn from(value: OpConstant) -> Self {
-        Opcode::OpConstant(value)
+impl From<Constant> for Opcode {
+    fn from(value: Constant) -> Self {
+        Opcode::Constant(value)
     }
 }
 
@@ -37,7 +37,7 @@ impl TryFrom<&[Instruction]> for Opcode {
 
     fn try_from(value: &[Instruction]) -> Result<Self> {
         match value[0] {
-            OpConstant::CODE => Ok(OpConstant(OpConstant::try_read(&value[1..])?).into()),
+            Constant::CODE => Ok(Constant(Constant::try_read(&value[1..])?).into()),
             bad_code => Err(anyhow::format_err!("Unsupported code {}", bad_code)),
         }
     }

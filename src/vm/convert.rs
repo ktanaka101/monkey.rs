@@ -37,8 +37,8 @@ mod tests {
     #[test]
     fn test_read_operands() {
         let tests = vec![(
-            opcode::OpConstant::read,
-            opcode::Opcode::from(opcode::OpConstant(65535)),
+            opcode::Constant::read,
+            opcode::Opcode::from(opcode::Constant(65535)),
             65535,
         )];
 

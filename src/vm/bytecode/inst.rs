@@ -16,8 +16,8 @@ impl From<Vec<Instruction>> for Instructions {
     }
 }
 
-impl From<opcode::OpConstant> for Instructions {
-    fn from(value: opcode::OpConstant) -> Self {
+impl From<opcode::Constant> for Instructions {
+    fn from(value: opcode::Constant) -> Self {
         value.to_bytes().to_vec().into()
     }
 }
@@ -44,13 +44,13 @@ impl Display for Instructions {
         let mut buf = String::new();
 
         while pos < self.0.len() {
-            let read = opcode::OpConstant::try_read(&self.0[pos + 1..]);
+            let read = opcode::Constant::try_read(&self.0[pos + 1..]);
             let msg = match read {
-                Ok(read) => format!("{:>04} {} {}¥n", pos, opcode::OpConstant::name(), read),
-                Err(e) => format!("{:>04} {} Error: {}¥n", pos, opcode::OpConstant::name(), e),
+                Ok(read) => format!("{:>04} {} {}¥n", pos, opcode::Constant::name(), read),
+                Err(e) => format!("{:>04} {} Error: {}¥n", pos, opcode::Constant::name(), e),
             };
             buf.push_str(msg.as_str());
-            pos = pos + 1 + usize::from(opcode::OpConstant::readsize());
+            pos = pos + 1 + usize::from(opcode::Constant::readsize());
         }
 
         write!(f, "{}", buf)
@@ -75,10 +75,10 @@ mod test {
     fn test_format_instructions() {
         let tests = vec![
             (
-                vec![opcode::OpConstant(65534), opcode::OpConstant(1)],
-                "0000 OpConstant 65534¥n0003 OpConstant 1¥n",
+                vec![opcode::Constant(65534), opcode::Constant(1)],
+                "0000 Constant 65534¥n0003 Constant 1¥n",
             ),
-            (vec![opcode::OpConstant(65534)], "0000 OpConstant 65534¥n"),
+            (vec![opcode::Constant(65534)], "0000 Constant 65534¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

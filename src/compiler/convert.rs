@@ -19,7 +19,7 @@ where
     fn target_to_bytes(&self) -> [vm::bytecode::Instruction; TARGET_SIZE];
 }
 
-impl ToBytes<3, 2> for vm::opcode::OpConstant {
+impl ToBytes<3, 2> for vm::opcode::Constant {
     fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 2] {
         self.0.to_be_bytes()
     }
@@ -34,8 +34,8 @@ mod tests {
     #[test]
     fn test_to_bytes() {
         let tests = vec![(
-            vm::opcode::OpConstant(65534).to_bytes().to_vec(),
-            vec![vm::opcode::OpConstant::code(), 255, 254],
+            vm::opcode::Constant(65534).to_bytes().to_vec(),
+            vec![vm::opcode::Constant::code(), 255, 254],
         )];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {

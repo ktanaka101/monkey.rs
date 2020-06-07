@@ -37,7 +37,7 @@ impl Compiler {
                 }
                 ast::Expr::Integer(int) => {
                     let int = object::Integer { value: int.value };
-                    let op = opcode::OpConstant::from(self.add_constant(int.into()));
+                    let op = opcode::Constant::from(self.add_constant(int.into()));
                     self.emit(op.into());
                 }
                 _ => unimplemented!(),
@@ -87,7 +87,7 @@ mod tests {
     #[test]
     fn test_compiler() {
         let expected: Vec<opcode::Opcode> =
-            vec![opcode::OpConstant(0).into(), opcode::OpConstant(1).into()];
+            vec![opcode::Constant(0).into(), opcode::Constant(1).into()];
         let tests = vec![("1 + 2", vec![Type::Int(1), Type::Int(2)], expected.into())];
 
         run_compiler_tests(tests);
@@ -120,17 +120,17 @@ mod tests {
     #[test]
     fn test_instructions_string() {
         let instructions: Vec<bytecode::Instructions> = vec![
-            opcode::OpConstant(1).into(),
-            opcode::OpConstant(2).into(),
-            opcode::OpConstant(65535).into(),
+            opcode::Constant(1).into(),
+            opcode::Constant(2).into(),
+            opcode::Constant(65535).into(),
         ]
         .into();
         let instructions = bytecode::Instructions::from(instructions);
 
         let expected = "\
-            0000 OpConstant 1¥n\
-            0003 OpConstant 2¥n\
-            0006 OpConstant 65535¥n";
+            0000 Constant 1¥n\
+            0003 Constant 2¥n\
+            0006 Constant 65535¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }

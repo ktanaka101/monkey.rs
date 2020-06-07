@@ -50,9 +50,9 @@ impl VM {
         while ip < self.instructions.0.len() {
             let op = opcode::Opcode::try_from(&self.instructions.0[ip..])?;
             match op {
-                opcode::Opcode::OpConstant(constant) => {
+                opcode::Opcode::Constant(constant) => {
                     let const_idx = constant.0;
-                    ip = ip + usize::from(opcode::OpConstant::readsize());
+                    ip = ip + usize::from(opcode::Constant::readsize());
 
                     // TODO: Rc<object::Object> ?
                     self.push(self.constants[usize::from(const_idx)].clone())?;

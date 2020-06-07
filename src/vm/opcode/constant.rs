@@ -1,22 +1,22 @@
 use super::preludes::*;
 
 #[derive(Debug)]
-pub struct OpConstant(pub u16);
+pub struct Constant(pub u16);
 
-impl From<u16> for OpConstant {
+impl From<u16> for Constant {
     fn from(value: u16) -> Self {
-        OpConstant(value)
+        Constant(value)
     }
 }
 
-impl vm::opcode::OperandCode for OpConstant {
+impl vm::opcode::OperandCode for Constant {
     const CODE: u8 = 0;
     fn name() -> &'static str {
-        "OpConstant"
+        "Constant"
     }
 }
 
-impl vm::convert::Read<u16, 2> for OpConstant {
+impl vm::convert::Read<u16, 2> for Constant {
     fn read(bytes: [vm::bytecode::Instruction; 2]) -> u16 {
         u16::from_be_bytes(bytes)
     }
