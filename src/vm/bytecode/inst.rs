@@ -58,7 +58,7 @@ impl Display for Instructions {
                     pos = pos + 1 + usize::from(op.readsize());
                 }
                 Err(e) => {
-                    let msg = format!("{:>04} {} Error: {}¥n", pos, opcode::Constant::name(), e);
+                    let msg = format!("{:>04} Error: {}¥n", pos, e);
                     buf.push_str(msg.as_str());
                     break;
                 }

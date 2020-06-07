@@ -76,5 +76,5 @@ pub trait OperandCode {
     fn code() -> u8 {
         Self::CODE
     }
-    fn name() -> &'static str;
+    fn name(&self) -> &'static str;
 }

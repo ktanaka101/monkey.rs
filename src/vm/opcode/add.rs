@@ -5,14 +5,14 @@ pub struct Add;
 
 impl OperandCode for Add {
     const CODE: u8 = 1;
-    fn name() -> &'static str {
+    fn name(&self) -> &'static str {
         "Add"
     }
 }
 
 impl Display for Add {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", Self::name())
+        write!(f, "{}", self.name())
     }
 }
 
