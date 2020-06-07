@@ -1,15 +1,18 @@
-use std::convert::TryFrom;
+pub mod convert;
 
-use crate::code;
-use crate::code::Read;
 use crate::evaluator::object;
 use crate::parser::ast;
+use crate::vm::{bytecode, opcode};
 
-use anyhow::Result;
+mod preludes {
+    pub use super::super::preludes::*;
+}
+
+use preludes::*;
 
 #[derive(Debug, Default)]
 pub struct Compiler {
-    instructions: code::Instructions,
+    instructions: bytecode::Instructions,
     constants: Vec<object::Object>,
 }
 
@@ -34,7 +37,7 @@ impl Compiler {
                 }
                 ast::Expr::Integer(int) => {
                     let int = object::Integer { value: int.value };
-                    let op = code::OpConstant::from(self.add_constant(int.into()));
+                    let op = opcode::OpConstant::from(self.add_constant(int.into()));
                     self.emit(op.into());
                 }
                 _ => unimplemented!(),
@@ -49,25 +52,19 @@ impl Compiler {
         Pos::try_from(self.constants.len()).unwrap() - 1
     }
 
-    fn add_instruction(&mut self, mut ins: Vec<code::Instruction>) -> Pos {
+    fn add_instruction(&mut self, mut ins: Vec<bytecode::Instruction>) -> Pos {
         let len = Pos::try_from(self.instructions.0.len()).unwrap();
         self.instructions.0.append(&mut ins);
         len
     }
 
-    fn emit(&mut self, op: code::Opcode) -> Pos {
+    fn emit(&mut self, op: opcode::Opcode) -> Pos {
         let ins = op.to_bytes();
         self.add_instruction(ins)
     }
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct Bytecode {
-    pub instructions: code::Instructions,
-    pub constants: Vec<object::Object>,
-}
-
-impl From<Compiler> for Bytecode {
+impl From<Compiler> for crate::vm::bytecode::Bytecode {
     fn from(value: Compiler) -> Self {
         Self {
             instructions: value.instructions,
@@ -78,9 +75,10 @@ impl From<Compiler> for Bytecode {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::lexer;
     use crate::parser;
+
+    use super::*;
 
     enum Type {
         Int(i64),
@@ -88,14 +86,14 @@ mod tests {
 
     #[test]
     fn test_compiler() {
-        let expected: Vec<code::Opcode> =
-            vec![code::OpConstant(0).into(), code::OpConstant(1).into()];
+        let expected: Vec<opcode::Opcode> =
+            vec![opcode::OpConstant(0).into(), opcode::OpConstant(1).into()];
         let tests = vec![("1 + 2", vec![Type::Int(1), Type::Int(2)], expected.into())];
 
         run_compiler_tests(tests);
     }
 
-    fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, code::Instructions)>) {
+    fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, bytecode::Instructions)>) {
         tests
             .into_iter()
             .for_each(|(input, expected_constants, expected_instructure)| {
@@ -105,7 +103,7 @@ mod tests {
                     panic!("{}", e);
                 };
 
-                let Bytecode {
+                let bytecode::Bytecode {
                     instructions,
                     constants,
                 } = compiler.into();
@@ -115,19 +113,19 @@ mod tests {
             });
     }
 
-    fn test_instructions(actual: code::Instructions, expected: code::Instructions) {
+    fn test_instructions(actual: bytecode::Instructions, expected: bytecode::Instructions) {
         assert_eq!(actual, expected.into());
     }
 
     #[test]
     fn test_instructions_string() {
-        let instructions: Vec<code::Instructions> = vec![
-            code::OpConstant(1).into(),
-            code::OpConstant(2).into(),
-            code::OpConstant(65535).into(),
+        let instructions: Vec<bytecode::Instructions> = vec![
+            opcode::OpConstant(1).into(),
+            opcode::OpConstant(2).into(),
+            opcode::OpConstant(65535).into(),
         ]
         .into();
-        let instructions = code::Instructions::from(instructions);
+        let instructions = bytecode::Instructions::from(instructions);
 
         let expected = "\
             0000 OpConstant 1¥n\
@@ -135,21 +133,6 @@ mod tests {
             0006 OpConstant 65535¥n";
 
         assert_eq!(instructions.to_string(), expected);
-    }
-
-    #[test]
-    fn test_read_operands() {
-        let tests = vec![(
-            code::OpConstant::read,
-            code::Opcode::from(code::OpConstant(65535)),
-            65535,
-        )];
-
-        tests.into_iter().for_each(|(read, input, expected_value)| {
-            let instructions = code::Instructions::from(input.to_bytes());
-            let read_value = read([instructions.0[1], instructions.0[2]]);
-            assert_eq!(read_value, expected_value);
-        });
     }
 
     fn test_constants(actual: Vec<object::Object>, expected: Vec<Type>) {

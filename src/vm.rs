@@ -1,24 +1,31 @@
-use std::convert::TryFrom;
+pub mod bytecode;
+pub mod convert;
+pub mod opcode;
 
-use anyhow::Result;
-
-use crate::code;
-use crate::code::Read;
 use crate::compiler;
 use crate::evaluator::object;
+use crate::vm::bytecode::Instructions;
+use crate::vm::convert::Read;
+
+mod preludes {
+    pub use super::super::preludes::*;
+    pub use crate::vm;
+}
+
+use preludes::*;
 
 const STACK_SIZE: usize = 2048;
 
 #[derive(Debug, Default)]
 struct VM {
     constants: Vec<object::Object>,
-    instructions: code::Instructions,
+    instructions: Instructions,
     stacks: Vec<object::Object>,
     sp: usize,
 }
 
-impl From<compiler::Bytecode> for VM {
-    fn from(value: compiler::Bytecode) -> Self {
+impl From<bytecode::Bytecode> for VM {
+    fn from(value: bytecode::Bytecode) -> Self {
         Self {
             constants: value.constants,
             instructions: value.instructions,
@@ -41,11 +48,11 @@ impl VM {
         let mut ip = 0;
 
         while ip < self.instructions.0.len() {
-            let op = code::Opcode::try_from(&self.instructions.0[ip..])?;
+            let op = opcode::Opcode::try_from(&self.instructions.0[ip..])?;
             match op {
-                code::Opcode::OpConstant(constant) => {
+                opcode::Opcode::OpConstant(constant) => {
                     let const_idx = constant.0;
-                    ip = ip + usize::from(code::OpConstant::readsize());
+                    ip = ip + usize::from(opcode::OpConstant::readsize());
 
                     // TODO: Rc<object::Object> ?
                     self.push(self.constants[usize::from(const_idx)].clone())?;
@@ -117,7 +124,7 @@ mod tests {
             if let Err(e) = comp.compile(program.into()) {
                 panic!(format!("compiler error {}: ", e));
             }
-            let bytecode: compiler::Bytecode = comp.into();
+            let bytecode: bytecode::Bytecode = comp.into();
             let debug = bytecode.clone();
 
             let mut vm = VM::from(bytecode);

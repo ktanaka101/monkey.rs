@@ -1,6 +1,12 @@
 #![feature(const_generics)]
 
-mod code;
+mod preludes {
+    pub use anyhow::Result;
+    pub use std::convert::{TryFrom, TryInto};
+    pub use std::fmt;
+    pub use std::fmt::{Display, Formatter};
+}
+
 mod compiler;
 mod lexer;
 mod parser;
