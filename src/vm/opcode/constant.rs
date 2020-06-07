@@ -9,7 +9,13 @@ impl From<u16> for Constant {
     }
 }
 
-impl vm::opcode::OperandCode for Constant {
+impl Display for Constant {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}", Self::name(), self.0)
+    }
+}
+
+impl OperandCode for Constant {
     const CODE: u8 = 0;
     fn name() -> &'static str {
         "Constant"

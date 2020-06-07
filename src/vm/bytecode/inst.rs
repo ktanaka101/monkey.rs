@@ -50,13 +50,19 @@ impl Display for Instructions {
         let mut buf = String::new();
 
         while pos < self.0.len() {
-            let read = opcode::Constant::try_read(&self.0[pos + 1..]);
-            let msg = match read {
-                Ok(read) => format!("{:>04} {} {}¥n", pos, opcode::Constant::name(), read),
-                Err(e) => format!("{:>04} {} Error: {}¥n", pos, opcode::Constant::name(), e),
+            let op = opcode::Opcode::try_from(&self.0[pos..]);
+            match &op {
+                Ok(op) => {
+                    let msg = format!("{:>04} {}¥n", pos, op);
+                    buf.push_str(msg.as_str());
+                    pos = pos + 1 + usize::from(op.readsize());
+                }
+                Err(e) => {
+                    let msg = format!("{:>04} {} Error: {}¥n", pos, opcode::Constant::name(), e);
+                    buf.push_str(msg.as_str());
+                    break;
+                }
             };
-            buf.push_str(msg.as_str());
-            pos = pos + 1 + usize::from(opcode::Constant::readsize());
         }
 
         write!(f, "{}", buf)
