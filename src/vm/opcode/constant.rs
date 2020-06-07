@@ -17,9 +17,7 @@ impl Display for Constant {
 
 impl OperandCode for Constant {
     const CODE: u8 = 0;
-    fn name(&self) -> &'static str {
-        "Constant"
-    }
+    const NAME: &'static str = "Constant";
 }
 
 impl vm::convert::Read<u16, 2> for Constant {
