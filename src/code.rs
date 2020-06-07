@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
@@ -169,6 +170,17 @@ impl Opcode {
 impl From<OpConstant> for Opcode {
     fn from(value: OpConstant) -> Self {
         Opcode::OpConstant(value)
+    }
+}
+
+impl TryFrom<&[Instruction]> for Opcode {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &[Instruction]) -> Result<Self> {
+        match value[0] {
+            OpConstant::CODE => Ok(OpConstant(OpConstant::try_read(&value[1..])?).into()),
+            bad_code => Err(anyhow::format_err!("Unsupported code {}", bad_code)),
+        }
     }
 }
 
