@@ -72,22 +72,20 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_format_instructions() {
-        let tests = vec![
-            (
-                vec![opcode::Constant(65534), opcode::Constant(1)],
-                "0000 Constant 65534¥n0003 Constant 1¥n",
-            ),
-            (vec![opcode::Constant(65534)], "0000 Constant 65534¥n"),
-        ];
+    fn test_instructions_string() {
+        let instructions: Vec<Instructions> = vec![
+            opcode::Add.into(),
+            opcode::Constant(2).into(),
+            opcode::Constant(65535).into(),
+        ]
+        .into();
+        let instructions = Instructions::from(instructions);
 
-        tests.into_iter().for_each(|(input, expected)| {
-            let instructions: Instructions = input
-                .into_iter()
-                .flat_map(|v| v.to_bytes().to_vec())
-                .collect::<Vec<Instruction>>()
-                .into();
-            assert_eq!(format!("{}", instructions), expected);
-        });
+        let expected = "\
+            0000 Add¥n\
+            0001 Constant 2¥n\
+            0004 Constant 65535¥n";
+
+        assert_eq!(instructions.to_string(), expected);
     }
 }

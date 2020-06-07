@@ -80,6 +80,8 @@ mod tests {
 
     use super::*;
 
+    use convert::ToBytes;
+
     enum Type {
         Int(i64),
     }
@@ -118,21 +120,23 @@ mod tests {
     }
 
     #[test]
-    fn test_instructions_string() {
-        let instructions: Vec<bytecode::Instructions> = vec![
-            opcode::Constant(1).into(),
-            opcode::Constant(2).into(),
-            opcode::Constant(65535).into(),
-        ]
-        .into();
-        let instructions = bytecode::Instructions::from(instructions);
+    fn test_format_instructions() {
+        let tests = vec![
+            (
+                vec![opcode::Constant(65534), opcode::Constant(1)],
+                "0000 Constant 65534¥n0003 Constant 1¥n",
+            ),
+            (vec![opcode::Constant(65534)], "0000 Constant 65534¥n"),
+        ];
 
-        let expected = "\
-            0000 Constant 1¥n\
-            0003 Constant 2¥n\
-            0006 Constant 65535¥n";
-
-        assert_eq!(instructions.to_string(), expected);
+        tests.into_iter().for_each(|(input, expected)| {
+            let instructions: bytecode::Instructions = input
+                .into_iter()
+                .flat_map(|v| v.to_bytes().to_vec())
+                .collect::<Vec<bytecode::Instruction>>()
+                .into();
+            assert_eq!(format!("{}", instructions), expected);
+        });
     }
 
     fn test_constants(actual: Vec<object::Object>, expected: Vec<Type>) {
