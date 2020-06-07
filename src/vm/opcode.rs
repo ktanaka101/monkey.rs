@@ -11,10 +11,33 @@ use vm::convert::{Read, TryRead};
 mod preludes {
     pub use super::super::preludes::*;
     pub use crate::vm::bytecode::{Instruction, Instructions};
-    pub use crate::vm::opcode::OperandCode;
+    pub use crate::vm::opcode::{OperandCode, OperandType};
 }
 
 use preludes::*;
+
+pub enum OperandType {
+    Constant = 0,
+    Add = 1,
+}
+
+impl TryFrom<u8> for OperandType {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u8) -> Result<Self> {
+        Ok(match value {
+            0 => Self::Constant,
+            1 => Self::Add,
+            bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
+        })
+    }
+}
+
+impl From<OperandType> for u8 {
+    fn from(value: OperandType) -> Self {
+        value as u8
+    }
+}
 
 #[derive(Debug)]
 pub enum Opcode {
@@ -54,10 +77,10 @@ impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
     fn try_from(value: &[Instruction]) -> Result<Self> {
-        match value[0] {
-            Constant::CODE => Ok(Constant(Constant::try_read(&value[1..])?).into()),
-            Add::CODE => Ok(Add.into()),
-            bad_code => Err(anyhow::format_err!("Unsupported code {}", bad_code)),
+        let ope_type = OperandType::try_from(value[0])?;
+        match ope_type {
+            OperandType::Constant => Ok(Constant(Constant::try_read(&value[1..])?).into()),
+            OperandType::Add => Ok(Add.into()),
         }
     }
 }
@@ -72,9 +95,9 @@ impl Display for Opcode {
 }
 
 pub trait OperandCode {
-    const CODE: u8;
-    fn code(&self) -> u8 {
-        Self::CODE
+    const TYPE: OperandType;
+    fn ope_type(&self) -> OperandType {
+        Self::TYPE
     }
     const NAME: &'static str;
     fn name(&self) -> &'static str {

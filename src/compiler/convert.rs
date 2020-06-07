@@ -7,7 +7,7 @@ where
 {
     fn to_bytes(&self) -> [vm::bytecode::Instruction; SIZE] {
         let mut v: [vm::bytecode::Instruction; SIZE] = [0; SIZE];
-        v[0] = Self::CODE;
+        v[0] = Self::TYPE.into();
         let v2: [vm::bytecode::Instruction; TARGET_SIZE] = self.target_to_bytes();
         for i in 0..TARGET_SIZE {
             v[i + 1] = v2[i];

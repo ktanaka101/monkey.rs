@@ -16,7 +16,7 @@ impl Display for Constant {
 }
 
 impl OperandCode for Constant {
-    const CODE: u8 = 0;
+    const TYPE: OperandType = OperandType::Constant;
     const NAME: &'static str = "Constant";
 }
 

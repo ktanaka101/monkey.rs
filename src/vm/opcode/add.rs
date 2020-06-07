@@ -4,7 +4,7 @@ use super::preludes::*;
 pub struct Add;
 
 impl OperandCode for Add {
-    const CODE: u8 = 1;
+    const TYPE: OperandType = OperandType::Add;
     const NAME: &'static str = "Add";
 }
 
