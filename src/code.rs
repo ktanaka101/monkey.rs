@@ -5,7 +5,7 @@ use anyhow::Result;
 
 pub type Instruction = u8;
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct Instructions(pub Vec<Instruction>);
 
 impl From<Vec<Instruction>> for Instructions {
