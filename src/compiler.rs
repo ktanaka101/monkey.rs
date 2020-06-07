@@ -2,8 +2,8 @@ use std::convert::TryFrom;
 
 use crate::code;
 use crate::code::Read;
+use crate::evaluator::object;
 use crate::parser::ast;
-use crate::vm::object;
 
 use anyhow::Result;
 

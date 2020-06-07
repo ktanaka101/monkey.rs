@@ -2,9 +2,9 @@ use std::convert::TryFrom;
 
 use anyhow::Result;
 
-use super::super::evaluator::new_error;
-use super::super::object;
-use super::NULL;
+use crate::evaluator::builtin::NULL;
+use crate::evaluator::new_error;
+use crate::evaluator::object;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Function {
