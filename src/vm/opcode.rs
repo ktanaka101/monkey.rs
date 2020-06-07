@@ -32,8 +32,8 @@ impl Opcode {
 
     pub fn readsize(&self) -> usize {
         match self {
-            Opcode::Constant(_) => Constant::readsize(),
-            Opcode::Add(_) => Add::readsize(),
+            Opcode::Constant(o) => o.readsize(),
+            Opcode::Add(o) => o.readsize(),
         }
     }
 }

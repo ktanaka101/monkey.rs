@@ -52,7 +52,7 @@ impl VM {
             match op {
                 opcode::Opcode::Constant(constant) => {
                     let const_idx = constant.0;
-                    ip = ip + usize::from(opcode::Constant::readsize());
+                    ip = ip + usize::from(constant.readsize());
 
                     // TODO: Rc<object::Object> ?
                     self.push(self.constants[usize::from(const_idx)].clone())?;

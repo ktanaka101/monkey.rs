@@ -4,7 +4,7 @@ use vm::bytecode;
 
 pub trait Read<T, const SIZE: usize> {
     fn read(bytes: [bytecode::Instruction; SIZE]) -> T;
-    fn readsize() -> usize {
+    fn readsize(&self) -> usize {
         SIZE
     }
 }
