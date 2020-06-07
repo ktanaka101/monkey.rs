@@ -22,6 +22,12 @@ impl From<opcode::Constant> for Instructions {
     }
 }
 
+impl From<opcode::Add> for Instructions {
+    fn from(value: opcode::Add) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
 impl From<Instructions> for Vec<Instruction> {
     fn from(value: Instructions) -> Self {
         value.0

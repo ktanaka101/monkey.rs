@@ -57,6 +57,7 @@ impl VM {
                     // TODO: Rc<object::Object> ?
                     self.push(self.constants[usize::from(const_idx)].clone())?;
                 }
+                opcode::Opcode::Add(add) => unimplemented!(),
             }
 
             ip += 1;

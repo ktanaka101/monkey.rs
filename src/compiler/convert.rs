@@ -25,6 +25,12 @@ impl ToBytes<3, 2> for vm::opcode::Constant {
     }
 }
 
+impl ToBytes<1, 0> for vm::opcode::Add {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use vm::opcode::OperandCode;
@@ -33,10 +39,13 @@ mod tests {
 
     #[test]
     fn test_to_bytes() {
-        let tests = vec![(
-            vm::opcode::Constant(65534).to_bytes().to_vec(),
-            vec![0, 255, 254],
-        )];
+        let tests = vec![
+            (
+                vm::opcode::Constant(65534).to_bytes().to_vec(),
+                vec![0, 255, 254],
+            ),
+            (vm::opcode::Add.to_bytes().to_vec(), vec![1]),
+        ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
             assert_eq!(bytes.to_vec(), expected_bytes);
