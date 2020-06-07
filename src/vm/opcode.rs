@@ -73,7 +73,7 @@ impl Display for Opcode {
 
 pub trait OperandCode {
     const CODE: u8;
-    fn code() -> u8 {
+    fn code(&self) -> u8 {
         Self::CODE
     }
     const NAME: &'static str;
