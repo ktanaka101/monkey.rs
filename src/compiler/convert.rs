@@ -35,7 +35,7 @@ mod tests {
     fn test_to_bytes() {
         let tests = vec![(
             vm::opcode::Constant(65534).to_bytes().to_vec(),
-            vec![vm::opcode::Constant::code(), 255, 254],
+            vec![0, 255, 254],
         )];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
