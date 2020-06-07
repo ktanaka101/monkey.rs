@@ -49,21 +49,47 @@ impl VM {
 
         while ip < self.instructions.0.len() {
             let op = opcode::Opcode::try_from(&self.instructions.0[ip..])?;
-            match op {
+            match &op {
                 opcode::Opcode::Constant(constant) => {
                     let const_idx = constant.0;
-                    ip = ip + usize::from(constant.readsize());
 
                     // TODO: Rc<object::Object> ?
                     self.push(self.constants[usize::from(const_idx)].clone())?;
                 }
-                opcode::Opcode::Add(add) => unimplemented!(),
-            }
+                opcode::Opcode::Add(_) => {
+                    let left_value = match self.pop() {
+                        object::Object::Integer(i) => i.value,
+                        unknown_obj => Err(anyhow::format_err!(
+                            "expected Integer. received {}",
+                            unknown_obj
+                        ))?,
+                    };
+                    let right_value = match self.pop() {
+                        object::Object::Integer(i) => i.value,
+                        unknown_obj => Err(anyhow::format_err!(
+                            "expected Integer. received {}",
+                            unknown_obj
+                        ))?,
+                    };
 
-            ip += 1;
+                    self.push(
+                        object::Integer {
+                            value: left_value + right_value,
+                        }
+                        .into(),
+                    )?;
+                }
+            }
+            ip += 1 + op.readsize();
         }
 
         Ok(())
+    }
+
+    fn pop(&mut self) -> &object::Object {
+        let o = &self.stacks[self.sp - 1];
+        self.sp -= 1;
+        o
     }
 
     fn push(&mut self, o: object::Object) -> Result<()> {
@@ -114,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_integer_arithmetic() {
-        let tests: Tests = vec![("1", 1), ("2", 2), ("1 + 2", 2)].into();
+        let tests: Tests = vec![("1", 1), ("2", 2), ("1 + 2", 3)].into();
         run_vm_tests(tests);
     }
 
