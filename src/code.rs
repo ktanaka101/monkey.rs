@@ -66,12 +66,6 @@ impl From<Vec<Instructions>> for Instructions {
     }
 }
 
-#[derive(Debug)]
-pub struct Definition {
-    pub name: String,
-    pub operand_widths: Vec<i32>,
-}
-
 pub trait Read<T, const SIZE: usize> {
     fn read(bytes: [Instruction; SIZE]) -> T;
     fn readsize() -> usize {
