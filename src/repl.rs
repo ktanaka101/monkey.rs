@@ -3,15 +3,69 @@ use std::io;
 use std::io::Write;
 use std::rc::Rc;
 
+use crate::compiler;
 use crate::evaluator::env::Environment;
 use crate::evaluator::object;
 use crate::evaluator::{define_macros, eval_node, expand_macros};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+use crate::vm;
 
 const PROMPT: &str = ">> ";
 
-pub fn start() {
+pub enum Executer {
+    VM,
+    Evaluator,
+}
+
+pub fn start(executer: Executer) {
+    match executer {
+        Executer::VM => start_vm(),
+        Executer::Evaluator => start_evaluator(),
+    }
+}
+
+fn start_vm() {
+    loop {
+        print!("{}", PROMPT);
+        io::stdout().flush().unwrap();
+
+        let mut line = String::new();
+        if io::stdin().read_line(&mut line).is_err() || line == "\n" {
+            continue;
+        }
+
+        let lexer = Lexer::new(line);
+        let mut parser = Parser::new(lexer);
+
+        let program = match parser.parse_program() {
+            Ok(p) => p,
+            Err(x) => {
+                println!("Parse error: {}", x);
+                continue;
+            }
+        };
+
+        let mut comp = compiler::Compiler::default();
+        if let Err(e) = comp.compile(program.into()) {
+            println!("Woops! Compilation failed: \n {}", e);
+            continue;
+        }
+
+        let bytecode: vm::bytecode::Bytecode = comp.into();
+        let mut machine = vm::VM::from(bytecode);
+        if let Err(e) = machine.run() {
+            println!("Woops! Executing bytecode failed:\n {}", e);
+            continue;
+        }
+
+        if let Some(stack) = machine.stack_top() {
+            println!("{}", stack);
+        }
+    }
+}
+
+fn start_evaluator() {
     let env = Rc::new(RefCell::new(Environment::new(None)));
     let macro_env = Rc::new(RefCell::new(Environment::new(None)));
 
