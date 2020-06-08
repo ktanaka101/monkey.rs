@@ -17,7 +17,7 @@ use preludes::*;
 const STACK_SIZE: usize = 2048;
 
 #[derive(Debug, Default)]
-struct VM {
+pub struct VM {
     constants: Vec<object::Object>,
     instructions: Instructions,
     stacks: Vec<object::Object>,
@@ -36,7 +36,7 @@ impl From<bytecode::Bytecode> for VM {
 }
 
 impl VM {
-    fn stack_top(&self) -> Option<&object::Object> {
+    pub fn stack_top(&self) -> Option<&object::Object> {
         if self.sp == 0 {
             None
         } else {
@@ -44,7 +44,7 @@ impl VM {
         }
     }
 
-    fn run(&mut self) -> Result<()> {
+    pub fn run(&mut self) -> Result<()> {
         let mut ip = 0;
 
         while ip < self.instructions.0.len() {
