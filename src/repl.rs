@@ -59,9 +59,8 @@ fn start_vm() {
             continue;
         }
 
-        if let Some(stack) = machine.stack_top() {
-            println!("{}", stack);
-        }
+        let stack = machine.last_popped_stack_elem();
+        println!("{}", stack);
     }
 }
 
