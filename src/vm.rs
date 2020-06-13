@@ -44,6 +44,10 @@ impl VM {
         }
     }
 
+    pub fn last_popped_stack_elem(&self) -> &object::Object {
+        &self.stacks[self.sp]
+    }
+
     pub fn run(&mut self) -> Result<()> {
         let mut ip = 0;
 
@@ -79,7 +83,9 @@ impl VM {
                         .into(),
                     )?;
                 }
-                opcode::Opcode::Pop(_) => (),
+                opcode::Opcode::Pop(_) => {
+                    self.pop();
+                }
             }
             ip += 1 + op.readsize();
         }
@@ -160,7 +166,7 @@ mod tests {
                 panic!("vm error: {} by {:?}", e, debug);
             }
 
-            let stack_elem = vm.stack_top().unwrap();
+            let stack_elem = vm.last_popped_stack_elem();
 
             test_object(stack_elem, &expected);
         });
