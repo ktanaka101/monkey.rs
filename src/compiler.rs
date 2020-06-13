@@ -27,7 +27,10 @@ impl Compiler {
                     .try_for_each(|stmt| self.compile(stmt.into()))?;
             }
             ast::Node::Stmt(stmt) => match stmt {
-                ast::Stmt::ExprStmt(stmt) => self.compile(stmt.expr.into())?,
+                ast::Stmt::ExprStmt(stmt) => {
+                    self.compile(stmt.expr.into())?;
+                    self.emit(opcode::Pop.into());
+                }
                 _ => unimplemented!(),
             },
             ast::Node::Expr(expr) => match expr {
@@ -96,8 +99,39 @@ mod tests {
             opcode::Constant(0).into(),
             opcode::Constant(1).into(),
             opcode::Add.into(),
+            opcode::Pop.into(),
         ];
         let tests = vec![("1 + 2", vec![Type::Int(1), Type::Int(2)], expected.into())];
+
+        run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_integer_arithmetic() {
+        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+            (
+                "1 + 2",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Add),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "1; 2",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Pop),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+        ];
 
         run_compiler_tests(tests);
     }
@@ -123,7 +157,8 @@ mod tests {
     }
 
     fn test_instructions(actual: bytecode::Instructions, expected: bytecode::Instructions) {
-        assert_eq!(actual, expected.into());
+        assert_eq!(actual.to_string(), expected.to_string());
+        assert_eq!(actual, expected);
     }
 
     #[test]
