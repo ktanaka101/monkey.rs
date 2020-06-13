@@ -31,6 +31,12 @@ impl ToBytes<1, 0> for vm::opcode::Add {
     }
 }
 
+impl ToBytes<1, 0> for vm::opcode::Pop {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

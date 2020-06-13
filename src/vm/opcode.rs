@@ -1,8 +1,10 @@
 mod add;
 mod constant;
+mod pop;
 
 pub use add::Add;
 pub use constant::Constant;
+pub use pop::Pop;
 
 use crate::compiler::convert::ToBytes;
 
@@ -19,6 +21,7 @@ use preludes::*;
 pub enum OperandType {
     Constant = 0,
     Add = 1,
+    Pop = 2,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -28,6 +31,7 @@ impl TryFrom<u8> for OperandType {
         Ok(match value {
             0 => Self::Constant,
             1 => Self::Add,
+            2 => Self::Pop,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -43,6 +47,7 @@ impl From<OperandType> for u8 {
 pub enum Opcode {
     Constant(Constant),
     Add(Add),
+    Pop(Pop),
 }
 
 impl Opcode {
@@ -50,6 +55,7 @@ impl Opcode {
         match self {
             Opcode::Constant(o) => o.to_bytes().to_vec(),
             Opcode::Add(o) => o.to_bytes().to_vec(),
+            Opcode::Pop(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -57,6 +63,7 @@ impl Opcode {
         match self {
             Opcode::Constant(o) => o.readsize(),
             Opcode::Add(o) => o.readsize(),
+            Opcode::Pop(o) => o.readsize(),
         }
     }
 }
@@ -73,6 +80,12 @@ impl From<Add> for Opcode {
     }
 }
 
+impl From<Pop> for Opcode {
+    fn from(value: Pop) -> Self {
+        Opcode::Pop(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -81,6 +94,7 @@ impl TryFrom<&[Instruction]> for Opcode {
         match ope_type {
             OperandType::Constant => Ok(Constant(Constant::try_read(&value[1..])?).into()),
             OperandType::Add => Ok(Add.into()),
+            OperandType::Pop => Ok(Pop.into()),
         }
     }
 }
@@ -90,6 +104,7 @@ impl Display for Opcode {
         match self {
             Self::Constant(o) => write!(f, "{}", o),
             Self::Add(o) => write!(f, "{}", o),
+            Self::Pop(o) => write!(f, "{}", o),
         }
     }
 }

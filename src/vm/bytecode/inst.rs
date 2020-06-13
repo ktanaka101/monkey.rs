@@ -26,6 +26,12 @@ impl From<opcode::Add> for Instructions {
     }
 }
 
+impl From<opcode::Pop> for Instructions {
+    fn from(value: opcode::Pop) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
 impl From<Instructions> for Vec<Instruction> {
     fn from(value: Instructions) -> Self {
         value.0
@@ -87,6 +93,7 @@ mod test {
             opcode::Add.into(),
             opcode::Constant(2).into(),
             opcode::Constant(65535).into(),
+            opcode::Pop.into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -94,7 +101,8 @@ mod test {
         let expected = "\
             0000 Add¥n\
             0001 Constant 2¥n\
-            0004 Constant 65535¥n";
+            0004 Constant 65535¥n\
+            0007 Pop¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }

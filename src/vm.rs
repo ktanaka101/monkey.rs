@@ -79,6 +79,7 @@ impl VM {
                         .into(),
                     )?;
                 }
+                opcode::Opcode::Pop(_) => (),
             }
             ip += 1 + op.readsize();
         }
