@@ -15,6 +15,8 @@ mod preludes {
 use preludes::*;
 
 const STACK_SIZE: usize = 2048;
+const TRUE: object::Boolean = object::Boolean { value: true };
+const FALSE: object::Boolean = object::Boolean { value: false };
 
 #[derive(Debug, Default)]
 struct Stack {
@@ -121,6 +123,12 @@ impl VM {
                 opcode::Opcode::Pop(_) => {
                     self.stack.pop();
                 }
+                opcode::Opcode::True(_) => {
+                    self.stack.push(TRUE.into())?;
+                }
+                opcode::Opcode::False(_) => {
+                    self.stack.push(FALSE.into())?;
+                }
             }
             ip += 1 + op.readsize();
         }
@@ -174,6 +182,7 @@ mod tests {
 
     enum Expected {
         Int(i64),
+        Bool(bool),
     }
 
     struct Tests(Vec<(String, Expected)>);
@@ -181,6 +190,12 @@ mod tests {
     impl From<i64> for Expected {
         fn from(value: i64) -> Self {
             Self::Int(value)
+        }
+    }
+
+    impl From<bool> for Expected {
+        fn from(value: bool) -> Self {
+            Self::Bool(value)
         }
     }
 
@@ -218,6 +233,12 @@ mod tests {
         run_vm_tests(tests);
     }
 
+    #[test]
+    fn test_boolean_expressions() {
+        let tests: Tests = vec![("true", true), ("false", false)].into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_tests(tests: Tests) {
         tests.0.into_iter().for_each(|(input, expected)| {
             let program = parse(input.as_str());
@@ -244,6 +265,9 @@ mod tests {
             Expected::Int(expected_int) => {
                 test_integer_object(actual, *expected_int);
             }
+            Expected::Bool(expected_bool) => {
+                test_bool_object(actual, *expected_bool);
+            }
         }
     }
 
@@ -255,6 +279,15 @@ mod tests {
 
         assert_eq!(result.value, expected);
     }
+
+    fn test_bool_object(actual: &object::Object, expected: bool) {
+        let result = match actual {
+            object::Object::Boolean(b) => b,
+            obj => panic!("expected Boolean. received {}", obj),
+        };
+        assert_eq!(result.value, expected);
+    }
+
     fn parse(input: &str) -> ast::Program {
         let l = lexer::Lexer::new(input.into());
         let mut p = parser::Parser::new(l);
