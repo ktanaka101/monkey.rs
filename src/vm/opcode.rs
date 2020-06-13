@@ -2,6 +2,8 @@ mod add;
 mod constant;
 mod div;
 mod mul;
+mod ofalse;
+mod otrue;
 mod pop;
 mod sub;
 
@@ -9,6 +11,8 @@ pub use add::Add;
 pub use constant::Constant;
 pub use div::Div;
 pub use mul::Mul;
+pub use ofalse::False;
+pub use otrue::True;
 pub use pop::Pop;
 pub use sub::Sub;
 
@@ -31,6 +35,8 @@ pub enum OperandType {
     Sub = 3,
     Mul = 4,
     Div = 5,
+    True = 6,
+    False = 7,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -44,6 +50,8 @@ impl TryFrom<u8> for OperandType {
             3 => Self::Sub,
             4 => Self::Mul,
             5 => Self::Div,
+            6 => Self::True,
+            7 => Self::False,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -63,6 +71,8 @@ pub enum Opcode {
     Sub(Sub),
     Mul(Mul),
     Div(Div),
+    True(True),
+    False(False),
 }
 
 impl Opcode {
@@ -74,6 +84,8 @@ impl Opcode {
             Opcode::Sub(o) => o.to_bytes().to_vec(),
             Opcode::Mul(o) => o.to_bytes().to_vec(),
             Opcode::Div(o) => o.to_bytes().to_vec(),
+            Opcode::True(o) => o.to_bytes().to_vec(),
+            Opcode::False(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -85,6 +97,8 @@ impl Opcode {
             Opcode::Sub(o) => o.readsize(),
             Opcode::Mul(o) => o.readsize(),
             Opcode::Div(o) => o.readsize(),
+            Opcode::True(o) => o.readsize(),
+            Opcode::False(o) => o.readsize(),
         }
     }
 }
@@ -125,6 +139,18 @@ impl From<Div> for Opcode {
     }
 }
 
+impl From<True> for Opcode {
+    fn from(value: True) -> Self {
+        Opcode::True(value)
+    }
+}
+
+impl From<False> for Opcode {
+    fn from(value: False) -> Self {
+        Opcode::False(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -137,6 +163,8 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::Sub => Ok(Sub.into()),
             OperandType::Mul => Ok(Mul.into()),
             OperandType::Div => Ok(Div.into()),
+            OperandType::True => Ok(True.into()),
+            OperandType::False => Ok(False.into()),
         }
     }
 }
@@ -150,6 +178,8 @@ impl Display for Opcode {
             Self::Sub(o) => write!(f, "{}", o),
             Self::Mul(o) => write!(f, "{}", o),
             Self::Div(o) => write!(f, "{}", o),
+            Self::True(o) => write!(f, "{}", o),
+            Self::False(o) => write!(f, "{}", o),
         }
     }
 }

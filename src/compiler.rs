@@ -51,6 +51,12 @@ impl Compiler {
                     let op = opcode::Constant::from(self.add_constant(int.into()));
                     self.emit(op.into());
                 }
+                ast::Expr::Boolean(b) => {
+                    self.emit(match b.value {
+                        true => opcode::True.into(),
+                        false => opcode::False.into(),
+                    });
+                }
                 _ => unimplemented!(),
             },
         }
@@ -170,6 +176,32 @@ mod tests {
         run_compiler_tests(tests);
     }
 
+    #[test]
+    fn test_boolean_expressions() {
+        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+            (
+                "true",
+                vec![],
+                vec![
+                    opcode::Opcode::from(opcode::True),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "false",
+                vec![],
+                vec![
+                    opcode::Opcode::from(opcode::False),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+        ];
+
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, bytecode::Instructions)>) {
         tests
             .into_iter()
@@ -218,6 +250,8 @@ mod tests {
             (vec![opcode::Mul.into()], "0000 Mul¥n"),
             (vec![opcode::Div.into()], "0000 Div¥n"),
             (vec![opcode::Pop.into()], "0000 Pop¥n"),
+            (vec![opcode::True.into()], "0000 True¥n"),
+            (vec![opcode::False.into()], "0000 False¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

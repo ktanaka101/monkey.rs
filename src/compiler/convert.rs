@@ -55,6 +55,18 @@ impl ToBytes<1, 0> for vm::opcode::Div {
     }
 }
 
+impl ToBytes<1, 0> for vm::opcode::True {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
+impl ToBytes<1, 0> for vm::opcode::False {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -68,6 +80,8 @@ mod tests {
             (vm::opcode::Mul.into(), vec![4]),
             (vm::opcode::Div.into(), vec![5]),
             (vm::opcode::Pop.into(), vec![2]),
+            (vm::opcode::True.into(), vec![6]),
+            (vm::opcode::False.into(), vec![7]),
         ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
