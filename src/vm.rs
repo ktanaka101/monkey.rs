@@ -79,8 +79,7 @@ impl Stack {
 pub struct VM {
     constants: Vec<object::Object>,
     instructions: Instructions,
-    stacks: Vec<object::Object>,
-    sp: usize,
+    stack: Stack,
 }
 
 impl From<bytecode::Bytecode> for VM {
@@ -88,23 +87,18 @@ impl From<bytecode::Bytecode> for VM {
         Self {
             constants: value.constants,
             instructions: value.instructions,
-            stacks: Vec::with_capacity(STACK_SIZE),
-            ..Self::default()
+            stack: Stack::new(),
         }
     }
 }
 
 impl VM {
     pub fn stack_top(&self) -> Option<&object::Object> {
-        if self.sp == 0 {
-            None
-        } else {
-            Some(&self.stacks[self.sp - 1])
-        }
+        self.stack.top()
     }
 
     pub fn last_popped_stack_elem(&self) -> &object::Object {
-        &self.stacks[self.sp]
+        self.stack.last_popped()
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -117,14 +111,15 @@ impl VM {
                     let const_idx = constant.0;
 
                     // TODO: Rc<object::Object> ?
-                    self.push(self.constants[usize::from(const_idx)].clone())?;
+                    self.stack
+                        .push(self.constants[usize::from(const_idx)].clone())?;
                 }
                 opcode::Opcode::Add(_)
                 | opcode::Opcode::Sub(_)
                 | opcode::Opcode::Mul(_)
                 | opcode::Opcode::Div(_) => self.execute_binary_operation(&op)?,
                 opcode::Opcode::Pop(_) => {
-                    self.pop();
+                    self.stack.pop();
                 }
             }
             ip += 1 + op.readsize();
@@ -165,31 +160,7 @@ impl VM {
             ))?,
         };
 
-        self.push(object::Integer { value }.into())?;
-        Ok(())
-    }
-
-    fn pop_pair(&mut self) -> (&object::Object, &object::Object) {
-        let o = (&self.stacks[self.sp - 1], &self.stacks[self.sp - 2]);
-        self.sp -= 2;
-        o
-    }
-
-    fn pop(&mut self) -> &object::Object {
-        let o = &self.stacks[self.sp - 1];
-        self.sp -= 1;
-        o
-    }
-
-    fn push(&mut self, o: object::Object) -> Result<()> {
-        if self.sp >= STACK_SIZE {
-            Err(anyhow::format_err!("stack overflow"))?;
-        }
-
-        self.stacks.insert(self.sp, o);
-        self.sp += 1;
-
-        Ok(())
+        Ok(object::Integer { value })
     }
 }
 
