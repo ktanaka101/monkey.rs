@@ -20,32 +20,8 @@ impl From<opcode::Constant> for Instructions {
     }
 }
 
-impl From<opcode::Add> for Instructions {
-    fn from(value: opcode::Add) -> Self {
-        value.to_bytes().to_vec().into()
-    }
-}
-
-impl From<opcode::Pop> for Instructions {
-    fn from(value: opcode::Pop) -> Self {
-        value.to_bytes().to_vec().into()
-    }
-}
-
-impl From<opcode::Sub> for Instructions {
-    fn from(value: opcode::Sub) -> Self {
-        value.to_bytes().to_vec().into()
-    }
-}
-
-impl From<opcode::Mul> for Instructions {
-    fn from(value: opcode::Mul) -> Self {
-        value.to_bytes().to_vec().into()
-    }
-}
-
-impl From<opcode::Div> for Instructions {
-    fn from(value: opcode::Div) -> Self {
+impl<T: ToBytes<1, 0>> From<T> for Instructions {
+    fn from(value: T) -> Self {
         value.to_bytes().to_vec().into()
     }
 }
