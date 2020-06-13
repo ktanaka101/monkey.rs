@@ -47,7 +47,6 @@ impl Compiler {
                 }
                 _ => unimplemented!(),
             },
-            _ => unimplemented!(),
         }
         Ok(())
     }
