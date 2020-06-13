@@ -1,10 +1,16 @@
 mod add;
 mod constant;
+mod div;
+mod mul;
 mod pop;
+mod sub;
 
 pub use add::Add;
 pub use constant::Constant;
+pub use div::Div;
+pub use mul::Mul;
 pub use pop::Pop;
+pub use sub::Sub;
 
 use crate::compiler::convert::ToBytes;
 
@@ -22,6 +28,9 @@ pub enum OperandType {
     Constant = 0,
     Add = 1,
     Pop = 2,
+    Sub = 3,
+    Mul = 4,
+    Div = 5,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -32,6 +41,9 @@ impl TryFrom<u8> for OperandType {
             0 => Self::Constant,
             1 => Self::Add,
             2 => Self::Pop,
+            3 => Self::Sub,
+            4 => Self::Mul,
+            5 => Self::Div,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -48,6 +60,9 @@ pub enum Opcode {
     Constant(Constant),
     Add(Add),
     Pop(Pop),
+    Sub(Sub),
+    Mul(Mul),
+    Div(Div),
 }
 
 impl Opcode {
@@ -56,6 +71,9 @@ impl Opcode {
             Opcode::Constant(o) => o.to_bytes().to_vec(),
             Opcode::Add(o) => o.to_bytes().to_vec(),
             Opcode::Pop(o) => o.to_bytes().to_vec(),
+            Opcode::Sub(o) => o.to_bytes().to_vec(),
+            Opcode::Mul(o) => o.to_bytes().to_vec(),
+            Opcode::Div(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -64,6 +82,9 @@ impl Opcode {
             Opcode::Constant(o) => o.readsize(),
             Opcode::Add(o) => o.readsize(),
             Opcode::Pop(o) => o.readsize(),
+            Opcode::Sub(o) => o.readsize(),
+            Opcode::Mul(o) => o.readsize(),
+            Opcode::Div(o) => o.readsize(),
         }
     }
 }
@@ -86,6 +107,24 @@ impl From<Pop> for Opcode {
     }
 }
 
+impl From<Sub> for Opcode {
+    fn from(value: Sub) -> Self {
+        Opcode::Sub(value)
+    }
+}
+
+impl From<Mul> for Opcode {
+    fn from(value: Mul) -> Self {
+        Opcode::Mul(value)
+    }
+}
+
+impl From<Div> for Opcode {
+    fn from(value: Div) -> Self {
+        Opcode::Div(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -95,6 +134,9 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::Constant => Ok(Constant(Constant::try_read(&value[1..])?).into()),
             OperandType::Add => Ok(Add.into()),
             OperandType::Pop => Ok(Pop.into()),
+            OperandType::Sub => Ok(Sub.into()),
+            OperandType::Mul => Ok(Mul.into()),
+            OperandType::Div => Ok(Div.into()),
         }
     }
 }
@@ -105,6 +147,9 @@ impl Display for Opcode {
             Self::Constant(o) => write!(f, "{}", o),
             Self::Add(o) => write!(f, "{}", o),
             Self::Pop(o) => write!(f, "{}", o),
+            Self::Sub(o) => write!(f, "{}", o),
+            Self::Mul(o) => write!(f, "{}", o),
+            Self::Div(o) => write!(f, "{}", o),
         }
     }
 }

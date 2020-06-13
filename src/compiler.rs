@@ -40,6 +40,9 @@ impl Compiler {
 
                     match expr.ope {
                         ast::Operator::Plus => self.emit(opcode::Add.into()),
+                        ast::Operator::Minus => self.emit(opcode::Sub.into()),
+                        ast::Operator::Asterisk => self.emit(opcode::Mul.into()),
+                        ast::Operator::Slash => self.emit(opcode::Div.into()),
                         unknown => Err(anyhow::format_err!("unknown operator {}", unknown))?,
                     };
                 }
@@ -121,6 +124,39 @@ mod tests {
                 .into(),
             ),
             (
+                "1 - 2",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Sub),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "1 * 2",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Mul),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "1 / 2",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Div),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
                 "1; 2",
                 vec![Type::Int(1), Type::Int(2)],
                 vec![
@@ -163,12 +199,27 @@ mod tests {
 
     #[test]
     fn test_format_instructions() {
-        let tests = vec![
+        let tests: Vec<(Vec<opcode::Opcode>, &str)> = vec![
             (
-                vec![opcode::Constant(65534), opcode::Constant(1)],
+                vec![opcode::Constant(65534).into(), opcode::Constant(1).into()],
                 "0000 Constant 65534¥n0003 Constant 1¥n",
             ),
-            (vec![opcode::Constant(65534)], "0000 Constant 65534¥n"),
+            (
+                vec![opcode::Constant(65534).into()],
+                "0000 Constant 65534¥n",
+            ),
+            (
+                vec![
+                    opcode::Constant(1).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Add.into(),
+                ],
+                "0000 Constant 1¥n0003 Constant 2¥n0006 Add¥n",
+            ),
+            (vec![opcode::Sub.into()], "0000 Sub¥n"),
+            (vec![opcode::Mul.into()], "0000 Mul¥n"),
+            (vec![opcode::Div.into()], "0000 Div¥n"),
+            (vec![opcode::Pop.into()], "0000 Pop¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

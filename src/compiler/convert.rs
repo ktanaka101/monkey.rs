@@ -37,22 +37,41 @@ impl ToBytes<1, 0> for vm::opcode::Pop {
     }
 }
 
+impl ToBytes<1, 0> for vm::opcode::Sub {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
+impl ToBytes<1, 0> for vm::opcode::Mul {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
+impl ToBytes<1, 0> for vm::opcode::Div {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_to_bytes() {
-        let tests = vec![
-            (
-                vm::opcode::Constant(65534).to_bytes().to_vec(),
-                vec![0, 255, 254],
-            ),
-            (vm::opcode::Add.to_bytes().to_vec(), vec![1]),
+        let tests: Vec<(vm::opcode::Opcode, Vec<u8>)> = vec![
+            (vm::opcode::Constant(65534).into(), vec![0, 255, 254]),
+            (vm::opcode::Add.into(), vec![1]),
+            (vm::opcode::Sub.into(), vec![3]),
+            (vm::opcode::Mul.into(), vec![4]),
+            (vm::opcode::Div.into(), vec![5]),
+            (vm::opcode::Pop.into(), vec![2]),
         ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
-            assert_eq!(bytes.to_vec(), expected_bytes);
+            assert_eq!(bytes.to_bytes().to_vec(), expected_bytes);
         });
     }
 }

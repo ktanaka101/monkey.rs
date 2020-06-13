@@ -60,29 +60,10 @@ impl VM {
                     // TODO: Rc<object::Object> ?
                     self.push(self.constants[usize::from(const_idx)].clone())?;
                 }
-                opcode::Opcode::Add(_) => {
-                    let left_value = match self.pop() {
-                        object::Object::Integer(i) => i.value,
-                        unknown_obj => Err(anyhow::format_err!(
-                            "expected Integer. received {}",
-                            unknown_obj
-                        ))?,
-                    };
-                    let right_value = match self.pop() {
-                        object::Object::Integer(i) => i.value,
-                        unknown_obj => Err(anyhow::format_err!(
-                            "expected Integer. received {}",
-                            unknown_obj
-                        ))?,
-                    };
-
-                    self.push(
-                        object::Integer {
-                            value: left_value + right_value,
-                        }
-                        .into(),
-                    )?;
-                }
+                opcode::Opcode::Add(_)
+                | opcode::Opcode::Sub(_)
+                | opcode::Opcode::Mul(_)
+                | opcode::Opcode::Div(_) => self.execute_binary_operation(&op)?,
                 opcode::Opcode::Pop(_) => {
                     self.pop();
                 }
@@ -91,6 +72,48 @@ impl VM {
         }
 
         Ok(())
+    }
+
+    fn execute_binary_operation(&mut self, op: &opcode::Opcode) -> Result<()> {
+        match self.pop_pair() {
+            (object::Object::Integer(i1), object::Object::Integer(i2)) => {
+                self.execute_binary_integer_operation(op, i1.value, i2.value)?;
+            }
+            (unknown_obj1, unknown_obj2) => Err(anyhow::format_err!(
+                "unsupported types for binary operation: {} {}",
+                unknown_obj1,
+                unknown_obj2
+            ))?,
+        }
+
+        Ok(())
+    }
+
+    fn execute_binary_integer_operation(
+        &mut self,
+        op: &opcode::Opcode,
+        left_val: i64,
+        right_val: i64,
+    ) -> Result<()> {
+        let value = match op {
+            opcode::Opcode::Add(_) => left_val + right_val,
+            opcode::Opcode::Sub(_) => left_val - right_val,
+            opcode::Opcode::Mul(_) => left_val * right_val,
+            opcode::Opcode::Div(_) => left_val / right_val,
+            _ => Err(anyhow::format_err!(
+                "unknown integer operator. received {}",
+                op
+            ))?,
+        };
+
+        self.push(object::Integer { value }.into())?;
+        Ok(())
+    }
+
+    fn pop_pair(&mut self) -> (&object::Object, &object::Object) {
+        let o = (&self.stacks[self.sp - 1], &self.stacks[self.sp - 2]);
+        self.sp -= 2;
+        o
     }
 
     fn pop(&mut self) -> &object::Object {
@@ -147,7 +170,21 @@ mod tests {
 
     #[test]
     fn test_integer_arithmetic() {
-        let tests: Tests = vec![("1", 1), ("2", 2), ("1 + 2", 3)].into();
+        let tests: Tests = vec![
+            ("1", 1),
+            ("2", 2),
+            ("1 + 2", 3),
+            ("1 - 2", -1),
+            ("1 * 2", 2),
+            ("4 / 2", 2),
+            ("50 / 2 * 2 + 10 - 5", 55),
+            ("5 + 5 + 5 + 5 - 10", 10),
+            ("2 * 2 * 2 * 2 * 2", 32),
+            ("5 * 2 + 10", 20),
+            ("5 + 2 * 10", 25),
+            ("5 * (2 + 10)", 60),
+        ]
+        .into();
         run_vm_tests(tests);
     }
 
