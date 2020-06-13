@@ -90,8 +90,6 @@ mod tests {
 
     use super::*;
 
-    use convert::ToBytes;
-
     enum Type {
         Int(i64),
     }
