@@ -17,6 +17,65 @@ use preludes::*;
 const STACK_SIZE: usize = 2048;
 
 #[derive(Debug, Default)]
+struct Stack {
+    data: Vec<object::Object>,
+    pointer: usize,
+}
+
+impl Stack {
+    fn new() -> Self {
+        Self {
+            data: Vec::with_capacity(STACK_SIZE),
+            ..Self::default()
+        }
+    }
+
+    fn top(&self) -> Option<&object::Object> {
+        if self.pointer == 0 {
+            None
+        } else {
+            Some(&self.data[self.pointer - 1])
+        }
+    }
+
+    fn last_popped(&self) -> &object::Object {
+        &self.data[self.pointer]
+    }
+
+    fn push(&mut self, o: object::Object) -> Result<()> {
+        if self.pointer >= STACK_SIZE {
+            Err(anyhow::format_err!("stack overflow"))?;
+        }
+
+        if self.pointer == self.data.len() {
+            self.data.push(o);
+        } else if self.pointer < self.data.len() {
+            self.data[self.pointer] = o;
+        } else {
+            unreachable!(
+                "null pointer. data: {:?} pointer: {:?}",
+                self.data, self.pointer
+            );
+        }
+        self.pointer += 1;
+
+        Ok(())
+    }
+
+    fn pop(&mut self) -> &object::Object {
+        let o = &self.data[self.pointer - 1];
+        self.pointer -= 1;
+        o
+    }
+
+    fn pop_pair(&mut self) -> (&object::Object, &object::Object) {
+        let o = (&self.data[self.pointer - 2], &self.data[self.pointer - 1]);
+        self.pointer -= 2;
+        o
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct VM {
     constants: Vec<object::Object>,
     instructions: Instructions,
