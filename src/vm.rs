@@ -134,9 +134,10 @@ impl VM {
     }
 
     fn execute_binary_operation(&mut self, op: &opcode::Opcode) -> Result<()> {
-        match self.pop_pair() {
+        match self.stack.pop_pair() {
             (object::Object::Integer(i1), object::Object::Integer(i2)) => {
-                self.execute_binary_integer_operation(op, i1.value, i2.value)?;
+                let int = Self::execute_binary_integer_operation(op, i1.value, i2.value)?;
+                self.stack.push(int.into())?;
             }
             (unknown_obj1, unknown_obj2) => Err(anyhow::format_err!(
                 "unsupported types for binary operation: {} {}",
@@ -149,11 +150,10 @@ impl VM {
     }
 
     fn execute_binary_integer_operation(
-        &mut self,
         op: &opcode::Opcode,
         left_val: i64,
         right_val: i64,
-    ) -> Result<()> {
+    ) -> Result<object::Integer> {
         let value = match op {
             opcode::Opcode::Add(_) => left_val + right_val,
             opcode::Opcode::Sub(_) => left_val - right_val,
