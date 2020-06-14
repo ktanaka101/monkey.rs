@@ -35,16 +35,26 @@ impl Compiler {
             },
             ast::Node::Expr(expr) => match expr {
                 ast::Expr::InfixExpr(expr) => {
-                    self.compile((*expr.left).into())?;
-                    self.compile((*expr.right).into())?;
+                    if expr.ope == ast::Operator::Lt {
+                        self.compile((*expr.right).into())?;
+                        self.compile((*expr.left).into())?;
+                        self.emit(opcode::GreaterThan.into());
+                    } else {
+                        self.compile((*expr.left).into())?;
+                        self.compile((*expr.right).into())?;
 
-                    match expr.ope {
-                        ast::Operator::Plus => self.emit(opcode::Add.into()),
-                        ast::Operator::Minus => self.emit(opcode::Sub.into()),
-                        ast::Operator::Asterisk => self.emit(opcode::Mul.into()),
-                        ast::Operator::Slash => self.emit(opcode::Div.into()),
-                        unknown => Err(anyhow::format_err!("unknown operator {}", unknown))?,
-                    };
+                        match expr.ope {
+                            ast::Operator::Plus => self.emit(opcode::Add.into()),
+                            ast::Operator::Minus => self.emit(opcode::Sub.into()),
+                            ast::Operator::Asterisk => self.emit(opcode::Mul.into()),
+                            ast::Operator::Slash => self.emit(opcode::Div.into()),
+                            ast::Operator::Gt => self.emit(opcode::GreaterThan.into()),
+                            ast::Operator::Equal => self.emit(opcode::Equal.into()),
+                            ast::Operator::NotEqual => self.emit(opcode::NotEqual.into()),
+                            ast::Operator::Lt => unreachable!(),
+                            unknown => Err(anyhow::format_err!("unknown operator {}", unknown))?,
+                        };
+                    }
                 }
                 ast::Expr::Integer(int) => {
                     let int = object::Integer { value: int.value };
@@ -197,6 +207,72 @@ mod tests {
                 ]
                 .into(),
             ),
+            (
+                "1 > 2",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::GreaterThan),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "1 < 2",
+                vec![Type::Int(2), Type::Int(1)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::GreaterThan),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "1 == 2",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Equal),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "1 != 2",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::NotEqual),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "true == false",
+                vec![],
+                vec![
+                    opcode::Opcode::from(opcode::True),
+                    opcode::Opcode::from(opcode::False),
+                    opcode::Opcode::from(opcode::Equal),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "true != false",
+                vec![],
+                vec![
+                    opcode::Opcode::from(opcode::True),
+                    opcode::Opcode::from(opcode::False),
+                    opcode::Opcode::from(opcode::NotEqual),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
         ];
 
         run_compiler_tests(tests);
@@ -252,6 +328,9 @@ mod tests {
             (vec![opcode::Pop.into()], "0000 Pop¥n"),
             (vec![opcode::True.into()], "0000 True¥n"),
             (vec![opcode::False.into()], "0000 False¥n"),
+            (vec![opcode::Equal.into()], "0000 Equal¥n"),
+            (vec![opcode::NotEqual.into()], "0000 NotEqual¥n"),
+            (vec![opcode::GreaterThan.into()], "0000 GreaterThan¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {
