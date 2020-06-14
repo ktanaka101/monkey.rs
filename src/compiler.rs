@@ -56,6 +56,15 @@ impl Compiler {
                         };
                     }
                 }
+                ast::Expr::PrefixExpr(expr) => {
+                    self.compile((*expr.right).into())?;
+
+                    match expr.ope {
+                        ast::Operator::Minus => self.emit(opcode::Minus.into()),
+                        ast::Operator::Bang => self.emit(opcode::Bang.into()),
+                        unknown => Err(anyhow::format_err!("unknown operator {}", unknown))?,
+                    };
+                }
                 ast::Expr::Integer(int) => {
                     let int = object::Integer { value: int.value };
                     let op = opcode::Constant::from(self.add_constant(int.into()));
@@ -181,6 +190,16 @@ mod tests {
                 ]
                 .into(),
             ),
+            (
+                "-1",
+                vec![Type::Int(1)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Minus),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
         ];
 
         run_compiler_tests(tests);
@@ -273,6 +292,26 @@ mod tests {
                 ]
                 .into(),
             ),
+            (
+                "!true",
+                vec![],
+                vec![
+                    opcode::Opcode::from(opcode::True),
+                    opcode::Opcode::from(opcode::Bang),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "!false",
+                vec![],
+                vec![
+                    opcode::Opcode::from(opcode::False),
+                    opcode::Opcode::from(opcode::Bang),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
         ];
 
         run_compiler_tests(tests);
@@ -331,6 +370,8 @@ mod tests {
             (vec![opcode::Equal.into()], "0000 Equal¥n"),
             (vec![opcode::NotEqual.into()], "0000 NotEqual¥n"),
             (vec![opcode::GreaterThan.into()], "0000 GreaterThan¥n"),
+            (vec![opcode::Minus.into()], "0000 Minus¥n"),
+            (vec![opcode::Bang.into()], "0000 Bang¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

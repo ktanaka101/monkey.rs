@@ -85,6 +85,18 @@ impl ToBytes<1, 0> for vm::opcode::GreaterThan {
     }
 }
 
+impl ToBytes<1, 0> for vm::opcode::Minus {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
+impl ToBytes<1, 0> for vm::opcode::Bang {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -103,6 +115,8 @@ mod tests {
             (vm::opcode::Equal.into(), vec![8]),
             (vm::opcode::NotEqual.into(), vec![9]),
             (vm::opcode::GreaterThan.into(), vec![10]),
+            (vm::opcode::Minus.into(), vec![11]),
+            (vm::opcode::Bang.into(), vec![12]),
         ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
