@@ -1,8 +1,10 @@
 mod add;
+mod bang;
 mod constant;
 mod div;
 mod equal;
 mod greater_than;
+mod minus;
 mod mul;
 mod not_equal;
 mod ofalse;
@@ -11,10 +13,12 @@ mod pop;
 mod sub;
 
 pub use add::Add;
+pub use bang::Bang;
 pub use constant::Constant;
 pub use div::Div;
 pub use equal::Equal;
 pub use greater_than::GreaterThan;
+pub use minus::Minus;
 pub use mul::Mul;
 pub use not_equal::NotEqual;
 pub use ofalse::False;
@@ -46,6 +50,8 @@ pub enum OperandType {
     Equal = 8,
     NotEqual = 9,
     GreaterThan = 10,
+    Minus = 11,
+    Bang = 12,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -64,6 +70,8 @@ impl TryFrom<u8> for OperandType {
             8 => Self::Equal,
             9 => Self::NotEqual,
             10 => Self::GreaterThan,
+            11 => Self::Minus,
+            12 => Self::Bang,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -88,6 +96,8 @@ pub enum Opcode {
     Equal(Equal),
     NotEqual(NotEqual),
     GreaterThan(GreaterThan),
+    Minus(Minus),
+    Bang(Bang),
 }
 
 impl Opcode {
@@ -104,6 +114,8 @@ impl Opcode {
             Opcode::Equal(o) => o.to_bytes().to_vec(),
             Opcode::NotEqual(o) => o.to_bytes().to_vec(),
             Opcode::GreaterThan(o) => o.to_bytes().to_vec(),
+            Opcode::Minus(o) => o.to_bytes().to_vec(),
+            Opcode::Bang(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -120,6 +132,8 @@ impl Opcode {
             Opcode::Equal(o) => o.readsize(),
             Opcode::NotEqual(o) => o.readsize(),
             Opcode::GreaterThan(o) => o.readsize(),
+            Opcode::Minus(o) => o.readsize(),
+            Opcode::Bang(o) => o.readsize(),
         }
     }
 }
@@ -190,6 +204,18 @@ impl From<GreaterThan> for Opcode {
     }
 }
 
+impl From<Minus> for Opcode {
+    fn from(value: Minus) -> Self {
+        Opcode::Minus(value)
+    }
+}
+
+impl From<Bang> for Opcode {
+    fn from(value: Bang) -> Self {
+        Opcode::Bang(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -207,6 +233,8 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::Equal => Ok(Equal.into()),
             OperandType::NotEqual => Ok(NotEqual.into()),
             OperandType::GreaterThan => Ok(GreaterThan.into()),
+            OperandType::Minus => Ok(Minus.into()),
+            OperandType::Bang => Ok(Bang.into()),
         }
     }
 }
@@ -225,6 +253,8 @@ impl Display for Opcode {
             Self::Equal(o) => write!(f, "{}", o),
             Self::NotEqual(o) => write!(f, "{}", o),
             Self::GreaterThan(o) => write!(f, "{}", o),
+            Self::Minus(o) => write!(f, "{}", o),
+            Self::Bang(o) => write!(f, "{}", o),
         }
     }
 }

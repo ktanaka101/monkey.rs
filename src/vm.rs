@@ -132,6 +132,12 @@ impl VM {
                 opcode::Opcode::Equal(_)
                 | opcode::Opcode::NotEqual(_)
                 | opcode::Opcode::GreaterThan(_) => self.execute_comparison(&op)?,
+                opcode::Opcode::Bang(_) => {
+                    self.execute_bang_oeprator()?;
+                }
+                opcode::Opcode::Minus(_) => {
+                    self.execute_minus_operator()?;
+                }
             }
             ip += 1 + op.readsize();
         }
@@ -242,6 +248,38 @@ impl VM {
             FALSE
         }
     }
+
+    fn execute_bang_oeprator(&mut self) -> Result<()> {
+        let operand = self.stack.pop();
+        match operand {
+            object::Object::Boolean(b) => {
+                if b.value {
+                    self.stack.push(FALSE.into())?;
+                } else {
+                    self.stack.push(TRUE.into())?;
+                }
+            }
+            _other => self.stack.push(FALSE.into())?,
+        };
+
+        Ok(())
+    }
+
+    fn execute_minus_operator(&mut self) -> Result<()> {
+        let operand = self.stack.pop();
+        match operand {
+            object::Object::Integer(i) => {
+                let int = object::Integer { value: -i.value };
+                self.stack.push(int.into())?
+            }
+            unknown => Err(anyhow::format_err!(
+                "unsupported type fot negation: {}",
+                unknown
+            ))?,
+        };
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -300,6 +338,10 @@ mod tests {
             ("5 * 2 + 10", 20),
             ("5 + 2 * 10", 25),
             ("5 * (2 + 10)", 60),
+            ("-5", -5),
+            ("-10", -10),
+            ("-50 + 100 + -50", 0),
+            ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50),
         ]
         .into();
         run_vm_tests(tests);
@@ -328,6 +370,12 @@ mod tests {
             ("(1 < 2) == false", false),
             ("(1 > 2) == true", false),
             ("(1 > 2) == false", true),
+            ("!true", false),
+            ("!false", true),
+            ("!5", false),
+            ("!!true", true),
+            ("!!false", false),
+            ("!!5", true),
         ]
         .into();
         run_vm_tests(tests);
