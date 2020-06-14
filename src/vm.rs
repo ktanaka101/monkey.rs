@@ -129,6 +129,9 @@ impl VM {
                 opcode::Opcode::False(_) => {
                     self.stack.push(FALSE.into())?;
                 }
+                opcode::Opcode::Equal(_)
+                | opcode::Opcode::NotEqual(_)
+                | opcode::Opcode::GreaterThan(_) => self.execute_comparison(&op)?,
             }
             ip += 1 + op.readsize();
         }
@@ -169,6 +172,75 @@ impl VM {
         };
 
         Ok(object::Integer { value })
+    }
+
+    fn execute_comparison(&mut self, op: &opcode::Opcode) -> Result<()> {
+        let (right, left) = self.stack.pop_pair();
+
+        match (left, right) {
+            (object::Object::Integer(l), object::Object::Integer(r)) => {
+                let compared =
+                    Self::execute_integer_comparison(op, &l.clone().into(), &r.clone().into())?;
+                self.stack.push(compared.into())?;
+            }
+            (l, r) => match op {
+                opcode::Opcode::Equal(_) => {
+                    let b = Self::native_bool_to_boolean_object(l == r);
+                    self.stack.push(b.into())?;
+                }
+                opcode::Opcode::NotEqual(_) => {
+                    let b = Self::native_bool_to_boolean_object(l != r);
+                    self.stack.push(b.into())?;
+                }
+                unknown_op => Err(anyhow::format_err!(
+                    "unknown operator: {} ({} {})",
+                    unknown_op,
+                    l,
+                    r
+                ))?,
+            },
+        };
+
+        Ok(())
+    }
+
+    fn execute_integer_comparison(
+        op: &opcode::Opcode,
+        left: &object::Object,
+        right: &object::Object,
+    ) -> Result<object::Boolean> {
+        match (left, right) {
+            (object::Object::Integer(l), object::Object::Integer(r)) => match op {
+                opcode::Opcode::Equal(_) => {
+                    Ok(Self::native_bool_to_boolean_object(r.value == l.value))
+                }
+                opcode::Opcode::NotEqual(_) => {
+                    Ok(Self::native_bool_to_boolean_object(r.value != l.value))
+                }
+                opcode::Opcode::GreaterThan(_) => {
+                    Ok(Self::native_bool_to_boolean_object(r.value > l.value))
+                }
+                unknown_op => Err(anyhow::format_err!(
+                    "unknown operator: {} ({}  {})",
+                    unknown_op,
+                    l,
+                    r
+                ))?,
+            },
+            (unknown_l, unknown_r) => Err(anyhow::format_err!(
+                "expected (Integer, Integer). received ({}  {})",
+                unknown_l,
+                unknown_r
+            ))?,
+        }
+    }
+
+    fn native_bool_to_boolean_object(b: bool) -> object::Boolean {
+        if b {
+            TRUE
+        } else {
+            FALSE
+        }
     }
 }
 
@@ -235,7 +307,29 @@ mod tests {
 
     #[test]
     fn test_boolean_expressions() {
-        let tests: Tests = vec![("true", true), ("false", false)].into();
+        let tests: Tests = vec![
+            ("true", true),
+            ("false", false),
+            ("1 < 2", true),
+            ("1 > 2", false),
+            ("1 < 1", false),
+            ("1 > 1", false),
+            ("1 == 1", true),
+            ("1 != 1", false),
+            ("1 == 2", false),
+            ("1 != 2", true),
+            ("true == true", true),
+            ("false == false", true),
+            ("true == false", false),
+            ("true != false", true),
+            ("false == true", false),
+            ("false != true", true),
+            ("(1 < 2) == true", true),
+            ("(1 < 2) == false", false),
+            ("(1 > 2) == true", false),
+            ("(1 > 2) == false", true),
+        ]
+        .into();
         run_vm_tests(tests);
     }
 

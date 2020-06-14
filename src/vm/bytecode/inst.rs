@@ -91,6 +91,9 @@ mod test {
             opcode::Sub.into(),
             opcode::Mul.into(),
             opcode::Div.into(),
+            opcode::Equal.into(),
+            opcode::NotEqual.into(),
+            opcode::GreaterThan.into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -102,7 +105,10 @@ mod test {
             0007 Pop¥n\
             0008 Sub¥n\
             0009 Mul¥n\
-            0010 Div¥n";
+            0010 Div¥n\
+            0011 Equal¥n\
+            0012 NotEqual¥n\
+            0013 GreaterThan¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }
