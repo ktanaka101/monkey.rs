@@ -20,6 +20,18 @@ impl From<opcode::Constant> for Instructions {
     }
 }
 
+impl From<opcode::JumpNotTruthy> for Instructions {
+    fn from(value: opcode::JumpNotTruthy) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
+impl From<opcode::Jump> for Instructions {
+    fn from(value: opcode::Jump) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
 impl<T: ToBytes<1, 0>> From<T> for Instructions {
     fn from(value: T) -> Self {
         value.to_bytes().to_vec().into()
@@ -94,6 +106,9 @@ mod test {
             opcode::Equal.into(),
             opcode::NotEqual.into(),
             opcode::GreaterThan.into(),
+            opcode::JumpNotTruthy(1).into(),
+            opcode::Jump(2).into(),
+            opcode::Null.into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -108,7 +123,10 @@ mod test {
             0010 Div¥n\
             0011 Equal¥n\
             0012 NotEqual¥n\
-            0013 GreaterThan¥n";
+            0013 GreaterThan¥n\
+            0014 JumpNotTruthy 1¥n\
+            0017 Jump 2¥n\
+            0020 Null¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }

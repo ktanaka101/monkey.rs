@@ -4,9 +4,12 @@ mod constant;
 mod div;
 mod equal;
 mod greater_than;
+mod jump;
+mod jump_not_truthy;
 mod minus;
 mod mul;
 mod not_equal;
+mod null;
 mod ofalse;
 mod otrue;
 mod pop;
@@ -18,9 +21,12 @@ pub use constant::Constant;
 pub use div::Div;
 pub use equal::Equal;
 pub use greater_than::GreaterThan;
+pub use jump::Jump;
+pub use jump_not_truthy::JumpNotTruthy;
 pub use minus::Minus;
 pub use mul::Mul;
 pub use not_equal::NotEqual;
+pub use null::Null;
 pub use ofalse::False;
 pub use otrue::True;
 pub use pop::Pop;
@@ -52,6 +58,9 @@ pub enum OperandType {
     GreaterThan = 10,
     Minus = 11,
     Bang = 12,
+    JumpNotTruthy = 13,
+    Jump = 14,
+    Null = 15,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -72,6 +81,9 @@ impl TryFrom<u8> for OperandType {
             10 => Self::GreaterThan,
             11 => Self::Minus,
             12 => Self::Bang,
+            13 => Self::JumpNotTruthy,
+            14 => Self::Jump,
+            15 => Self::Null,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -98,6 +110,9 @@ pub enum Opcode {
     GreaterThan(GreaterThan),
     Minus(Minus),
     Bang(Bang),
+    JumpNotTruthy(JumpNotTruthy),
+    Jump(Jump),
+    Null(Null),
 }
 
 impl Opcode {
@@ -116,6 +131,9 @@ impl Opcode {
             Opcode::GreaterThan(o) => o.to_bytes().to_vec(),
             Opcode::Minus(o) => o.to_bytes().to_vec(),
             Opcode::Bang(o) => o.to_bytes().to_vec(),
+            Opcode::JumpNotTruthy(o) => o.to_bytes().to_vec(),
+            Opcode::Jump(o) => o.to_bytes().to_vec(),
+            Opcode::Null(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -134,6 +152,9 @@ impl Opcode {
             Opcode::GreaterThan(o) => o.readsize(),
             Opcode::Minus(o) => o.readsize(),
             Opcode::Bang(o) => o.readsize(),
+            Opcode::JumpNotTruthy(o) => o.readsize(),
+            Opcode::Jump(o) => o.readsize(),
+            Opcode::Null(o) => o.readsize(),
         }
     }
 }
@@ -216,6 +237,24 @@ impl From<Bang> for Opcode {
     }
 }
 
+impl From<JumpNotTruthy> for Opcode {
+    fn from(value: JumpNotTruthy) -> Self {
+        Opcode::JumpNotTruthy(value)
+    }
+}
+
+impl From<Jump> for Opcode {
+    fn from(value: Jump) -> Self {
+        Opcode::Jump(value)
+    }
+}
+
+impl From<Null> for Opcode {
+    fn from(value: Null) -> Self {
+        Opcode::Null(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -235,6 +274,11 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::GreaterThan => Ok(GreaterThan.into()),
             OperandType::Minus => Ok(Minus.into()),
             OperandType::Bang => Ok(Bang.into()),
+            OperandType::JumpNotTruthy => {
+                Ok(JumpNotTruthy(JumpNotTruthy::try_read(&value[1..])?).into())
+            }
+            OperandType::Jump => Ok(Jump(Jump::try_read(&value[1..])?).into()),
+            OperandType::Null => Ok(Null.into()),
         }
     }
 }
@@ -255,6 +299,9 @@ impl Display for Opcode {
             Self::GreaterThan(o) => write!(f, "{}", o),
             Self::Minus(o) => write!(f, "{}", o),
             Self::Bang(o) => write!(f, "{}", o),
+            Self::JumpNotTruthy(o) => write!(f, "{}", o),
+            Self::Jump(o) => write!(f, "{}", o),
+            Self::Null(o) => write!(f, "{}", o),
         }
     }
 }

@@ -17,6 +17,7 @@ use preludes::*;
 const STACK_SIZE: usize = 2048;
 const TRUE: object::Boolean = object::Boolean { value: true };
 const FALSE: object::Boolean = object::Boolean { value: false };
+const NULL: object::Null = object::Null {};
 
 #[derive(Debug, Default)]
 struct Stack {
@@ -137,6 +138,24 @@ impl VM {
                 }
                 opcode::Opcode::Minus(_) => {
                     self.execute_minus_operator()?;
+                }
+                opcode::Opcode::JumpNotTruthy(jump) => {
+                    ip += 2;
+
+                    let cond = self.stack.pop();
+                    if !Self::is_truthy(cond) {
+                        ip = usize::from(jump.0) - 1;
+                    }
+
+                    ip -= jump.readsize();
+                }
+                opcode::Opcode::Jump(jump) => {
+                    ip = usize::from(jump.0) - 1;
+
+                    ip -= jump.readsize();
+                }
+                opcode::Opcode::Null(_) => {
+                    self.stack.push(NULL.into())?;
                 }
             }
             ip += 1 + op.readsize();
@@ -259,6 +278,9 @@ impl VM {
                     self.stack.push(TRUE.into())?;
                 }
             }
+            object::Object::Null(_) => {
+                self.stack.push(TRUE.into())?;
+            }
             _other => self.stack.push(FALSE.into())?,
         };
 
@@ -280,6 +302,14 @@ impl VM {
 
         Ok(())
     }
+
+    fn is_truthy(obj: &object::Object) -> bool {
+        match obj {
+            object::Object::Boolean(b) => b.value,
+            object::Object::Null(_) => false,
+            _other => true,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -293,6 +323,7 @@ mod tests {
     enum Expected {
         Int(i64),
         Bool(bool),
+        Null,
     }
 
     struct Tests(Vec<(String, Expected)>);
@@ -376,6 +407,30 @@ mod tests {
             ("!!true", true),
             ("!!false", false),
             ("!!5", true),
+            ("!(if (false) { 5; })", true),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_conditional() {
+        let tests: Tests = vec![
+            ("if (true) { 10 }", 10),
+            ("if (true) { 10 } else { 20 }", 10),
+            ("if (false) { 10 } else { 20 }", 20),
+            ("if (1) { 10 }", 10),
+            ("if (1 < 2) { 10 }", 10),
+            ("if (1 < 2) { 10 } else { 20 }", 10),
+            ("if (1 > 2) { 10 } else { 20 }", 20),
+            ("if ((if (false) { 10 })) { 10 } else { 20 }", 20),
+        ]
+        .into();
+        run_vm_tests(tests);
+
+        let tests: Tests = vec![
+            ("if (1 > 2) { 10 }", Expected::Null),
+            ("if (false) { 10 }", Expected::Null),
         ]
         .into();
         run_vm_tests(tests);
@@ -410,6 +465,9 @@ mod tests {
             Expected::Bool(expected_bool) => {
                 test_bool_object(actual, *expected_bool);
             }
+            Expected::Null => {
+                test_null_object(actual);
+            }
         }
     }
 
@@ -428,6 +486,13 @@ mod tests {
             obj => panic!("expected Boolean. received {}", obj),
         };
         assert_eq!(result.value, expected);
+    }
+
+    fn test_null_object(actual: &object::Object) {
+        match actual {
+            object::Object::Null(_) => (),
+            obj => panic!("expected Null. received {}", obj),
+        };
     }
 
     fn parse(input: &str) -> ast::Program {
