@@ -3,6 +3,7 @@ pub mod convert;
 use crate::evaluator::object;
 use crate::parser::ast;
 use crate::vm::{bytecode, opcode};
+use convert::ToBytes;
 
 mod preludes {
     pub use super::super::preludes::*;
@@ -14,6 +15,14 @@ use preludes::*;
 pub struct Compiler {
     instructions: bytecode::Instructions,
     constants: Vec<object::Object>,
+    last_instruction: Option<EmittedInstruction>,
+    prev_instruction: Option<EmittedInstruction>,
+}
+
+#[derive(Debug, Clone)]
+struct EmittedInstruction {
+    opcode: opcode::Opcode,
+    position: Pos,
 }
 
 type Pos = u16;
@@ -30,6 +39,12 @@ impl Compiler {
                 ast::Stmt::ExprStmt(stmt) => {
                     self.compile(stmt.expr.into())?;
                     self.emit(opcode::Pop.into());
+                }
+                ast::Stmt::Block(block) => {
+                    block
+                        .statements
+                        .into_iter()
+                        .try_for_each(|stmt| self.compile(stmt.into()))?;
                 }
                 _ => unimplemented!(),
             },
@@ -65,6 +80,31 @@ impl Compiler {
                         unknown => Err(anyhow::format_err!("unknown operator {}", unknown))?,
                     };
                 }
+                ast::Expr::If(expr) => {
+                    self.compile((*expr.cond).into())?;
+
+                    let jump_not_truthy_pos = self.emit(opcode::JumpNotTruthy(9999).into());
+
+                    self.compile(ast::Stmt::from(expr.consequence).into())?;
+
+                    if self.last_instruction_is_pop() {
+                        self.remove_last_pop()?;
+                    }
+
+                    let jump_pos = self.emit(opcode::Jump(9999).into());
+                    self.change_operand(jump_not_truthy_pos, self.instructions.0.len())?;
+
+                    if let Some(alternative) = expr.alternative {
+                        self.compile(ast::Stmt::from(alternative).into())?;
+                        if self.last_instruction_is_pop() {
+                            self.remove_last_pop()?;
+                        }
+                    } else {
+                        self.emit(opcode::Null.into());
+                    }
+
+                    self.change_operand(jump_pos, self.instructions.0.len())?;
+                }
                 ast::Expr::Integer(int) => {
                     let int = object::Integer { value: int.value };
                     let op = opcode::Constant::from(self.add_constant(int.into()));
@@ -95,7 +135,73 @@ impl Compiler {
 
     fn emit(&mut self, op: opcode::Opcode) -> Pos {
         let ins = op.to_bytes();
-        self.add_instruction(ins)
+        let pos = self.add_instruction(ins);
+
+        self.set_last_instruction(op, pos);
+
+        pos
+    }
+
+    fn set_last_instruction(&mut self, op: opcode::Opcode, pos: Pos) {
+        self.prev_instruction = self.last_instruction.clone();
+
+        let last = EmittedInstruction {
+            opcode: op,
+            position: pos,
+        };
+        self.last_instruction = Some(last);
+    }
+
+    fn last_instruction_is_pop(&self) -> bool {
+        if let Some(last_inst) = &self.last_instruction {
+            if let opcode::Opcode::Pop(_) = last_inst.opcode {
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn remove_last_pop(&mut self) -> Result<()> {
+        if let Some(last_isnt) = &self.last_instruction {
+            let instructions =
+                bytecode::Instructions(self.instructions.0[..last_isnt.position.into()].into());
+            self.instructions = instructions;
+            self.last_instruction = self.prev_instruction.clone();
+
+            Ok(())
+        } else {
+            Err(anyhow::format_err!("uninitialized"))?
+        }
+    }
+
+    fn replace_instructions(&mut self, pos: Pos, new_instructions: bytecode::Instructions) {
+        new_instructions
+            .0
+            .into_iter()
+            .enumerate()
+            .for_each(|(i, inst)| {
+                self.instructions.0[i + usize::from(pos)] = inst;
+            });
+    }
+
+    fn change_operand(&mut self, op_pos: Pos, operand: usize) -> Result<()> {
+        let op = opcode::Opcode::try_from(&self.instructions.0[usize::from(op_pos)..])?;
+        match op {
+            opcode::Opcode::JumpNotTruthy(mut op) => {
+                op.0 = u16::try_from(operand)?;
+                self.replace_instructions(op_pos, op.into());
+            }
+            opcode::Opcode::Jump(mut op) => {
+                op.0 = u16::try_from(operand)?;
+                self.replace_instructions(op_pos, op.into());
+            }
+            _ => Err(anyhow::format_err!("Expected "))?,
+        }
+
+        Ok(())
     }
 }
 
@@ -317,6 +423,44 @@ mod tests {
         run_compiler_tests(tests);
     }
 
+    #[test]
+    fn test_conditionals() {
+        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+            (
+                "if (true) { 10 }; 3333;",
+                vec![Type::Int(10), Type::Int(3333)],
+                vec![
+                    opcode::Opcode::from(opcode::True),
+                    opcode::Opcode::from(opcode::JumpNotTruthy(10)),
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Jump(11)),
+                    opcode::Opcode::from(opcode::Null),
+                    opcode::Opcode::from(opcode::Pop),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "if (true) { 10 } else { 20 }; 3333;",
+                vec![Type::Int(10), Type::Int(20), Type::Int(3333)],
+                vec![
+                    opcode::Opcode::from(opcode::True),
+                    opcode::Opcode::from(opcode::JumpNotTruthy(10)),
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Jump(13)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Pop),
+                    opcode::Opcode::from(opcode::Constant(2)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+        ];
+
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, bytecode::Instructions)>) {
         tests
             .into_iter()
@@ -372,6 +516,12 @@ mod tests {
             (vec![opcode::GreaterThan.into()], "0000 GreaterThan¥n"),
             (vec![opcode::Minus.into()], "0000 Minus¥n"),
             (vec![opcode::Bang.into()], "0000 Bang¥n"),
+            (
+                vec![opcode::JumpNotTruthy(65534).into()],
+                "0000 JumpNotTruthy 65534¥n",
+            ),
+            (vec![opcode::Jump(65534).into()], "0000 Jump 65534¥n"),
+            (vec![opcode::Null.into()], "0000 Null¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

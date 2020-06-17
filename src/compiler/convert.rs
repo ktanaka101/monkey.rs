@@ -17,6 +17,10 @@ where
     }
 
     fn target_to_bytes(&self) -> [vm::bytecode::Instruction; TARGET_SIZE];
+
+    fn bytesize() -> usize {
+        SIZE
+    }
 }
 
 impl ToBytes<3, 2> for vm::opcode::Constant {
@@ -97,6 +101,24 @@ impl ToBytes<1, 0> for vm::opcode::Bang {
     }
 }
 
+impl ToBytes<3, 2> for vm::opcode::JumpNotTruthy {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 2] {
+        self.0.to_be_bytes()
+    }
+}
+
+impl ToBytes<3, 2> for vm::opcode::Jump {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 2] {
+        self.0.to_be_bytes()
+    }
+}
+
+impl ToBytes<1, 0> for vm::opcode::Null {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -117,6 +139,9 @@ mod tests {
             (vm::opcode::GreaterThan.into(), vec![10]),
             (vm::opcode::Minus.into(), vec![11]),
             (vm::opcode::Bang.into(), vec![12]),
+            (vm::opcode::JumpNotTruthy(65534).into(), vec![13, 255, 254]),
+            (vm::opcode::Jump(65534).into(), vec![14, 255, 254]),
+            (vm::opcode::Null.into(), vec![15]),
         ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
