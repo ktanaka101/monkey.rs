@@ -83,7 +83,7 @@ impl From<OperandType> for u8 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Opcode {
     Constant(Constant),
     Add(Add),

@@ -1,6 +1,6 @@
 use super::preludes::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JumpNotTruthy(pub u16);
 
 impl OperandCode for JumpNotTruthy {

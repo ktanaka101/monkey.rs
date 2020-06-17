@@ -1,6 +1,6 @@
 use super::preludes::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Equal;
 
 impl OperandCode for Equal {

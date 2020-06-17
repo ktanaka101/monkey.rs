@@ -1,6 +1,6 @@
 use super::preludes::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GreaterThan;
 
 impl OperandCode for GreaterThan {
