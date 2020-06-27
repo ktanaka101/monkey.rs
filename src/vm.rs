@@ -15,6 +15,7 @@ mod preludes {
 use preludes::*;
 
 const STACK_SIZE: usize = 2048;
+pub const GLOBALS_SIZE: usize = 65536;
 const TRUE: object::Boolean = object::Boolean { value: true };
 const FALSE: object::Boolean = object::Boolean { value: false };
 const NULL: object::Null = object::Null {};
@@ -78,24 +79,37 @@ impl Stack {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct VM {
+pub struct VM<'a> {
     constants: Vec<object::Object>,
+    globals: &'a mut Vec<Option<object::Object>>,
     instructions: Instructions,
     stack: Stack,
 }
 
-impl From<bytecode::Bytecode> for VM {
-    fn from(value: bytecode::Bytecode) -> Self {
-        Self {
-            constants: value.constants,
-            instructions: value.instructions,
-            stack: Stack::new(),
-        }
+impl<'a> fmt::Debug for VM<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("VM")
+            .field("constants", &self.constants)
+            .field("globals", &self.globals.to_vec())
+            .field("instructions", &self.instructions)
+            .field("stack", &self.stack)
+            .finish()
     }
 }
 
-impl VM {
+impl<'a> VM<'a> {
+    pub fn new_with_globals_store(
+        bytecode: bytecode::Bytecode,
+        globals: &'a mut Vec<Option<object::Object>>,
+    ) -> Self {
+        Self {
+            constants: bytecode.constants,
+            instructions: bytecode.instructions,
+            globals,
+            stack: Stack::default(),
+        }
+    }
+
     pub fn stack_top(&self) -> Option<&object::Object> {
         self.stack.top()
     }
@@ -448,7 +462,8 @@ mod tests {
             let bytecode: bytecode::Bytecode = comp.into();
             let debug = bytecode.clone();
 
-            let mut vm = VM::from(bytecode);
+            let mut globals = Default::default();
+            let mut vm = VM::new_with_globals_store(bytecode, &mut globals);
             if let Err(e) = vm.run() {
                 panic!("vm error: {} by {:?}", e, debug);
             }
