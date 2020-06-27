@@ -275,277 +275,288 @@ mod tests {
 
     use super::*;
 
-    enum Type {
+    enum Expected {
         Int(i64),
         String(String),
     }
 
+    impl From<i64> for Expected {
+        fn from(value: i64) -> Self {
+            Expected::Int(value)
+        }
+    }
+
+    impl From<&str> for Expected {
+        fn from(value: &str) -> Self {
+            Expected::String(value.into())
+        }
+    }
+
+    struct Tests(Vec<(&'static str, Vec<Expected>, bytecode::Instructions)>);
+
+    impl<T, U> From<Vec<(&'static str, Vec<T>, U)>> for Tests
+    where
+        T: Into<Expected>,
+        U: Into<bytecode::Instructions>,
+    {
+        fn from(value: Vec<(&'static str, Vec<T>, U)>) -> Self {
+            Tests(
+                value
+                    .into_iter()
+                    .map(|val| {
+                        (
+                            val.0,
+                            val.1.into_iter().map(|v| v.into()).collect::<Vec<_>>(),
+                            val.2.into(),
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        }
+    }
+
     #[test]
     fn test_compiler() {
-        let expected: Vec<opcode::Opcode> = vec![
-            opcode::Constant(0).into(),
-            opcode::Constant(1).into(),
-            opcode::Add.into(),
-            opcode::Pop.into(),
-        ];
-        let tests = vec![("1 + 2", vec![Type::Int(1), Type::Int(2)], expected.into())];
+        let tests = vec![(
+            "1 + 2",
+            vec![1, 2],
+            Vec::<opcode::Opcode>::from(vec![
+                opcode::Constant(0).into(),
+                opcode::Constant(1).into(),
+                opcode::Add.into(),
+                opcode::Pop.into(),
+            ]),
+        )]
+        .into();
 
         run_compiler_tests(tests);
     }
 
     #[test]
     fn test_integer_arithmetic() {
-        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+        let tests: Tests = vec![
             (
                 "1 + 2",
-                vec![Type::Int(1), Type::Int(2)],
-                vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Add),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                vec![1, 2],
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Add.into(),
+                    opcode::Pop.into(),
+                ]),
             ),
             (
                 "1 - 2",
-                vec![Type::Int(1), Type::Int(2)],
+                vec![1, 2],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Sub),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Sub.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "1 * 2",
-                vec![Type::Int(1), Type::Int(2)],
+                vec![1, 2],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Mul),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Mul.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "1 / 2",
-                vec![Type::Int(1), Type::Int(2)],
+                vec![1, 2],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Div),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Div.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "1; 2",
-                vec![Type::Int(1), Type::Int(2)],
+                vec![1, 2],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Pop),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Pop.into(),
+                    opcode::Constant(1).into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "-1",
-                vec![Type::Int(1)],
+                vec![1],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Minus),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Minus.into(),
+                    opcode::Pop.into(),
+                ],
             ),
-        ];
+        ]
+        .into();
 
         run_compiler_tests(tests);
     }
 
     #[test]
     fn test_boolean_expressions() {
-        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+        let tests: Tests = vec![
             (
                 "true",
                 vec![],
-                vec![
-                    opcode::Opcode::from(opcode::True),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                Vec::<opcode::Opcode>::from(vec![opcode::True.into(), opcode::Pop.into()]),
             ),
             (
                 "false",
                 vec![],
-                vec![
-                    opcode::Opcode::from(opcode::False),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                vec![opcode::False.into(), opcode::Pop.into()],
             ),
             (
                 "1 > 2",
-                vec![Type::Int(1), Type::Int(2)],
+                vec![1, 2],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::GreaterThan),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::GreaterThan.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "1 < 2",
-                vec![Type::Int(2), Type::Int(1)],
+                vec![2, 1],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::GreaterThan),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::GreaterThan.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "1 == 2",
-                vec![Type::Int(1), Type::Int(2)],
+                vec![1, 2],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Equal),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Equal.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "1 != 2",
-                vec![Type::Int(1), Type::Int(2)],
+                vec![1, 2],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::NotEqual),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::NotEqual.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "true == false",
                 vec![],
                 vec![
-                    opcode::Opcode::from(opcode::True),
-                    opcode::Opcode::from(opcode::False),
-                    opcode::Opcode::from(opcode::Equal),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::True.into(),
+                    opcode::False.into(),
+                    opcode::Equal.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "true != false",
                 vec![],
                 vec![
-                    opcode::Opcode::from(opcode::True),
-                    opcode::Opcode::from(opcode::False),
-                    opcode::Opcode::from(opcode::NotEqual),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::True.into(),
+                    opcode::False.into(),
+                    opcode::NotEqual.into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "!true",
                 vec![],
-                vec![
-                    opcode::Opcode::from(opcode::True),
-                    opcode::Opcode::from(opcode::Bang),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                vec![opcode::True.into(), opcode::Bang.into(), opcode::Pop.into()],
             ),
             (
                 "!false",
                 vec![],
                 vec![
-                    opcode::Opcode::from(opcode::False),
-                    opcode::Opcode::from(opcode::Bang),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::False.into(),
+                    opcode::Bang.into(),
+                    opcode::Pop.into(),
+                ],
             ),
-        ];
+        ]
+        .into();
 
         run_compiler_tests(tests);
     }
 
     #[test]
     fn test_conditionals() {
-        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+        let tests: Tests = vec![
             (
                 "if (true) { 10 }; 3333;",
-                vec![Type::Int(10), Type::Int(3333)],
-                vec![
-                    opcode::Opcode::from(opcode::True),
-                    opcode::Opcode::from(opcode::JumpNotTruthy(10)),
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Jump(11)),
-                    opcode::Opcode::from(opcode::Null),
-                    opcode::Opcode::from(opcode::Pop),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                vec![10, 3333],
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::True.into(),
+                    opcode::JumpNotTruthy(10).into(),
+                    opcode::Constant(0).into(),
+                    opcode::Jump(11).into(),
+                    opcode::Null.into(),
+                    opcode::Pop.into(),
+                    opcode::Constant(1).into(),
+                    opcode::Pop.into(),
+                ]),
             ),
             (
                 "if (true) { 10 } else { 20 }; 3333;",
-                vec![Type::Int(10), Type::Int(20), Type::Int(3333)],
+                vec![10, 20, 3333],
                 vec![
-                    opcode::Opcode::from(opcode::True),
-                    opcode::Opcode::from(opcode::JumpNotTruthy(10)),
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Jump(13)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Pop),
-                    opcode::Opcode::from(opcode::Constant(2)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::True.into(),
+                    opcode::JumpNotTruthy(10).into(),
+                    opcode::Constant(0).into(),
+                    opcode::Jump(13).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Pop.into(),
+                    opcode::Constant(2).into(),
+                    opcode::Pop.into(),
+                ],
             ),
-        ];
-
+        ]
+        .into();
         run_compiler_tests(tests);
     }
 
     #[test]
     fn test_global_let_statements() {
-        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+        let tests: Tests = vec![
             (
                 "
                 let one = 1;
                 let two = 2;
                 ",
-                vec![Type::Int(1), Type::Int(2)],
-                vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::SetGlobal(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::SetGlobal(1)),
-                ]
-                .into(),
+                vec![1, 2],
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::SetGlobal(1).into(),
+                ]),
             ),
             (
                 "
                 let one = 1;
                 one;
                 ",
-                vec![Type::Int(1)],
+                vec![1],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::SetGlobal(0)),
-                    opcode::Opcode::from(opcode::GetGlobal(0)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "
@@ -553,105 +564,90 @@ mod tests {
                 let two = one;
                 two;
                 ",
-                vec![Type::Int(1)],
+                vec![1],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::SetGlobal(0)),
-                    opcode::Opcode::from(opcode::GetGlobal(0)),
-                    opcode::Opcode::from(opcode::SetGlobal(1)),
-                    opcode::Opcode::from(opcode::GetGlobal(1)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::SetGlobal(1).into(),
+                    opcode::GetGlobal(1).into(),
+                    opcode::Pop.into(),
+                ],
             ),
-        ];
+        ]
+        .into();
 
         run_compiler_tests(tests);
     }
 
     #[test]
     fn test_string_expressions() {
-        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+        let tests: Tests = vec![
             (
                 r#""monkey""#,
-                vec![Type::String("monkey".into())],
-                vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                vec!["monkey"],
+                Vec::<opcode::Opcode>::from(vec![opcode::Constant(0).into(), opcode::Pop.into()]),
             ),
             (
                 r#""mon" + "key""#,
-                vec![Type::String("mon".into()), Type::String("key".into())],
+                vec!["mon", "key"],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Add),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Add.into(),
+                    opcode::Pop.into(),
+                ],
             ),
-        ];
+        ]
+        .into();
 
         run_compiler_tests(tests);
     }
 
     #[test]
     fn test_array_literals() {
-        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+        let tests: Tests = vec![
             (
                 "[]",
                 vec![],
-                vec![
-                    opcode::Opcode::from(opcode::Array(0)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                Vec::<opcode::Opcode>::from(vec![opcode::Array(0).into(), opcode::Pop.into()]),
             ),
             (
                 "[1, 2, 3]",
-                vec![Type::Int(1), Type::Int(2), Type::Int(3)],
+                vec![1, 2, 3],
                 vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Constant(2)),
-                    opcode::Opcode::from(opcode::Array(3)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Array(3).into(),
+                    opcode::Pop.into(),
+                ],
             ),
             (
                 "[1 + 2, 3 - 4, 5 * 6]",
+                vec![1, 2, 3, 4, 5, 6],
                 vec![
-                    Type::Int(1),
-                    Type::Int(2),
-                    Type::Int(3),
-                    Type::Int(4),
-                    Type::Int(5),
-                    Type::Int(6),
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Add.into(),
+                    opcode::Constant(2).into(),
+                    opcode::Constant(3).into(),
+                    opcode::Sub.into(),
+                    opcode::Constant(4).into(),
+                    opcode::Constant(5).into(),
+                    opcode::Mul.into(),
+                    opcode::Array(3).into(),
+                    opcode::Pop.into(),
                 ],
-                vec![
-                    opcode::Opcode::from(opcode::Constant(0)),
-                    opcode::Opcode::from(opcode::Constant(1)),
-                    opcode::Opcode::from(opcode::Add),
-                    opcode::Opcode::from(opcode::Constant(2)),
-                    opcode::Opcode::from(opcode::Constant(3)),
-                    opcode::Opcode::from(opcode::Sub),
-                    opcode::Opcode::from(opcode::Constant(4)),
-                    opcode::Opcode::from(opcode::Constant(5)),
-                    opcode::Opcode::from(opcode::Mul),
-                    opcode::Opcode::from(opcode::Array(3)),
-                    opcode::Opcode::from(opcode::Pop),
-                ]
-                .into(),
             ),
-        ];
+        ]
+        .into();
         run_compiler_tests(tests);
     }
 
-    fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, bytecode::Instructions)>) {
+    fn run_compiler_tests(tests: Tests) {
         tests
+            .0
             .into_iter()
             .for_each(|(input, expected_constants, expected_instructure)| {
                 let program = parse_test_input(input);
@@ -734,15 +730,15 @@ mod tests {
         });
     }
 
-    fn test_constants(actual: Vec<object::Object>, expected: Vec<Type>) {
+    fn test_constants(actual: Vec<object::Object>, expected: Vec<Expected>) {
         actual
             .into_iter()
             .zip(expected)
             .for_each(|(input, expected)| match expected {
-                Type::Int(i) => {
+                Expected::Int(i) => {
                     test_integer_object(input, i);
                 }
-                Type::String(s) => test_string_object(input, s.as_str()),
+                Expected::String(s) => test_string_object(input, s.as_str()),
             });
     }
 
