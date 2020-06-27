@@ -26,6 +26,10 @@ pub fn start(executer: Executer) {
 }
 
 fn start_vm() {
+    let mut constants: Vec<object::Object> = vec![];
+    let mut globals: Vec<Option<object::Object>> = vec![None; vm::GLOBALS_SIZE];
+    let mut symbol_table = compiler::SymbolTable::new();
+
     loop {
         print!("{}", PROMPT);
         io::stdout().flush().unwrap();
@@ -46,14 +50,14 @@ fn start_vm() {
             }
         };
 
-        let mut comp = compiler::Compiler::default();
+        let mut comp = compiler::Compiler::new_with_state(&mut symbol_table, &mut constants);
         if let Err(e) = comp.compile(program.into()) {
             println!("Woops! Compilation failed: \n {}", e);
             continue;
         }
 
         let bytecode: vm::bytecode::Bytecode = comp.into();
-        let mut machine = vm::VM::from(bytecode);
+        let mut machine = vm::VM::new_with_globals_store(bytecode, &mut globals);
         if let Err(e) = machine.run() {
             println!("Woops! Executing bytecode failed:\n {}", e);
             continue;

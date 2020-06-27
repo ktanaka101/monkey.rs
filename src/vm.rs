@@ -439,7 +439,9 @@ mod tests {
     fn run_vm_tests(tests: Tests) {
         tests.0.into_iter().for_each(|(input, expected)| {
             let program = parse(input.as_str());
-            let mut comp = compiler::Compiler::default();
+            let mut sym_table = Default::default();
+            let mut constants = Default::default();
+            let mut comp = compiler::Compiler::new_with_state(&mut sym_table, &mut constants);
             if let Err(e) = comp.compile(program.into()) {
                 panic!(format!("compiler error {}: ", e));
             }

@@ -1,9 +1,12 @@
 pub mod convert;
+mod symbol_table;
 
 use crate::evaluator::object;
 use crate::parser::ast;
 use crate::vm::{bytecode, opcode};
 use convert::ToBytes;
+
+pub use symbol_table::SymbolTable;
 
 mod preludes {
     pub use super::super::preludes::*;
@@ -11,12 +14,13 @@ mod preludes {
 
 use preludes::*;
 
-#[derive(Debug, Default)]
-pub struct Compiler {
+#[derive(Debug)]
+pub struct Compiler<'a> {
     instructions: bytecode::Instructions,
-    constants: Vec<object::Object>,
+    constants: &'a mut Vec<object::Object>,
     last_instruction: Option<EmittedInstruction>,
     prev_instruction: Option<EmittedInstruction>,
+    symbol_table: &'a mut symbol_table::SymbolTable,
 }
 
 #[derive(Debug, Clone)]
@@ -27,7 +31,7 @@ struct EmittedInstruction {
 
 type Pos = u16;
 
-impl Compiler {
+impl<'a> Compiler<'a> {
     pub fn compile(&mut self, node: ast::Node) -> Result<()> {
         match node {
             ast::Node::Program(pg) => {
@@ -205,11 +209,26 @@ impl Compiler {
     }
 }
 
-impl From<Compiler> for crate::vm::bytecode::Bytecode {
-    fn from(value: Compiler) -> Self {
+impl<'a> Compiler<'a> {
+    pub fn new_with_state(
+        sym_table: &'a mut symbol_table::SymbolTable,
+        constants: &'a mut Vec<object::Object>,
+    ) -> Self {
+        Self {
+            symbol_table: sym_table,
+            constants: constants,
+            instructions: Default::default(),
+            last_instruction: Default::default(),
+            prev_instruction: Default::default(),
+        }
+    }
+}
+
+impl<'a> From<Compiler<'a>> for crate::vm::bytecode::Bytecode {
+    fn from(value: Compiler<'a>) -> Self {
         Self {
             instructions: value.instructions,
-            constants: value.constants,
+            constants: value.constants.clone(),
         }
     }
 }
@@ -466,7 +485,9 @@ mod tests {
             .into_iter()
             .for_each(|(input, expected_constants, expected_instructure)| {
                 let program = parse_test_input(input);
-                let mut compiler = Compiler::default();
+                let mut sym_table = SymbolTable::new();
+                let mut constants = Vec::<object::Object>::new();
+                let mut compiler = Compiler::new_with_state(&mut sym_table, &mut constants);
                 if let Err(e) = compiler.compile(program.into()) {
                     panic!("{}", e);
                 };
