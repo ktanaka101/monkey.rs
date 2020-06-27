@@ -32,6 +32,18 @@ impl From<opcode::Jump> for Instructions {
     }
 }
 
+impl From<opcode::GetGlobal> for Instructions {
+    fn from(value: opcode::GetGlobal) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
+impl From<opcode::SetGlobal> for Instructions {
+    fn from(value: opcode::SetGlobal) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
 impl<T: ToBytes<1, 0>> From<T> for Instructions {
     fn from(value: T) -> Self {
         value.to_bytes().to_vec().into()
@@ -109,6 +121,8 @@ mod test {
             opcode::JumpNotTruthy(1).into(),
             opcode::Jump(2).into(),
             opcode::Null.into(),
+            opcode::GetGlobal(65535).into(),
+            opcode::SetGlobal(65535).into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -126,7 +140,9 @@ mod test {
             0013 GreaterThan¥n\
             0014 JumpNotTruthy 1¥n\
             0017 Jump 2¥n\
-            0020 Null¥n";
+            0020 Null¥n\
+            0021 GetGlobal 65535¥n\
+            0024 SetGlobal 65535¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }

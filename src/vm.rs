@@ -171,6 +171,22 @@ impl<'a> VM<'a> {
                 opcode::Opcode::Null(_) => {
                     self.stack.push(NULL.into())?;
                 }
+                opcode::Opcode::GetGlobal(global) => {
+                    let obj = &self.globals[usize::from(global.0)];
+                    match obj {
+                        Some(obj) => {
+                            self.stack.push(obj.clone())?;
+                        }
+                        None => Err(anyhow::format_err!(
+                            "Bytecode error. Undefined global object. {}",
+                            global
+                        ))?,
+                    }
+                }
+                opcode::Opcode::SetGlobal(global) => {
+                    let poped = self.stack.pop();
+                    self.globals[usize::from(global.0)] = Some(poped.clone());
+                }
             }
             ip += 1 + op.readsize();
         }
@@ -445,6 +461,17 @@ mod tests {
         let tests: Tests = vec![
             ("if (1 > 2) { 10 }", Expected::Null),
             ("if (false) { 10 }", Expected::Null),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_global_let_statements() {
+        let tests: Tests = vec![
+            ("let one = 1; one", 1),
+            ("let one = 1; let two = 2; one + two", 3),
+            ("let one = 1; let two = one + one; one + two", 3),
         ]
         .into();
         run_vm_tests(tests);

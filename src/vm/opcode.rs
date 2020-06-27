@@ -3,6 +3,7 @@ mod bang;
 mod constant;
 mod div;
 mod equal;
+mod get_global;
 mod greater_than;
 mod jump;
 mod jump_not_truthy;
@@ -13,6 +14,7 @@ mod null;
 mod ofalse;
 mod otrue;
 mod pop;
+mod set_global;
 mod sub;
 
 pub use add::Add;
@@ -20,6 +22,7 @@ pub use bang::Bang;
 pub use constant::Constant;
 pub use div::Div;
 pub use equal::Equal;
+pub use get_global::GetGlobal;
 pub use greater_than::GreaterThan;
 pub use jump::Jump;
 pub use jump_not_truthy::JumpNotTruthy;
@@ -30,6 +33,7 @@ pub use null::Null;
 pub use ofalse::False;
 pub use otrue::True;
 pub use pop::Pop;
+pub use set_global::SetGlobal;
 pub use sub::Sub;
 
 use crate::compiler::convert::ToBytes;
@@ -61,6 +65,8 @@ pub enum OperandType {
     JumpNotTruthy = 13,
     Jump = 14,
     Null = 15,
+    GetGlobal = 16,
+    SetGlobal = 17,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -84,6 +90,8 @@ impl TryFrom<u8> for OperandType {
             13 => Self::JumpNotTruthy,
             14 => Self::Jump,
             15 => Self::Null,
+            16 => Self::GetGlobal,
+            17 => Self::SetGlobal,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -113,6 +121,8 @@ pub enum Opcode {
     JumpNotTruthy(JumpNotTruthy),
     Jump(Jump),
     Null(Null),
+    GetGlobal(GetGlobal),
+    SetGlobal(SetGlobal),
 }
 
 impl Opcode {
@@ -134,6 +144,8 @@ impl Opcode {
             Opcode::JumpNotTruthy(o) => o.to_bytes().to_vec(),
             Opcode::Jump(o) => o.to_bytes().to_vec(),
             Opcode::Null(o) => o.to_bytes().to_vec(),
+            Opcode::GetGlobal(o) => o.to_bytes().to_vec(),
+            Opcode::SetGlobal(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -155,6 +167,8 @@ impl Opcode {
             Opcode::JumpNotTruthy(o) => o.readsize(),
             Opcode::Jump(o) => o.readsize(),
             Opcode::Null(o) => o.readsize(),
+            Opcode::GetGlobal(o) => o.readsize(),
+            Opcode::SetGlobal(o) => o.readsize(),
         }
     }
 }
@@ -255,6 +269,18 @@ impl From<Null> for Opcode {
     }
 }
 
+impl From<GetGlobal> for Opcode {
+    fn from(value: GetGlobal) -> Self {
+        Opcode::GetGlobal(value)
+    }
+}
+
+impl From<SetGlobal> for Opcode {
+    fn from(value: SetGlobal) -> Self {
+        Opcode::SetGlobal(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -279,6 +305,8 @@ impl TryFrom<&[Instruction]> for Opcode {
             }
             OperandType::Jump => Ok(Jump(Jump::try_read(&value[1..])?).into()),
             OperandType::Null => Ok(Null.into()),
+            OperandType::GetGlobal => Ok(GetGlobal(GetGlobal::try_read(&value[1..])?).into()),
+            OperandType::SetGlobal => Ok(SetGlobal(SetGlobal::try_read(&value[1..])?).into()),
         }
     }
 }
@@ -302,6 +330,8 @@ impl Display for Opcode {
             Self::JumpNotTruthy(o) => write!(f, "{}", o),
             Self::Jump(o) => write!(f, "{}", o),
             Self::Null(o) => write!(f, "{}", o),
+            Self::GetGlobal(o) => write!(f, "{}", o),
+            Self::SetGlobal(o) => write!(f, "{}", o),
         }
     }
 }
