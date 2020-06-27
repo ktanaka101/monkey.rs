@@ -50,6 +50,16 @@ impl<'a> Compiler<'a> {
                         .into_iter()
                         .try_for_each(|stmt| self.compile(stmt.into()))?;
                 }
+                ast::Stmt::Let(l) => {
+                    self.compile(l.value.into())?;
+                    let symbol = self.symbol_table.define(l.name.value);
+                    match symbol {
+                        symbol_table::Symbol::Global { index, .. } => {
+                            let op = opcode::SetGlobal(*index).into();
+                            self.emit(op);
+                        }
+                    };
+                }
                 _ => unimplemented!(),
             },
             ast::Node::Expr(expr) => match expr {
@@ -119,6 +129,18 @@ impl<'a> Compiler<'a> {
                         true => opcode::True.into(),
                         false => opcode::False.into(),
                     });
+                }
+                ast::Expr::Identifier(id) => {
+                    let symbol = self.symbol_table.resolve(&id.value);
+                    match symbol {
+                        Some(symbol) => match symbol {
+                            symbol_table::Symbol::Global { index, .. } => {
+                                let op = opcode::GetGlobal(*index).into();
+                                self.emit(op);
+                            }
+                        },
+                        None => Err(anyhow::format_err!("undefined variable {}", id.value))?,
+                    };
                 }
                 _ => unimplemented!(),
             },
@@ -480,6 +502,59 @@ mod tests {
         run_compiler_tests(tests);
     }
 
+    #[test]
+    fn test_global_let_statements() {
+        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+            (
+                "
+                let one = 1;
+                let two = 2;
+                ",
+                vec![Type::Int(1), Type::Int(2)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::SetGlobal(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::SetGlobal(1)),
+                ]
+                .into(),
+            ),
+            (
+                "
+                let one = 1;
+                one;
+                ",
+                vec![Type::Int(1)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::SetGlobal(0)),
+                    opcode::Opcode::from(opcode::GetGlobal(0)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "
+                let one = 1;
+                let two = one;
+                two;
+                ",
+                vec![Type::Int(1)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::SetGlobal(0)),
+                    opcode::Opcode::from(opcode::GetGlobal(0)),
+                    opcode::Opcode::from(opcode::SetGlobal(1)),
+                    opcode::Opcode::from(opcode::GetGlobal(1)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+        ];
+
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, bytecode::Instructions)>) {
         tests
             .into_iter()
@@ -543,6 +618,14 @@ mod tests {
             ),
             (vec![opcode::Jump(65534).into()], "0000 Jump 65534¥n"),
             (vec![opcode::Null.into()], "0000 Null¥n"),
+            (
+                vec![opcode::GetGlobal(65534).into()],
+                "0000 GetGlobal 65534¥n",
+            ),
+            (
+                vec![opcode::SetGlobal(65534).into()],
+                "0000 SetGlobal 65534¥n",
+            ),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

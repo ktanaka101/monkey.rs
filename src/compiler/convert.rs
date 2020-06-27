@@ -119,6 +119,18 @@ impl ToBytes<1, 0> for vm::opcode::Null {
     }
 }
 
+impl ToBytes<3, 2> for vm::opcode::GetGlobal {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 2] {
+        self.0.to_be_bytes()
+    }
+}
+
+impl ToBytes<3, 2> for vm::opcode::SetGlobal {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 2] {
+        self.0.to_be_bytes()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -142,6 +154,8 @@ mod tests {
             (vm::opcode::JumpNotTruthy(65534).into(), vec![13, 255, 254]),
             (vm::opcode::Jump(65534).into(), vec![14, 255, 254]),
             (vm::opcode::Null.into(), vec![15]),
+            (vm::opcode::GetGlobal(65534).into(), vec![16, 255, 254]),
+            (vm::opcode::SetGlobal(65534).into(), vec![17, 255, 254]),
         ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
