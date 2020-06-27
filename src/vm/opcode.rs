@@ -1,4 +1,5 @@
 mod add;
+mod array;
 mod bang;
 mod constant;
 mod div;
@@ -18,6 +19,7 @@ mod set_global;
 mod sub;
 
 pub use add::Add;
+pub use array::Array;
 pub use bang::Bang;
 pub use constant::Constant;
 pub use div::Div;
@@ -67,6 +69,7 @@ pub enum OperandType {
     Null = 15,
     GetGlobal = 16,
     SetGlobal = 17,
+    Array = 18,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -92,6 +95,7 @@ impl TryFrom<u8> for OperandType {
             15 => Self::Null,
             16 => Self::GetGlobal,
             17 => Self::SetGlobal,
+            18 => Self::Array,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -123,6 +127,7 @@ pub enum Opcode {
     Null(Null),
     GetGlobal(GetGlobal),
     SetGlobal(SetGlobal),
+    Array(Array),
 }
 
 impl Opcode {
@@ -146,6 +151,7 @@ impl Opcode {
             Opcode::Null(o) => o.to_bytes().to_vec(),
             Opcode::GetGlobal(o) => o.to_bytes().to_vec(),
             Opcode::SetGlobal(o) => o.to_bytes().to_vec(),
+            Opcode::Array(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -169,6 +175,7 @@ impl Opcode {
             Opcode::Null(o) => o.readsize(),
             Opcode::GetGlobal(o) => o.readsize(),
             Opcode::SetGlobal(o) => o.readsize(),
+            Opcode::Array(o) => o.readsize(),
         }
     }
 }
@@ -281,6 +288,12 @@ impl From<SetGlobal> for Opcode {
     }
 }
 
+impl From<Array> for Opcode {
+    fn from(value: Array) -> Self {
+        Opcode::Array(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -307,6 +320,7 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::Null => Ok(Null.into()),
             OperandType::GetGlobal => Ok(GetGlobal(GetGlobal::try_read(&value[1..])?).into()),
             OperandType::SetGlobal => Ok(SetGlobal(SetGlobal::try_read(&value[1..])?).into()),
+            OperandType::Array => Ok(Array(Array::try_read(&value[1..])?).into()),
         }
     }
 }
@@ -332,6 +346,7 @@ impl Display for Opcode {
             Self::Null(o) => write!(f, "{}", o),
             Self::GetGlobal(o) => write!(f, "{}", o),
             Self::SetGlobal(o) => write!(f, "{}", o),
+            Self::Array(o) => write!(f, "{}", o),
         }
     }
 }

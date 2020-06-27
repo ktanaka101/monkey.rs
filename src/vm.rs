@@ -77,6 +77,11 @@ impl Stack {
         self.pointer -= 2;
         o
     }
+
+    fn extract_array(&self, range: std::ops::Range<usize>) -> object::Array {
+        let elements = self.data[range].into();
+        object::Array { elements }
+    }
 }
 
 #[derive(Debug)]
@@ -185,6 +190,15 @@ impl<'a> VM<'a> {
                 opcode::Opcode::SetGlobal(global) => {
                     let poped = self.stack.pop();
                     self.globals.0[usize::from(global.0)] = Some(poped.clone());
+                }
+                opcode::Opcode::Array(arr) => {
+                    let num_elements = usize::from(arr.0);
+
+                    let range = (self.stack.pointer - num_elements)..self.stack.pointer;
+                    let array_obj = self.stack.extract_array(range);
+                    self.stack.pointer -= num_elements;
+
+                    self.stack.push(array_obj.into())?;
                 }
             }
             ip += 1 + op.readsize();
@@ -366,11 +380,13 @@ mod tests {
 
     use super::*;
 
+    #[derive(Clone)]
     enum Expected {
         Int(i64),
         Bool(bool),
         Null,
         String(String),
+        IntArray(Vec<i64>),
     }
 
     struct Tests(Vec<(String, Expected)>);
@@ -390,6 +406,12 @@ mod tests {
     impl From<&str> for Expected {
         fn from(value: &str) -> Self {
             Self::String(value.to_string())
+        }
+    }
+
+    impl From<Vec<i64>> for Expected {
+        fn from(value: Vec<i64>) -> Self {
+            Self::IntArray(value)
         }
     }
 
@@ -511,6 +533,17 @@ mod tests {
         run_vm_tests(tests);
     }
 
+    #[test]
+    fn test_array_literals() {
+        let tests: Tests = vec![
+            ("[]", vec![]),
+            ("[1, 2, 3]", vec![1, 2, 3]),
+            ("[1 + 2, 3 * 4, 5 + 6]", vec![3, 12, 11]),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_tests(tests: Tests) {
         tests.0.into_iter().for_each(|(input, expected)| {
             let program = parse(input.as_str());
@@ -549,6 +582,9 @@ mod tests {
             Expected::String(expected_string) => {
                 test_string_object(actual, expected_string);
             }
+            Expected::IntArray(expected_array) => {
+                test_int_array_object(actual, expected_array);
+            }
         }
     }
 
@@ -582,6 +618,16 @@ mod tests {
                 assert_eq!(s.value, expected);
             }
             obj => panic!("expected String. received {}", obj),
+        }
+    }
+
+    fn test_int_array_object(actual: &object::Object, expected: &Vec<i64>) {
+        match actual {
+            object::Object::Array(arr) => expected
+                .iter()
+                .zip(arr.elements.iter())
+                .for_each(|(expected, obj)| test_integer_object(&obj, *expected)),
+            obj => panic!("expected Array. received {}", obj),
         }
     }
 
