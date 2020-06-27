@@ -1,6 +1,7 @@
 use super::prelude::*;
 use super::{
-    Array, Boolean, Builtin, Error, Function, Hash, Integer, Macro, Null, Quote, Return, StringLit,
+    Array, Boolean, Builtin, Error, Function, Hash, HashableObject, Integer, Macro, Null, Quote,
+    Return, StringLit,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -77,6 +78,16 @@ impl From<Quote> for Object {
 impl From<Macro> for Object {
     fn from(obj: Macro) -> Object {
         Object::Macro(obj)
+    }
+}
+
+impl From<HashableObject> for Object {
+    fn from(obj: HashableObject) -> Self {
+        match obj {
+            HashableObject::Boolean(o) => Object::Boolean(o),
+            HashableObject::Integer(o) => Object::Integer(o),
+            HashableObject::StringLit(o) => Object::StringLit(o),
+        }
     }
 }
 
