@@ -130,6 +130,11 @@ impl<'a> Compiler<'a> {
                         false => opcode::False.into(),
                     });
                 }
+                ast::Expr::StringLit(s) => {
+                    let s = object::StringLit { value: s.value };
+                    let op = opcode::Constant::from(self.add_constant(s.into()));
+                    self.emit(op.into());
+                }
                 ast::Expr::Identifier(id) => {
                     let symbol = self.symbol_table.resolve(&id.value);
                     match symbol {
@@ -264,6 +269,7 @@ mod tests {
 
     enum Type {
         Int(i64),
+        String(String),
     }
 
     #[test]
@@ -555,6 +561,34 @@ mod tests {
         run_compiler_tests(tests);
     }
 
+    #[test]
+    fn test_string_expressions() {
+        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+            (
+                r#""monkey""#,
+                vec![Type::String("monkey".into())],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                r#""mon" + "key""#,
+                vec![Type::String("mon".into()), Type::String("key".into())],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Add),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+        ];
+
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, bytecode::Instructions)>) {
         tests
             .into_iter()
@@ -646,6 +680,7 @@ mod tests {
                 Type::Int(i) => {
                     test_integer_object(input, i);
                 }
+                Type::String(s) => test_string_object(input, s.as_str()),
             });
     }
 
@@ -655,6 +690,15 @@ mod tests {
                 assert_eq!(int_o.value, expected);
             }
             o => panic!("expected object::Integer. received {}", o),
+        }
+    }
+
+    fn test_string_object(actual: object::Object, expected: &str) {
+        match actual {
+            object::Object::StringLit(s) => {
+                assert_eq!(s.value, expected);
+            }
+            o => panic!("expected object::StringLit. received {}", o),
         }
     }
 
