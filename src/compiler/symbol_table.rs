@@ -3,22 +3,22 @@ use std::collections::HashMap;
 use super::preludes::*;
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
-enum Symbol {
-    Global { name: String, index: usize },
+pub enum Symbol {
+    Global { name: String, index: u16 },
 }
 
 #[derive(Debug, Default, Clone)]
-struct SymbolTable {
+pub struct SymbolTable {
     store: HashMap<String, Symbol>,
-    num_definnitions: usize,
+    num_definnitions: u16,
 }
 
 impl SymbolTable {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 
-    fn define(&mut self, name: String) -> &Symbol {
+    pub fn define(&mut self, name: String) -> &Symbol {
         let symbol = Symbol::Global {
             name: name.clone(),
             index: self.num_definnitions,
@@ -30,7 +30,7 @@ impl SymbolTable {
         self.store.get(&name).unwrap()
     }
 
-    fn resolve(&self, name: &str) -> Option<&Symbol> {
+    pub fn resolve(&self, name: &str) -> Option<&Symbol> {
         self.store.get(name)
     }
 }
