@@ -50,6 +50,12 @@ impl From<opcode::Array> for Instructions {
     }
 }
 
+impl From<opcode::Hash> for Instructions {
+    fn from(value: opcode::Hash) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
 impl<T: ToBytes<1, 0>> From<T> for Instructions {
     fn from(value: T) -> Self {
         value.to_bytes().to_vec().into()
@@ -130,6 +136,7 @@ mod test {
             opcode::GetGlobal(65535).into(),
             opcode::SetGlobal(65535).into(),
             opcode::Array(65535).into(),
+            opcode::Hash(65535).into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -150,7 +157,8 @@ mod test {
             0020 Null¥n\
             0021 GetGlobal 65535¥n\
             0024 SetGlobal 65535¥n\
-            0027 Array 65535¥n";
+            0027 Array 65535¥n\
+            0030 Hash 65535¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }

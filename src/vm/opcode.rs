@@ -6,6 +6,7 @@ mod div;
 mod equal;
 mod get_global;
 mod greater_than;
+mod hash;
 mod jump;
 mod jump_not_truthy;
 mod minus;
@@ -26,6 +27,7 @@ pub use div::Div;
 pub use equal::Equal;
 pub use get_global::GetGlobal;
 pub use greater_than::GreaterThan;
+pub use hash::Hash;
 pub use jump::Jump;
 pub use jump_not_truthy::JumpNotTruthy;
 pub use minus::Minus;
@@ -70,6 +72,7 @@ pub enum OperandType {
     GetGlobal = 16,
     SetGlobal = 17,
     Array = 18,
+    Hash = 19,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -96,6 +99,7 @@ impl TryFrom<u8> for OperandType {
             16 => Self::GetGlobal,
             17 => Self::SetGlobal,
             18 => Self::Array,
+            19 => Self::Hash,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -128,6 +132,7 @@ pub enum Opcode {
     GetGlobal(GetGlobal),
     SetGlobal(SetGlobal),
     Array(Array),
+    Hash(Hash),
 }
 
 impl Opcode {
@@ -152,6 +157,7 @@ impl Opcode {
             Opcode::GetGlobal(o) => o.to_bytes().to_vec(),
             Opcode::SetGlobal(o) => o.to_bytes().to_vec(),
             Opcode::Array(o) => o.to_bytes().to_vec(),
+            Opcode::Hash(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -176,6 +182,7 @@ impl Opcode {
             Opcode::GetGlobal(o) => o.readsize(),
             Opcode::SetGlobal(o) => o.readsize(),
             Opcode::Array(o) => o.readsize(),
+            Opcode::Hash(o) => o.readsize(),
         }
     }
 }
@@ -294,6 +301,12 @@ impl From<Array> for Opcode {
     }
 }
 
+impl From<Hash> for Opcode {
+    fn from(value: Hash) -> Self {
+        Opcode::Hash(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -321,6 +334,7 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::GetGlobal => Ok(GetGlobal(GetGlobal::try_read(&value[1..])?).into()),
             OperandType::SetGlobal => Ok(SetGlobal(SetGlobal::try_read(&value[1..])?).into()),
             OperandType::Array => Ok(Array(Array::try_read(&value[1..])?).into()),
+            OperandType::Hash => Ok(Hash(Hash::try_read(&value[1..])?).into()),
         }
     }
 }
@@ -347,6 +361,7 @@ impl Display for Opcode {
             Self::GetGlobal(o) => write!(f, "{}", o),
             Self::SetGlobal(o) => write!(f, "{}", o),
             Self::Array(o) => write!(f, "{}", o),
+            Self::Hash(o) => write!(f, "{}", o),
         }
     }
 }

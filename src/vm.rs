@@ -78,9 +78,28 @@ impl Stack {
         o
     }
 
-    fn extract_array(&self, range: std::ops::Range<usize>) -> object::Array {
-        let elements = self.data[range].into();
+    fn extract_array(&mut self, num_elements: usize) -> object::Array {
+        let elements = self.data[(self.pointer - num_elements)..self.pointer].into();
+        self.pointer -= num_elements;
         object::Array { elements }
+    }
+
+    fn extract_hash(&mut self, num_elements: usize) -> Result<object::Hash> {
+        let elements: Vec<object::Object> =
+            self.data[(self.pointer - num_elements)..self.pointer].into();
+
+        debug_assert_eq!(elements.len() % 2, 0);
+
+        let mut pairs = object::HashPairs::new();
+        for i in 0..(elements.len() / 2) {
+            pairs.insert(
+                elements[i * 2].clone().try_into()?,
+                elements[i * 2 + 1].clone(),
+            );
+        }
+
+        self.pointer -= num_elements;
+        Ok(object::Hash { pairs })
     }
 }
 
@@ -193,12 +212,13 @@ impl<'a> VM<'a> {
                 }
                 opcode::Opcode::Array(arr) => {
                     let num_elements = usize::from(arr.0);
-
-                    let range = (self.stack.pointer - num_elements)..self.stack.pointer;
-                    let array_obj = self.stack.extract_array(range);
-                    self.stack.pointer -= num_elements;
-
+                    let array_obj = self.stack.extract_array(num_elements);
                     self.stack.push(array_obj.into())?;
+                }
+                opcode::Opcode::Hash(hash) => {
+                    let num_elements = usize::from(hash.0);
+                    let hash_obj = self.stack.extract_hash(num_elements)?;
+                    self.stack.push(hash_obj.into())?;
                 }
             }
             ip += 1 + op.readsize();
@@ -387,6 +407,7 @@ mod tests {
         Null,
         String(String),
         IntArray(Vec<i64>),
+        IntHash(Vec<(i64, i64)>),
     }
 
     struct Tests(Vec<(String, Expected)>);
@@ -412,6 +433,12 @@ mod tests {
     impl From<Vec<i64>> for Expected {
         fn from(value: Vec<i64>) -> Self {
             Self::IntArray(value)
+        }
+    }
+
+    impl From<Vec<(i64, i64)>> for Expected {
+        fn from(value: Vec<(i64, i64)>) -> Self {
+            Self::IntHash(value)
         }
     }
 
@@ -544,6 +571,17 @@ mod tests {
         run_vm_tests(tests);
     }
 
+    #[test]
+    fn test_hash_literals() {
+        let tests: Tests = vec![
+            ("{}", vec![]),
+            ("{1: 2, 2: 3}", vec![(1, 2), (2, 3)]),
+            ("{1 + 1: 2 * 2, 3 + 3: 4 * 4}", vec![(2, 4), (6, 16)]),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_tests(tests: Tests) {
         tests.0.into_iter().for_each(|(input, expected)| {
             let program = parse(input.as_str());
@@ -584,6 +622,9 @@ mod tests {
             }
             Expected::IntArray(expected_array) => {
                 test_int_array_object(actual, expected_array);
+            }
+            Expected::IntHash(expected_hash) => {
+                test_int_hash_object(actual.clone(), expected_hash);
             }
         }
     }
@@ -628,6 +669,21 @@ mod tests {
                 .zip(arr.elements.iter())
                 .for_each(|(expected, obj)| test_integer_object(&obj, *expected)),
             obj => panic!("expected Array. received {}", obj),
+        }
+    }
+
+    fn test_int_hash_object(actual: object::Object, expected: &Vec<(i64, i64)>) {
+        match actual {
+            object::Object::Hash(hash) => {
+                expected
+                    .into_iter()
+                    .zip(hash.pairs.into_iter())
+                    .for_each(|(expected, actual)| {
+                        test_integer_object(&actual.0.into(), expected.0);
+                        test_integer_object(&actual.1, expected.1);
+                    });
+            }
+            obj => panic!("expected hash. received {}", obj),
         }
     }
 
