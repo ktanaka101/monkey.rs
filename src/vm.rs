@@ -79,28 +79,27 @@ impl Stack {
     }
 }
 
-pub struct VM<'a> {
-    constants: Vec<object::Object>,
-    globals: &'a mut Vec<Option<object::Object>>,
-    instructions: Instructions,
-    stack: Stack,
+#[derive(Debug)]
+pub struct GlobalSpace(Vec<Option<object::Object>>);
+
+impl Default for GlobalSpace {
+    fn default() -> Self {
+        Self(vec![None; GLOBALS_SIZE])
+    }
 }
 
-impl<'a> fmt::Debug for VM<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("VM")
-            .field("constants", &self.constants)
-            .field("globals", &self.globals.to_vec())
-            .field("instructions", &self.instructions)
-            .field("stack", &self.stack)
-            .finish()
-    }
+#[derive(Debug)]
+pub struct VM<'a> {
+    constants: Vec<object::Object>,
+    globals: &'a mut GlobalSpace,
+    instructions: Instructions,
+    stack: Stack,
 }
 
 impl<'a> VM<'a> {
     pub fn new_with_globals_store(
         bytecode: bytecode::Bytecode,
-        globals: &'a mut Vec<Option<object::Object>>,
+        globals: &'a mut GlobalSpace,
     ) -> Self {
         Self {
             constants: bytecode.constants,
@@ -172,7 +171,7 @@ impl<'a> VM<'a> {
                     self.stack.push(NULL.into())?;
                 }
                 opcode::Opcode::GetGlobal(global) => {
-                    let obj = &self.globals[usize::from(global.0)];
+                    let obj = &self.globals.0[usize::from(global.0)];
                     match obj {
                         Some(obj) => {
                             self.stack.push(obj.clone())?;
@@ -185,7 +184,7 @@ impl<'a> VM<'a> {
                 }
                 opcode::Opcode::SetGlobal(global) => {
                     let poped = self.stack.pop();
-                    self.globals[usize::from(global.0)] = Some(poped.clone());
+                    self.globals.0[usize::from(global.0)] = Some(poped.clone());
                 }
             }
             ip += 1 + op.readsize();
