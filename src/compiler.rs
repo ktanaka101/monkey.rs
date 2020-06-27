@@ -155,6 +155,14 @@ impl<'a> Compiler<'a> {
                         .try_for_each(|ele| self.compile(ele.into()))?;
                     self.emit(opcode::Array(arr_len.try_into()?).into());
                 }
+                ast::Expr::Hash(hash) => {
+                    let hash_len = u16::try_from(hash.pairs.len() * 2)?;
+                    hash.pairs.into_iter().try_for_each(|pair| {
+                        self.compile(pair.key.into())?;
+                        self.compile(pair.value.into())
+                    })?;
+                    self.emit(opcode::Hash(hash_len).into());
+                }
                 _ => unimplemented!(),
             },
         }
@@ -645,6 +653,49 @@ mod tests {
         run_compiler_tests(tests);
     }
 
+    #[test]
+    fn test_hash_literals() {
+        let tests: Tests = vec![
+            (
+                "{}",
+                vec![],
+                Vec::<opcode::Opcode>::from(vec![opcode::Hash(0).into(), opcode::Pop.into()]),
+            ),
+            (
+                "{1: 2, 3: 4, 5: 6}",
+                vec![1, 2, 3, 4, 5, 6],
+                vec![
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Constant(3).into(),
+                    opcode::Constant(4).into(),
+                    opcode::Constant(5).into(),
+                    opcode::Hash(6).into(),
+                    opcode::Pop.into(),
+                ],
+            ),
+            (
+                "{1: 2 + 3, 4: 5 * 6}",
+                vec![1, 2, 3, 4, 5, 6],
+                vec![
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Add.into(),
+                    opcode::Constant(3).into(),
+                    opcode::Constant(4).into(),
+                    opcode::Constant(5).into(),
+                    opcode::Mul.into(),
+                    opcode::Hash(4).into(),
+                    opcode::Pop.into(),
+                ],
+            ),
+        ]
+        .into();
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Tests) {
         tests
             .0
@@ -718,6 +769,7 @@ mod tests {
                 "0000 SetGlobal 65534¥n",
             ),
             (vec![opcode::Array(65534).into()], "0000 Array 65534¥n"),
+            (vec![opcode::Hash(65534).into()], "0000 Hash 65534¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

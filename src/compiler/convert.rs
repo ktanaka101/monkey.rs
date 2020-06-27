@@ -137,6 +137,12 @@ impl ToBytes<3, 2> for vm::opcode::Array {
     }
 }
 
+impl ToBytes<3, 2> for vm::opcode::Hash {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 2] {
+        self.0.to_be_bytes()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -163,6 +169,7 @@ mod tests {
             (vm::opcode::GetGlobal(65534).into(), vec![16, 255, 254]),
             (vm::opcode::SetGlobal(65534).into(), vec![17, 255, 254]),
             (vm::opcode::Array(65534).into(), vec![18, 255, 254]),
+            (vm::opcode::Hash(65534).into(), vec![19, 255, 254]),
         ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {
