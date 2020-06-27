@@ -147,6 +147,14 @@ impl<'a> Compiler<'a> {
                         None => Err(anyhow::format_err!("undefined variable {}", id.value))?,
                     };
                 }
+                ast::Expr::Array(array) => {
+                    let arr_len = array.elements.len();
+                    array
+                        .elements
+                        .into_iter()
+                        .try_for_each(|ele| self.compile(ele.into()))?;
+                    self.emit(opcode::Array(arr_len.try_into()?).into());
+                }
                 _ => unimplemented!(),
             },
         }
@@ -589,6 +597,59 @@ mod tests {
         run_compiler_tests(tests);
     }
 
+    #[test]
+    fn test_array_literals() {
+        let tests: Vec<(&str, Vec<Type>, bytecode::Instructions)> = vec![
+            (
+                "[]",
+                vec![],
+                vec![
+                    opcode::Opcode::from(opcode::Array(0)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "[1, 2, 3]",
+                vec![Type::Int(1), Type::Int(2), Type::Int(3)],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Constant(2)),
+                    opcode::Opcode::from(opcode::Array(3)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+            (
+                "[1 + 2, 3 - 4, 5 * 6]",
+                vec![
+                    Type::Int(1),
+                    Type::Int(2),
+                    Type::Int(3),
+                    Type::Int(4),
+                    Type::Int(5),
+                    Type::Int(6),
+                ],
+                vec![
+                    opcode::Opcode::from(opcode::Constant(0)),
+                    opcode::Opcode::from(opcode::Constant(1)),
+                    opcode::Opcode::from(opcode::Add),
+                    opcode::Opcode::from(opcode::Constant(2)),
+                    opcode::Opcode::from(opcode::Constant(3)),
+                    opcode::Opcode::from(opcode::Sub),
+                    opcode::Opcode::from(opcode::Constant(4)),
+                    opcode::Opcode::from(opcode::Constant(5)),
+                    opcode::Opcode::from(opcode::Mul),
+                    opcode::Opcode::from(opcode::Array(3)),
+                    opcode::Opcode::from(opcode::Pop),
+                ]
+                .into(),
+            ),
+        ];
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Vec<(&str, Vec<Type>, bytecode::Instructions)>) {
         tests
             .into_iter()
@@ -660,6 +721,7 @@ mod tests {
                 vec![opcode::SetGlobal(65534).into()],
                 "0000 SetGlobal 65534¥n",
             ),
+            (vec![opcode::Array(65534).into()], "0000 Array 65534¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {
