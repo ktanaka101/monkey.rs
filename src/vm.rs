@@ -199,6 +199,10 @@ impl<'a> VM<'a> {
                 let int = Self::execute_binary_integer_operation(op, i1.value, i2.value)?;
                 self.stack.push(int.into())?;
             }
+            (object::Object::StringLit(s1), object::Object::StringLit(s2)) => {
+                let string = Self::execute_binary_string_operation(op, &s1.value, &s2.value)?;
+                self.stack.push(string.into())?;
+            }
             (unknown_obj1, unknown_obj2) => Err(anyhow::format_err!(
                 "unsupported types for binary operation: {} {}",
                 unknown_obj1,
@@ -226,6 +230,19 @@ impl<'a> VM<'a> {
         };
 
         Ok(object::Integer { value })
+    }
+
+    fn execute_binary_string_operation(
+        op: &opcode::Opcode,
+        left_val: &str,
+        right_val: &str,
+    ) -> Result<object::StringLit> {
+        let value = match op {
+            opcode::Opcode::Add(_) => left_val.to_string() + right_val,
+            _ => Err(anyhow::format_err!("unknown string operator. received {}",))?,
+        };
+
+        Ok(object::StringLit { value })
     }
 
     fn execute_comparison(&mut self, op: &opcode::Opcode) -> Result<()> {
@@ -353,6 +370,7 @@ mod tests {
         Int(i64),
         Bool(bool),
         Null,
+        String(String),
     }
 
     struct Tests(Vec<(String, Expected)>);
@@ -366,6 +384,12 @@ mod tests {
     impl From<bool> for Expected {
         fn from(value: bool) -> Self {
             Self::Bool(value)
+        }
+    }
+
+    impl From<&str> for Expected {
+        fn from(value: &str) -> Self {
+            Self::String(value.to_string())
         }
     }
 
@@ -476,6 +500,17 @@ mod tests {
         run_vm_tests(tests);
     }
 
+    #[test]
+    fn test_string_expression() {
+        let tests: Tests = vec![
+            (r#""monkey""#, "monkey"),
+            (r#""mon" + "key""#, "monkey"),
+            (r#""mon" + "key" + "banana""#, "monkeybanana"),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_tests(tests: Tests) {
         tests.0.into_iter().for_each(|(input, expected)| {
             let program = parse(input.as_str());
@@ -511,6 +546,9 @@ mod tests {
             Expected::Null => {
                 test_null_object(actual);
             }
+            Expected::String(expected_string) => {
+                test_string_object(actual, expected_string);
+            }
         }
     }
 
@@ -536,6 +574,15 @@ mod tests {
             object::Object::Null(_) => (),
             obj => panic!("expected Null. received {}", obj),
         };
+    }
+
+    fn test_string_object(actual: &object::Object, expected: &str) {
+        match actual {
+            object::Object::StringLit(s) => {
+                assert_eq!(s.value, expected);
+            }
+            obj => panic!("expected String. received {}", obj),
+        }
     }
 
     fn parse(input: &str) -> ast::Program {
