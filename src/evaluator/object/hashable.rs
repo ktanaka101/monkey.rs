@@ -17,7 +17,7 @@ impl Display for HashableObject {
             HashableObject::Integer(o) => write!(f, "{}", o),
             HashableObject::Boolean(o) => write!(f, "{}", o),
             HashableObject::StringLit(o) => write!(f, "{}", o),
-        }        
+        }
     }
 }
 
@@ -43,8 +43,8 @@ impl PartialEq for HashableObject {
 }
 
 impl TryFrom<Object> for HashableObject {
-    type Error = String;
-    fn try_from(value: Object) -> Result<HashableObject, String> {
+    type Error = anyhow::Error;
+    fn try_from(value: Object) -> anyhow::Result<HashableObject> {
         Ok(match value {
             Object::Integer(i) => HashableObject::Integer(i),
             Object::Boolean(b) => HashableObject::Boolean(b),
