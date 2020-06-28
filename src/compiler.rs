@@ -812,6 +812,7 @@ mod tests {
             ),
             (vec![opcode::Array(65534).into()], "0000 Array 65534¥n"),
             (vec![opcode::Hash(65534).into()], "0000 Hash 65534¥n"),
+            (vec![opcode::Index.into()], "0000 Index¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {
