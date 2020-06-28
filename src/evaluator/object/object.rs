@@ -1,7 +1,7 @@
 use super::prelude::*;
 use super::{
-    Array, Boolean, Builtin, Error, Function, Hash, HashableObject, Integer, Macro, Null, Quote,
-    Return, StringLit,
+    Array, Boolean, Builtin, CompiledFunction, Error, Function, Hash, HashableObject, Integer,
+    Macro, Null, Quote, Return, StringLit,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -18,6 +18,7 @@ pub enum Object {
     Null(Null),
     Quote(Quote),
     Macro(Macro),
+    CompiledFunction(CompiledFunction),
 }
 
 impl From<Integer> for Object {
@@ -80,6 +81,11 @@ impl From<Macro> for Object {
         Object::Macro(obj)
     }
 }
+impl From<CompiledFunction> for Object {
+    fn from(obj: CompiledFunction) -> Object {
+        Object::CompiledFunction(obj)
+    }
+}
 
 impl From<HashableObject> for Object {
     fn from(obj: HashableObject) -> Self {
@@ -106,6 +112,7 @@ impl Display for Object {
             Self::Null(o) => write!(f, "{}", o),
             Self::Quote(o) => write!(f, "{}", o),
             Self::Macro(o) => write!(f, "{}", o),
+            Self::CompiledFunction(o) => write!(f, "{}", o),
         }
     }
 }
@@ -125,6 +132,7 @@ impl Object {
             Self::Null(_) => "Null",
             Self::Quote(_) => "Quote",
             Self::Macro(_) => "Macro",
+            Self::CompiledFunction(_) => "CompiledFunction",
         }
     }
 }
