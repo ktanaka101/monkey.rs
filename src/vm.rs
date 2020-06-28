@@ -675,13 +675,20 @@ mod tests {
     fn test_int_hash_object(actual: object::Object, expected: &Vec<(i64, i64)>) {
         match actual {
             object::Object::Hash(hash) => {
+                let mut expected_hash = object::HashPairs::new();
                 expected
-                    .into_iter()
-                    .zip(hash.pairs.into_iter())
-                    .for_each(|(expected, actual)| {
-                        test_integer_object(&actual.0.into(), expected.0);
-                        test_integer_object(&actual.1, expected.1);
-                    });
+                    .iter()
+                    .try_for_each::<_, anyhow::Result<()>>(|(key, val)| {
+                        let key =
+                            object::Object::from(object::Integer { value: *key }).try_into()?;
+                        let val = object::Integer { value: *val }.into();
+                        expected_hash.insert(key, val);
+
+                        Ok(())
+                    })
+                    .expect(format!("failed convert {:?} to HashPairs", expected).as_str());
+
+                assert_eq!(hash.pairs, expected_hash);
             }
             obj => panic!("expected hash. received {}", obj),
         }
