@@ -220,6 +220,11 @@ impl<'a> VM<'a> {
                     let hash_obj = self.stack.extract_hash(num_elements)?;
                     self.stack.push(hash_obj.into())?;
                 }
+                opcode::Opcode::Index(_) => {
+                    let index = self.stack.pop().clone();
+                    let left = self.stack.pop().clone();
+                    self.execute_index_expressions(left, index)?;
+                }
             }
             ip += 1 + op.readsize();
         }
@@ -379,6 +384,50 @@ impl<'a> VM<'a> {
                 unknown
             ))?,
         };
+
+        Ok(())
+    }
+
+    fn execute_index_expressions(
+        &mut self,
+        left: object::Object,
+        index: object::Object,
+    ) -> Result<()> {
+        match (left, index) {
+            (object::Object::Array(arr), object::Object::Integer(idx)) => {
+                self.execute_array_index(arr, idx)?;
+            }
+            (object::Object::Hash(hs), idx) => {
+                self.execute_hash_index(hs, idx)?;
+            }
+            (l, i) => Err(anyhow::format_err!(
+                "index operator not supported: {:?}[{:?}]",
+                l,
+                i
+            ))?,
+        }
+
+        Ok(())
+    }
+
+    fn execute_array_index(&mut self, array: object::Array, index: object::Integer) -> Result<()> {
+        if (0..i64::try_from(array.elements.len())?).contains(&index.value) {
+            let ele = array.elements[usize::try_from(index.value)?].clone();
+            self.stack.push(ele)?;
+        } else {
+            self.stack.push(NULL.into())?;
+        }
+
+        Ok(())
+    }
+
+    fn execute_hash_index(&mut self, hash: object::Hash, index: object::Object) -> Result<()> {
+        let index = object::HashableObject::try_from(index)?;
+
+        match hash.pairs.get(&index) {
+            Some(val) => self.stack.push(val.clone())?,
+            None => self.stack.push(NULL.into())?,
+        }
 
         Ok(())
     }
@@ -577,6 +626,28 @@ mod tests {
             ("{}", vec![]),
             ("{1: 2, 2: 3}", vec![(1, 2), (2, 3)]),
             ("{1 + 1: 2 * 2, 3 + 3: 4 * 4}", vec![(2, 4), (6, 16)]),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_index_expressions() {
+        let tests: Tests = vec![
+            ("[1, 2, 3][1]", 2),
+            ("[1, 2, 3][0 + 2]", 3),
+            ("[[1, 1, 1]][0][0]", 1),
+            ("{1: 1, 2: 2}[1]", 1),
+            ("{1: 1, 2: 2}[2]", 2),
+        ]
+        .into();
+        run_vm_tests(tests);
+
+        let tests: Tests = vec![
+            ("[][0]", Expected::Null),
+            ("[1][-1]", Expected::Null),
+            ("{}[0]", Expected::Null),
+            ("{1: 1}[0]", Expected::Null),
         ]
         .into();
         run_vm_tests(tests);

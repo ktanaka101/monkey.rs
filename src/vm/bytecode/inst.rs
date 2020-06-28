@@ -137,6 +137,7 @@ mod test {
             opcode::SetGlobal(65535).into(),
             opcode::Array(65535).into(),
             opcode::Hash(65535).into(),
+            opcode::Index.into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -158,7 +159,8 @@ mod test {
             0021 GetGlobal 65535¥n\
             0024 SetGlobal 65535¥n\
             0027 Array 65535¥n\
-            0030 Hash 65535¥n";
+            0030 Hash 65535¥n\
+            0033 Index¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }
