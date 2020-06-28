@@ -163,6 +163,11 @@ impl<'a> Compiler<'a> {
                     })?;
                     self.emit(opcode::Hash(hash_len).into());
                 }
+                ast::Expr::Index(index) => {
+                    self.compile((*index.left).into())?;
+                    self.compile((*index.index).into())?;
+                    self.emit(opcode::Index.into());
+                }
                 _ => unimplemented!(),
             },
         }
@@ -688,6 +693,43 @@ mod tests {
                     opcode::Constant(5).into(),
                     opcode::Mul.into(),
                     opcode::Hash(4).into(),
+                    opcode::Pop.into(),
+                ],
+            ),
+        ]
+        .into();
+        run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_index_expressions() {
+        let tests: Tests = vec![
+            (
+                "[1, 2, 3][1 + 1]",
+                vec![1, 2, 3, 1, 1],
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Array(3).into(),
+                    opcode::Constant(3).into(),
+                    opcode::Constant(4).into(),
+                    opcode::Add.into(),
+                    opcode::Index.into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "{1: 2}[2 - 1]",
+                vec![1, 2, 2, 1],
+                vec![
+                    opcode::Constant(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Hash(2).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Constant(3).into(),
+                    opcode::Sub.into(),
+                    opcode::Index.into(),
                     opcode::Pop.into(),
                 ],
             ),
