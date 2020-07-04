@@ -766,6 +766,35 @@ mod tests {
         run_vm_tests(tests);
     }
 
+    #[test]
+    fn test_functions_with_return_statement() {
+        let tests: Tests = vec![
+            (
+                "
+                    let early_exit = fn() { return 99; 100; };
+                    early_exit();
+                ",
+                99,
+            ),
+            (
+                "
+                    let early_exit = fn() { return 99; return 100; };
+                    early_exit();
+                ",
+                99,
+            ),
+            (
+                "
+                    let early_exit = fn() { 99; return 100; };
+                    early_exit();
+                ",
+                100,
+            ),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_tests(tests: Tests) {
         tests.0.into_iter().for_each(|(input, expected)| {
             let program = parse(input.as_str());
