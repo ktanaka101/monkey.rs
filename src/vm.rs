@@ -174,28 +174,48 @@ impl<'a> VM<'a> {
                     // TODO: Rc<object::Object> ?
                     self.stack
                         .push(self.constants[usize::from(const_idx)].clone())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + constant.readsize();
                 }
                 opcode::Opcode::Add(_)
                 | opcode::Opcode::Sub(_)
                 | opcode::Opcode::Mul(_)
-                | opcode::Opcode::Div(_) => self.execute_binary_operation(&op)?,
-                opcode::Opcode::Pop(_) => {
+                | opcode::Opcode::Div(_) => {
+                    self.execute_binary_operation(&op)?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + op.readsize();
+                }
+                opcode::Opcode::Pop(pop) => {
                     self.stack.pop();
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + pop.readsize();
                 }
-                opcode::Opcode::True(_) => {
+                opcode::Opcode::True(t) => {
                     self.stack.push(TRUE.into())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + t.readsize();
                 }
-                opcode::Opcode::False(_) => {
+                opcode::Opcode::False(f) => {
                     self.stack.push(FALSE.into())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + f.readsize();
                 }
                 opcode::Opcode::Equal(_)
                 | opcode::Opcode::NotEqual(_)
-                | opcode::Opcode::GreaterThan(_) => self.execute_comparison(&op)?,
-                opcode::Opcode::Bang(_) => {
-                    self.execute_bang_oeprator()?;
+                | opcode::Opcode::GreaterThan(_) => {
+                    self.execute_comparison(&op)?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + op.readsize();
                 }
-                opcode::Opcode::Minus(_) => {
+                opcode::Opcode::Bang(bang) => {
+                    self.execute_bang_oeprator()?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + bang.readsize();
+                }
+                opcode::Opcode::Minus(minus) => {
                     self.execute_minus_operator()?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + minus.readsize();
                 }
                 opcode::Opcode::JumpNotTruthy(jump) => {
                     self.stack_frame.current().borrow_mut().pointer += 2;
@@ -205,15 +225,17 @@ impl<'a> VM<'a> {
                         self.stack_frame.current().borrow_mut().pointer = usize::from(jump.0) - 1;
                     }
 
-                    self.stack_frame.current().borrow_mut().pointer -= jump.readsize();
+                    self.stack_frame.current().borrow_mut().pointer += 1;
                 }
                 opcode::Opcode::Jump(jump) => {
                     self.stack_frame.current().borrow_mut().pointer = usize::from(jump.0) - 1;
 
-                    self.stack_frame.current().borrow_mut().pointer -= jump.readsize();
+                    self.stack_frame.current().borrow_mut().pointer += 1;
                 }
-                opcode::Opcode::Null(_) => {
+                opcode::Opcode::Null(null) => {
                     self.stack.push(NULL.into())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + null.readsize();
                 }
                 opcode::Opcode::GetGlobal(global) => {
                     let obj = &self.globals.0[usize::from(global.0)];
@@ -226,31 +248,60 @@ impl<'a> VM<'a> {
                             global
                         ))?,
                     }
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + global.readsize();
                 }
                 opcode::Opcode::SetGlobal(global) => {
                     let poped = self.stack.pop();
                     self.globals.0[usize::from(global.0)] = Some(poped.clone());
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + global.readsize();
                 }
                 opcode::Opcode::Array(arr) => {
                     let num_elements = usize::from(arr.0);
                     let array_obj = self.stack.extract_array(num_elements);
                     self.stack.push(array_obj.into())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + arr.readsize();
                 }
                 opcode::Opcode::Hash(hash) => {
                     let num_elements = usize::from(hash.0);
                     let hash_obj = self.stack.extract_hash(num_elements)?;
                     self.stack.push(hash_obj.into())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + hash.readsize();
                 }
-                opcode::Opcode::Index(_) => {
-                    let index = self.stack.pop().clone();
+                opcode::Opcode::Index(index) => {
+                    let idx = self.stack.pop().clone();
                     let left = self.stack.pop().clone();
-                    self.execute_index_expressions(left, index)?;
+                    self.execute_index_expressions(left, idx)?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + index.readsize();
                 }
-                opcode::Opcode::Call(_) => unimplemented!(),
-                opcode::Opcode::ReturnValue(_) => unimplemented!(),
+                opcode::Opcode::Call(_) => {
+                    let obj = self.stack.top().ok_or(anyhow::format_err!("Empty stack"))?;
+                    match obj {
+                        object::Object::CompiledFunction(func) => {
+                            let frame = frame::Frame::new(func.clone());
+                            self.stack_frame.push(frame);
+                        }
+                        other_obj => Err(anyhow::format_err!(
+                            "calling non-function. received {}",
+                            other_obj
+                        ))?,
+                    };
+                }
+                opcode::Opcode::ReturnValue(_) => {
+                    let return_value = self.stack.pop().clone();
+                    self.stack_frame.pop();
+
+                    self.stack.pop();
+                    self.stack.push(return_value)?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1;
+                }
                 opcode::Opcode::Return(_) => unimplemented!(),
             }
-            self.stack_frame.current().borrow_mut().pointer += 1 + op.readsize();
         }
 
         Ok(())
@@ -673,6 +724,19 @@ mod tests {
             ("{}[0]", Expected::Null),
             ("{1: 1}[0]", Expected::Null),
         ]
+        .into();
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_calling_function_without_arguments() {
+        let tests: Tests = vec![(
+            "
+                let five_plus_ten = fn() { 5 + 10; };
+                five_plus_ten();
+            ",
+            15,
+        )]
         .into();
         run_vm_tests(tests);
     }
