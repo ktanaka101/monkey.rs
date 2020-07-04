@@ -1,5 +1,6 @@
 pub mod bytecode;
 pub mod convert;
+mod frame;
 pub mod opcode;
 
 use crate::compiler;
@@ -112,12 +113,18 @@ impl Default for GlobalSpace {
     }
 }
 
+impl GlobalSpace {
+    fn new() -> Self {
+        Self::default()
+    }
+}
+
 #[derive(Debug)]
 pub struct VM<'a> {
     constants: Vec<object::Object>,
     globals: &'a mut GlobalSpace,
-    instructions: Instructions,
     stack: Stack,
+    stack_frame: frame::StackFrame,
 }
 
 impl<'a> VM<'a> {
@@ -125,11 +132,19 @@ impl<'a> VM<'a> {
         bytecode: bytecode::Bytecode,
         globals: &'a mut GlobalSpace,
     ) -> Self {
+        let main_fn = object::CompiledFunction {
+            instructions: bytecode.instructions,
+        };
+        let main_frame = frame::Frame::new(main_fn);
+
+        let mut stack_frame = frame::StackFrame::new();
+        stack_frame.push(main_frame);
+
         Self {
             constants: bytecode.constants,
-            instructions: bytecode.instructions,
             globals,
-            stack: Stack::default(),
+            stack: Stack::new(),
+            stack_frame,
         }
     }
 
@@ -142,10 +157,16 @@ impl<'a> VM<'a> {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        let mut ip = 0;
+        while self.stack_frame.current().borrow().pointer
+            < self.stack_frame.current().borrow().instructions().0.len()
+        {
+            let op = {
+                let ip = usize::try_from(self.stack_frame.current().borrow().pointer)?;
+                opcode::Opcode::try_from(
+                    &self.stack_frame.current().borrow().instructions().0[ip..],
+                )?
+            };
 
-        while ip < self.instructions.0.len() {
-            let op = opcode::Opcode::try_from(&self.instructions.0[ip..])?;
             match &op {
                 opcode::Opcode::Constant(constant) => {
                     let const_idx = constant.0;
@@ -177,19 +198,19 @@ impl<'a> VM<'a> {
                     self.execute_minus_operator()?;
                 }
                 opcode::Opcode::JumpNotTruthy(jump) => {
-                    ip += 2;
+                    self.stack_frame.current().borrow_mut().pointer += 2;
 
                     let cond = self.stack.pop();
                     if !Self::is_truthy(cond) {
-                        ip = usize::from(jump.0) - 1;
+                        self.stack_frame.current().borrow_mut().pointer = usize::from(jump.0) - 1;
                     }
 
-                    ip -= jump.readsize();
+                    self.stack_frame.current().borrow_mut().pointer -= jump.readsize();
                 }
                 opcode::Opcode::Jump(jump) => {
-                    ip = usize::from(jump.0) - 1;
+                    self.stack_frame.current().borrow_mut().pointer = usize::from(jump.0) - 1;
 
-                    ip -= jump.readsize();
+                    self.stack_frame.current().borrow_mut().pointer -= jump.readsize();
                 }
                 opcode::Opcode::Null(_) => {
                     self.stack.push(NULL.into())?;
@@ -229,7 +250,7 @@ impl<'a> VM<'a> {
                 opcode::Opcode::ReturnValue(_) => unimplemented!(),
                 opcode::Opcode::Return(_) => unimplemented!(),
             }
-            ip += 1 + op.readsize();
+            self.stack_frame.current().borrow_mut().pointer += 1 + op.readsize();
         }
 
         Ok(())
