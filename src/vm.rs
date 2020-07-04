@@ -300,7 +300,14 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1;
                 }
-                opcode::Opcode::Return(_) => unimplemented!(),
+                opcode::Opcode::Return(_) => {
+                    self.stack_frame.pop();
+                    self.stack.pop();
+
+                    self.stack.push(NULL.into())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1;
+                }
             }
         }
 
@@ -789,6 +796,30 @@ mod tests {
                     early_exit();
                 ",
                 100,
+            ),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_functions_without_return_value() {
+        let tests: Tests = vec![
+            (
+                "
+                    let no_return = fn() { };
+                    no_return();
+                ",
+                Expected::Null,
+            ),
+            (
+                "
+                    let no_return = fn() { };
+                    let no_return_two = fn() { no_return(); };
+                    no_return();
+                    no_return_two();
+                ",
+                Expected::Null,
             ),
         ]
         .into();
