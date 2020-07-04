@@ -5,7 +5,7 @@ use vm::opcode;
 
 pub type Instruction = u8;
 
-#[derive(Debug, Default, PartialEq, Clone)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Instructions(pub Vec<Instruction>);
 
 impl From<Vec<Instruction>> for Instructions {

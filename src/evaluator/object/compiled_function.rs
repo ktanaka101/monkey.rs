@@ -2,7 +2,7 @@ use crate::vm::bytecode;
 
 use super::prelude::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct CompiledFunction {
     pub instructions: bytecode::Instructions,
 }
