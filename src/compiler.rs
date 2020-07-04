@@ -60,7 +60,10 @@ impl<'a> Compiler<'a> {
                         }
                     };
                 }
-                _ => unimplemented!(),
+                ast::Stmt::Return(r) => {
+                    self.compile(r.return_value.into())?;
+                    self.emit(opcode::ReturnValue.into());
+                }
             },
             ast::Node::Expr(expr) => match expr {
                 ast::Expr::InfixExpr(expr) => {
@@ -167,6 +170,28 @@ impl<'a> Compiler<'a> {
                     self.compile((*index.left).into())?;
                     self.compile((*index.index).into())?;
                     self.emit(opcode::Index.into());
+                }
+                ast::Expr::Function(func) => {
+                    self.enter_scope();
+
+                    self.compile(ast::Stmt::from(func.body).into())?;
+                    if self.scopes.last_instruction_is(&opcode::Pop.into()) {
+                        self.scopes.replace_last_pop_with_return()?;
+                    }
+                    if !self.scopes.last_instruction_is(&opcode::ReturnValue.into()) {
+                        self.emit(opcode::Return.into());
+                    }
+
+                    let scope = self.leave_scope()?;
+                    let instructions = scope.borrow().instructions.clone();
+
+                    let compiled_func = object::CompiledFunction { instructions };
+                    let constant = self.add_constant(compiled_func.into());
+                    self.emit(opcode::Constant(constant).into());
+                }
+                ast::Expr::Call(call) => {
+                    self.compile((*call.func).into())?;
+                    self.emit(opcode::Call.into());
                 }
                 _ => unimplemented!(),
             },
@@ -291,6 +316,7 @@ mod tests {
     enum Expected {
         Int(i64),
         String(String),
+        Function(bytecode::Instructions),
     }
 
     impl From<i64> for Expected {
@@ -302,6 +328,12 @@ mod tests {
     impl From<&str> for Expected {
         fn from(value: &str) -> Self {
             Expected::String(value.into())
+        }
+    }
+
+    impl From<Vec<opcode::Opcode>> for Expected {
+        fn from(value: Vec<opcode::Opcode>) -> Self {
+            Expected::Function(value.into())
         }
     }
 
@@ -738,6 +770,59 @@ mod tests {
         run_compiler_tests(tests);
     }
 
+    #[test]
+    fn test_function() {
+        let tests: Tests = vec![
+            (
+                "fn() { return 5 + 10 }",
+                Vec::<Expected>::from(vec![
+                    5.into(),
+                    10.into(),
+                    Vec::<opcode::Opcode>::from(vec![
+                        opcode::Constant(0).into(),
+                        opcode::Constant(1).into(),
+                        opcode::Add.into(),
+                        opcode::ReturnValue.into(),
+                    ])
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
+            ),
+            (
+                "fn() { 5 + 10 }",
+                Vec::<Expected>::from(vec![
+                    5.into(),
+                    10.into(),
+                    Vec::<opcode::Opcode>::from(vec![
+                        opcode::Constant(0).into(),
+                        opcode::Constant(1).into(),
+                        opcode::Add.into(),
+                        opcode::ReturnValue.into(),
+                    ])
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
+            ),
+            (
+                "fn() { 1; 2 }",
+                Vec::<Expected>::from(vec![
+                    1.into(),
+                    2.into(),
+                    Vec::<opcode::Opcode>::from(vec![
+                        opcode::Constant(0).into(),
+                        opcode::Pop.into(),
+                        opcode::Constant(1).into(),
+                        opcode::ReturnValue.into(),
+                    ])
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
+            ),
+        ]
+        .into();
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Tests) {
         tests
             .0
@@ -813,6 +898,9 @@ mod tests {
             (vec![opcode::Array(65534).into()], "0000 Array 65534¥n"),
             (vec![opcode::Hash(65534).into()], "0000 Hash 65534¥n"),
             (vec![opcode::Index.into()], "0000 Index¥n"),
+            (vec![opcode::Call.into()], "0000 Call¥n"),
+            (vec![opcode::ReturnValue.into()], "0000 ReturnValue¥n"),
+            (vec![opcode::Return.into()], "0000 Return¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {
@@ -834,6 +922,7 @@ mod tests {
                     test_integer_object(input, i);
                 }
                 Expected::String(s) => test_string_object(input, s.as_str()),
+                Expected::Function(f) => test_compiled_function_object(input, f),
             });
     }
 
@@ -852,6 +941,13 @@ mod tests {
                 assert_eq!(s.value, expected);
             }
             o => panic!("expected object::StringLit. received {}", o),
+        }
+    }
+
+    fn test_compiled_function_object(actual: object::Object, expected: bytecode::Instructions) {
+        match actual {
+            object::Object::CompiledFunction(f) => test_instructions(f.instructions, expected),
+            o => panic!("expected object::CompiledFunction. received {}", o),
         }
     }
 
