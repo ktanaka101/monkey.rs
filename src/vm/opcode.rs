@@ -115,7 +115,7 @@ impl From<OperandType> for u8 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Opcode {
     Constant(Constant),
     Add(Add),

@@ -1,6 +1,6 @@
 use super::preludes::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Default, Hash)]
 pub struct Bang;
 
 impl OperandCode for Bang {
