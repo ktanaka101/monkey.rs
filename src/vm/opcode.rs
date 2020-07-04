@@ -1,6 +1,7 @@
 mod add;
 mod array;
 mod bang;
+mod call;
 mod constant;
 mod div;
 mod equal;
@@ -11,18 +12,21 @@ mod index;
 mod jump;
 mod jump_not_truthy;
 mod minus;
+mod mreturn;
 mod mul;
 mod not_equal;
 mod null;
 mod ofalse;
 mod otrue;
 mod pop;
+mod return_value;
 mod set_global;
 mod sub;
 
 pub use add::Add;
 pub use array::Array;
 pub use bang::Bang;
+pub use call::Call;
 pub use constant::Constant;
 pub use div::Div;
 pub use equal::Equal;
@@ -33,12 +37,14 @@ pub use index::Index;
 pub use jump::Jump;
 pub use jump_not_truthy::JumpNotTruthy;
 pub use minus::Minus;
+pub use mreturn::Return;
 pub use mul::Mul;
 pub use not_equal::NotEqual;
 pub use null::Null;
 pub use ofalse::False;
 pub use otrue::True;
 pub use pop::Pop;
+pub use return_value::ReturnValue;
 pub use set_global::SetGlobal;
 pub use sub::Sub;
 
@@ -76,6 +82,9 @@ pub enum OperandType {
     Array = 18,
     Hash = 19,
     Index = 20,
+    Call = 21,
+    ReturnValue = 22,
+    Return = 23,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -104,6 +113,9 @@ impl TryFrom<u8> for OperandType {
             18 => Self::Array,
             19 => Self::Hash,
             20 => Self::Index,
+            21 => Self::Call,
+            22 => Self::ReturnValue,
+            23 => Self::Return,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -138,6 +150,9 @@ pub enum Opcode {
     Array(Array),
     Hash(Hash),
     Index(Index),
+    Call(Call),
+    ReturnValue(ReturnValue),
+    Return(Return),
 }
 
 impl Opcode {
@@ -164,6 +179,9 @@ impl Opcode {
             Opcode::Array(o) => o.to_bytes().to_vec(),
             Opcode::Hash(o) => o.to_bytes().to_vec(),
             Opcode::Index(o) => o.to_bytes().to_vec(),
+            Opcode::Call(o) => o.to_bytes().to_vec(),
+            Opcode::ReturnValue(o) => o.to_bytes().to_vec(),
+            Opcode::Return(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -190,6 +208,9 @@ impl Opcode {
             Opcode::Array(o) => o.readsize(),
             Opcode::Hash(o) => o.readsize(),
             Opcode::Index(o) => o.readsize(),
+            Opcode::Call(o) => o.readsize(),
+            Opcode::ReturnValue(o) => o.readsize(),
+            Opcode::Return(o) => o.readsize(),
         }
     }
 }
@@ -320,6 +341,24 @@ impl From<Index> for Opcode {
     }
 }
 
+impl From<Call> for Opcode {
+    fn from(value: Call) -> Self {
+        Opcode::Call(value)
+    }
+}
+
+impl From<ReturnValue> for Opcode {
+    fn from(value: ReturnValue) -> Self {
+        Opcode::ReturnValue(value)
+    }
+}
+
+impl From<Return> for Opcode {
+    fn from(value: Return) -> Self {
+        Opcode::Return(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -349,6 +388,9 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::Array => Ok(Array(Array::try_read(&value[1..])?).into()),
             OperandType::Hash => Ok(Hash(Hash::try_read(&value[1..])?).into()),
             OperandType::Index => Ok(Index.into()),
+            OperandType::Call => Ok(Call.into()),
+            OperandType::ReturnValue => Ok(ReturnValue.into()),
+            OperandType::Return => Ok(Return.into()),
         }
     }
 }
@@ -377,6 +419,9 @@ impl Display for Opcode {
             Self::Array(o) => write!(f, "{}", o),
             Self::Hash(o) => write!(f, "{}", o),
             Self::Index(o) => write!(f, "{}", o),
+            Self::Call(o) => write!(f, "{}", o),
+            Self::ReturnValue(o) => write!(f, "{}", o),
+            Self::Return(o) => write!(f, "{}", o),
         }
     }
 }

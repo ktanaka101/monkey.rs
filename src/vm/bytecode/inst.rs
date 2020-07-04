@@ -138,6 +138,9 @@ mod test {
             opcode::Array(65535).into(),
             opcode::Hash(65535).into(),
             opcode::Index.into(),
+            opcode::Call.into(),
+            opcode::ReturnValue.into(),
+            opcode::Return.into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -160,7 +163,10 @@ mod test {
             0024 SetGlobal 65535¥n\
             0027 Array 65535¥n\
             0030 Hash 65535¥n\
-            0033 Index¥n";
+            0033 Index¥n\
+            0034 Call¥n\
+            0035 ReturnValue¥n\
+            0036 Return¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }

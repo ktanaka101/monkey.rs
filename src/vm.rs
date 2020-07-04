@@ -225,6 +225,9 @@ impl<'a> VM<'a> {
                     let left = self.stack.pop().clone();
                     self.execute_index_expressions(left, index)?;
                 }
+                opcode::Opcode::Call(_) => unimplemented!(),
+                opcode::Opcode::ReturnValue(_) => unimplemented!(),
+                opcode::Opcode::Return(_) => unimplemented!(),
             }
             ip += 1 + op.readsize();
         }
