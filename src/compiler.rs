@@ -999,6 +999,54 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_functions_without_return_value() {
+        let tests: Tests = vec![(
+            "fn() { }",
+            vec![vec![opcode::Return.into()]],
+            Vec::<opcode::Opcode>::from(vec![opcode::Constant(0).into(), opcode::Pop.into()]),
+        )]
+        .into();
+        run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_function_calls() {
+        let tests: Tests = vec![
+            (
+                "fn() { 24 }()",
+                Vec::<Expected>::from(vec![
+                    24.into(),
+                    vec![opcode::Constant(0).into(), opcode::ReturnValue.into()].into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(1).into(),
+                    opcode::Call.into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "
+                    let no_arg = fn() { 24 };
+                    no_arg();
+                ",
+                Vec::<Expected>::from(vec![
+                    24.into(),
+                    vec![opcode::Constant(0).into(), opcode::ReturnValue.into()].into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(1).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Call.into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+        ]
+        .into();
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Tests) {
         tests
             .0
