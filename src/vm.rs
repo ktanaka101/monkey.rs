@@ -741,6 +741,31 @@ mod tests {
         run_vm_tests(tests);
     }
 
+    #[test]
+    fn test_calling_functions_without_arguments() {
+        let tests: Tests = vec![
+            (
+                "
+                    let one = fn() { 1; };
+                    let two = fn() { 2; };
+                    one() + two()
+                ",
+                3,
+            ),
+            (
+                "
+                    let a = fn() { 1 };
+                    let b = fn() { a() + 1 };
+                    let c = fn() { b() + 1 };
+                    c();
+                ",
+                3,
+            ),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_tests(tests: Tests) {
         tests.0.into_iter().for_each(|(input, expected)| {
             let program = parse(input.as_str());
