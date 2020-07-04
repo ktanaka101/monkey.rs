@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 pub mod convert;
 mod symbol_table;
 
@@ -14,13 +17,177 @@ mod preludes {
 
 use preludes::*;
 
-#[derive(Debug)]
-pub struct Compiler<'a> {
+#[derive(Debug, Clone, Default)]
+struct CompilationScope {
     instructions: bytecode::Instructions,
-    constants: &'a mut Vec<object::Object>,
     last_instruction: Option<EmittedInstruction>,
     prev_instruction: Option<EmittedInstruction>,
+}
+
+impl CompilationScope {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn add_instructions(&mut self, instructions: &mut bytecode::Instructions) -> Pos {
+        let pos_new_instruction = Pos::try_from(self.instructions.0.len()).unwrap();
+        self.instructions.0.append(&mut instructions.0);
+        pos_new_instruction
+    }
+
+    fn set_last_instruction(&mut self, op: opcode::Opcode, pos: Pos) {
+        let prev = self.last_instruction.clone();
+        let last = EmittedInstruction {
+            opcode: op,
+            position: pos,
+        };
+
+        self.prev_instruction = prev;
+        self.last_instruction = Some(last);
+    }
+
+    fn last_instruction_is(&self, opcode: &opcode::Opcode) -> bool {
+        if self.instructions.0.len() == 0 {
+            return false;
+        }
+
+        match &self.last_instruction {
+            Some(inst) => &inst.opcode == opcode,
+            None => false,
+        }
+    }
+
+    fn remove_last_pop(&mut self) -> Result<()> {
+        if let Some(last_isnt) = &self.last_instruction {
+            let prev = self.prev_instruction.clone();
+            let new = self.instructions.0[..usize::from(last_isnt.position)].to_vec();
+
+            self.instructions = new.into();
+            self.last_instruction = prev;
+
+            Ok(())
+        } else {
+            Err(anyhow::format_err!("uninitialized"))?
+        }
+    }
+
+    fn replace_instructions(&mut self, pos: Pos, new_instructions: bytecode::Instructions) {
+        new_instructions
+            .0
+            .into_iter()
+            .enumerate()
+            .for_each(|(i, inst)| {
+                self.instructions.0[i + usize::from(pos)] = inst;
+            });
+    }
+
+    fn change_operand(&mut self, op_pos: Pos, operand: u16) -> Result<()> {
+        let op = opcode::Opcode::try_from(&self.instructions.0[usize::from(op_pos)..])?;
+        match op {
+            opcode::Opcode::JumpNotTruthy(mut op) => {
+                op.0 = operand;
+                self.replace_instructions(op_pos, op.into());
+            }
+            opcode::Opcode::Jump(mut op) => {
+                op.0 = operand;
+                self.replace_instructions(op_pos, op.into());
+            }
+            _ => Err(anyhow::format_err!(
+                "Expected JumpNotTruthy or Jump. received {}",
+                op
+            ))?,
+        }
+
+        Ok(())
+    }
+
+    fn replace_last_pop_with_return(&mut self) -> Result<()> {
+        let last_pos = match &self.last_instruction {
+            Some(inst) => inst.position,
+            None => Err(anyhow::format_err!("uninitialized"))?,
+        };
+        self.replace_instructions(last_pos, opcode::ReturnValue.into());
+
+        self.last_instruction = Some(EmittedInstruction {
+            opcode: opcode::ReturnValue.into(),
+            ..self.last_instruction.clone().unwrap()
+        });
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+struct CompilationScopes {
+    data: Vec<Rc<RefCell<CompilationScope>>>,
+    pointer: usize,
+}
+
+impl Default for CompilationScopes {
+    fn default() -> Self {
+        Self {
+            data: vec![Rc::new(RefCell::new(CompilationScope::new()))],
+            pointer: 0,
+        }
+    }
+}
+
+impl CompilationScopes {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn push_new_scope(&mut self) {
+        let scope = CompilationScope::new();
+        self.data.push(Rc::new(RefCell::new(scope)));
+        self.pointer += 1;
+    }
+
+    fn pop(&mut self) -> Option<Rc<RefCell<CompilationScope>>> {
+        self.pointer -= 1;
+        self.data.pop()
+    }
+
+    fn current(&self) -> Rc<RefCell<CompilationScope>> {
+        Rc::clone(&self.data[self.pointer])
+    }
+
+    fn add_instructions(&mut self, instructions: &mut bytecode::Instructions) -> Pos {
+        self.current().borrow_mut().add_instructions(instructions)
+    }
+
+    fn set_last_instruction(&mut self, op: opcode::Opcode, pos: Pos) {
+        self.current().borrow_mut().set_last_instruction(op, pos);
+    }
+
+    fn last_instruction_is(&self, opcode: &opcode::Opcode) -> bool {
+        self.current().borrow().last_instruction_is(opcode)
+    }
+
+    fn remove_last_pop(&mut self) -> Result<()> {
+        self.current().borrow_mut().remove_last_pop()
+    }
+
+    fn replace_instructions(&mut self, pos: Pos, new_instructions: bytecode::Instructions) {
+        self.current()
+            .borrow_mut()
+            .replace_instructions(pos, new_instructions);
+    }
+
+    fn change_operand(&mut self, op_pos: Pos, operand: u16) -> Result<()> {
+        self.current().borrow_mut().change_operand(op_pos, operand)
+    }
+
+    fn replace_last_pop_with_return(&mut self) -> Result<()> {
+        self.current().borrow_mut().replace_last_pop_with_return()
+    }
+}
+
+#[derive(Debug)]
+pub struct Compiler<'a> {
+    constants: &'a mut Vec<object::Object>,
     symbol_table: &'a mut symbol_table::SymbolTable,
+    scopes: CompilationScopes,
 }
 
 #[derive(Debug, Clone)]
@@ -104,23 +271,30 @@ impl<'a> Compiler<'a> {
 
                     self.compile(ast::Stmt::from(expr.consequence).into())?;
 
-                    if self.last_instruction_is_pop() {
-                        self.remove_last_pop()?;
+                    if self.scopes.last_instruction_is(&opcode::Pop.into()) {
+                        self.scopes.remove_last_pop()?;
                     }
 
                     let jump_pos = self.emit(opcode::Jump(9999).into());
-                    self.change_operand(jump_not_truthy_pos, self.instructions.0.len())?;
+                    {
+                        let len = self.scopes.current().borrow().instructions.0.len();
+                        self.scopes
+                            .change_operand(jump_not_truthy_pos, u16::try_from(len)?)?;
+                    }
 
                     if let Some(alternative) = expr.alternative {
                         self.compile(ast::Stmt::from(alternative).into())?;
-                        if self.last_instruction_is_pop() {
-                            self.remove_last_pop()?;
+                        if self.scopes.last_instruction_is(&opcode::Pop.into()) {
+                            self.scopes.remove_last_pop()?;
                         }
                     } else {
                         self.emit(opcode::Null.into());
                     }
 
-                    self.change_operand(jump_pos, self.instructions.0.len())?;
+                    {
+                        let len = self.scopes.current().borrow().instructions.0.len();
+                        self.scopes.change_operand(jump_pos, u16::try_from(len)?)?;
+                    }
                 }
                 ast::Expr::Integer(int) => {
                     let int = object::Integer { value: int.value };
@@ -199,86 +373,32 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
+    pub fn current_instructions(&self) -> bytecode::Instructions {
+        self.scopes.current().borrow().instructions.clone()
+    }
+
     fn add_constant(&mut self, obj: object::Object) -> Pos {
         self.constants.push(obj);
         Pos::try_from(self.constants.len()).unwrap() - 1
     }
 
-    fn add_instruction(&mut self, mut ins: Vec<bytecode::Instruction>) -> Pos {
-        let len = Pos::try_from(self.instructions.0.len()).unwrap();
-        self.instructions.0.append(&mut ins);
-        len
-    }
-
     fn emit(&mut self, op: opcode::Opcode) -> Pos {
-        let ins = op.to_bytes();
-        let pos = self.add_instruction(ins);
+        let mut ins: bytecode::Instructions = op.to_bytes().into();
+        let pos = self.scopes.add_instructions(&mut ins);
 
-        self.set_last_instruction(op, pos);
+        self.scopes.set_last_instruction(op, pos);
 
         pos
     }
 
-    fn set_last_instruction(&mut self, op: opcode::Opcode, pos: Pos) {
-        self.prev_instruction = self.last_instruction.clone();
-
-        let last = EmittedInstruction {
-            opcode: op,
-            position: pos,
-        };
-        self.last_instruction = Some(last);
+    fn enter_scope(&mut self) {
+        self.scopes.push_new_scope();
     }
 
-    fn last_instruction_is_pop(&self) -> bool {
-        if let Some(last_inst) = &self.last_instruction {
-            if let opcode::Opcode::Pop(_) = last_inst.opcode {
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-
-    fn remove_last_pop(&mut self) -> Result<()> {
-        if let Some(last_isnt) = &self.last_instruction {
-            let instructions =
-                bytecode::Instructions(self.instructions.0[..last_isnt.position.into()].into());
-            self.instructions = instructions;
-            self.last_instruction = self.prev_instruction.clone();
-
-            Ok(())
-        } else {
-            Err(anyhow::format_err!("uninitialized"))?
-        }
-    }
-
-    fn replace_instructions(&mut self, pos: Pos, new_instructions: bytecode::Instructions) {
-        new_instructions
-            .0
-            .into_iter()
-            .enumerate()
-            .for_each(|(i, inst)| {
-                self.instructions.0[i + usize::from(pos)] = inst;
-            });
-    }
-
-    fn change_operand(&mut self, op_pos: Pos, operand: usize) -> Result<()> {
-        let op = opcode::Opcode::try_from(&self.instructions.0[usize::from(op_pos)..])?;
-        match op {
-            opcode::Opcode::JumpNotTruthy(mut op) => {
-                op.0 = u16::try_from(operand)?;
-                self.replace_instructions(op_pos, op.into());
-            }
-            opcode::Opcode::Jump(mut op) => {
-                op.0 = u16::try_from(operand)?;
-                self.replace_instructions(op_pos, op.into());
-            }
-            _ => Err(anyhow::format_err!("Expected "))?,
-        }
-
-        Ok(())
+    fn leave_scope(&mut self) -> Result<Rc<RefCell<CompilationScope>>> {
+        let scope = self.scopes.pop();
+        let scope = scope.ok_or(anyhow::format_err!("Empty scope"))?;
+        Ok(scope)
     }
 }
 
@@ -290,9 +410,7 @@ impl<'a> Compiler<'a> {
         Self {
             symbol_table: sym_table,
             constants: constants,
-            instructions: Default::default(),
-            last_instruction: Default::default(),
-            prev_instruction: Default::default(),
+            scopes: CompilationScopes::new(),
         }
     }
 }
@@ -300,7 +418,7 @@ impl<'a> Compiler<'a> {
 impl<'a> From<Compiler<'a>> for crate::vm::bytecode::Bytecode {
     fn from(value: Compiler<'a>) -> Self {
         Self {
-            instructions: value.instructions,
+            instructions: value.current_instructions(),
             constants: value.constants.clone(),
         }
     }
@@ -821,6 +939,64 @@ mod tests {
         ]
         .into();
         run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_compiler_scopes() {
+        let mut sym_table = Default::default();
+        let mut constants = Default::default();
+        let mut compiler = Compiler::new_with_state(&mut sym_table, &mut constants);
+        assert_eq!(compiler.scopes.pointer, 0);
+        assert_eq!(compiler.scopes.data.len(), 1);
+
+        compiler.emit(opcode::Mul.into());
+        assert_eq!(compiler.scopes.pointer, 0);
+        assert_eq!(compiler.scopes.data[0].borrow().instructions.0.len(), 1);
+
+        compiler.enter_scope();
+        assert_eq!(compiler.scopes.pointer, 1);
+        assert_eq!(compiler.scopes.data.len(), 2);
+        assert_eq!(compiler.scopes.data[1].borrow().instructions.0.len(), 0);
+
+        compiler.emit(opcode::Sub.into());
+        assert_eq!(compiler.scopes.pointer, 1);
+        assert_eq!(compiler.scopes.data[0].borrow().instructions.0.len(), 1);
+        assert_eq!(compiler.scopes.data[1].borrow().instructions.0.len(), 1);
+
+        let last = &compiler.scopes.data[compiler.scopes.pointer];
+        let last = last.borrow().last_instruction.clone().unwrap();
+        match &last.opcode {
+            opcode::Opcode::Sub(_) => (),
+            op => panic!("expected opcode::Sub. received {}", op),
+        }
+
+        compiler.leave_scope().unwrap();
+        assert_eq!(compiler.scopes.pointer, 0);
+
+        compiler.emit(opcode::Add.into());
+        assert_eq!(compiler.scopes.data.len(), 1);
+        assert_eq!(
+            compiler.scopes.data[compiler.scopes.pointer]
+                .borrow()
+                .instructions
+                .0
+                .len(),
+            2
+        );
+
+        let last = &compiler.scopes.data[compiler.scopes.pointer];
+        let last = last.borrow().last_instruction.clone().unwrap();
+        match &last.opcode {
+            opcode::Opcode::Add(_) => (),
+            op => panic!("expected opcode::Add. received {}", op),
+        }
+
+        let prev = &compiler.scopes.data[compiler.scopes.pointer];
+        let prev = prev.borrow().prev_instruction.clone().unwrap();
+        match &prev.opcode {
+            opcode::Opcode::Mul(_) => (),
+            op => panic!("expected opcode::Mul. received {}", op),
+        }
     }
 
     fn run_compiler_tests(tests: Tests) {
