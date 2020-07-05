@@ -6,6 +6,7 @@ mod constant;
 mod div;
 mod equal;
 mod get_global;
+mod get_local;
 mod greater_than;
 mod hash;
 mod index;
@@ -21,6 +22,7 @@ mod otrue;
 mod pop;
 mod return_value;
 mod set_global;
+mod set_local;
 mod sub;
 
 pub use add::Add;
@@ -31,6 +33,7 @@ pub use constant::Constant;
 pub use div::Div;
 pub use equal::Equal;
 pub use get_global::GetGlobal;
+pub use get_local::GetLocal;
 pub use greater_than::GreaterThan;
 pub use hash::Hash;
 pub use index::Index;
@@ -46,6 +49,7 @@ pub use otrue::True;
 pub use pop::Pop;
 pub use return_value::ReturnValue;
 pub use set_global::SetGlobal;
+pub use set_local::SetLocal;
 pub use sub::Sub;
 
 use crate::compiler::convert::ToBytes;
@@ -85,6 +89,8 @@ pub enum OperandType {
     Call = 21,
     ReturnValue = 22,
     Return = 23,
+    GetLocal = 24,
+    SetLocal = 25,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -116,6 +122,8 @@ impl TryFrom<u8> for OperandType {
             21 => Self::Call,
             22 => Self::ReturnValue,
             23 => Self::Return,
+            24 => Self::GetLocal,
+            25 => Self::SetLocal,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -153,6 +161,8 @@ pub enum Opcode {
     Call(Call),
     ReturnValue(ReturnValue),
     Return(Return),
+    GetLocal(GetLocal),
+    SetLocal(SetLocal),
 }
 
 impl Opcode {
@@ -182,6 +192,8 @@ impl Opcode {
             Opcode::Call(o) => o.to_bytes().to_vec(),
             Opcode::ReturnValue(o) => o.to_bytes().to_vec(),
             Opcode::Return(o) => o.to_bytes().to_vec(),
+            Opcode::GetLocal(o) => o.to_bytes().to_vec(),
+            Opcode::SetLocal(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -211,6 +223,8 @@ impl Opcode {
             Opcode::Call(o) => o.readsize(),
             Opcode::ReturnValue(o) => o.readsize(),
             Opcode::Return(o) => o.readsize(),
+            Opcode::GetLocal(o) => o.readsize(),
+            Opcode::SetLocal(o) => o.readsize(),
         }
     }
 }
@@ -359,6 +373,18 @@ impl From<Return> for Opcode {
     }
 }
 
+impl From<GetLocal> for Opcode {
+    fn from(value: GetLocal) -> Self {
+        Opcode::GetLocal(value)
+    }
+}
+
+impl From<SetLocal> for Opcode {
+    fn from(value: SetLocal) -> Self {
+        Opcode::SetLocal(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -391,6 +417,8 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::Call => Ok(Call.into()),
             OperandType::ReturnValue => Ok(ReturnValue.into()),
             OperandType::Return => Ok(Return.into()),
+            OperandType::GetLocal => Ok(GetLocal(GetLocal::try_read(&value[1..])?).into()),
+            OperandType::SetLocal => Ok(SetLocal(SetLocal::try_read(&value[1..])?).into()),
         }
     }
 }
@@ -422,6 +450,8 @@ impl Display for Opcode {
             Self::Call(o) => write!(f, "{}", o),
             Self::ReturnValue(o) => write!(f, "{}", o),
             Self::Return(o) => write!(f, "{}", o),
+            Self::GetLocal(o) => write!(f, "{}", o),
+            Self::SetLocal(o) => write!(f, "{}", o),
         }
     }
 }

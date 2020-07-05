@@ -308,6 +308,8 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1;
                 }
+                opcode::Opcode::GetLocal(local) => unimplemented!(),
+                opcode::Opcode::SetLocal(local) => unimplemented!(),
             }
         }
 

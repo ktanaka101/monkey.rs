@@ -56,6 +56,18 @@ impl From<opcode::Hash> for Instructions {
     }
 }
 
+impl From<opcode::GetLocal> for Instructions {
+    fn from(value: opcode::GetLocal) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
+impl From<opcode::SetLocal> for Instructions {
+    fn from(value: opcode::SetLocal) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
 impl<T: ToBytes<1, 0>> From<T> for Instructions {
     fn from(value: T) -> Self {
         value.to_bytes().to_vec().into()
@@ -141,6 +153,8 @@ mod test {
             opcode::Call.into(),
             opcode::ReturnValue.into(),
             opcode::Return.into(),
+            opcode::GetLocal(254).into(),
+            opcode::SetLocal(254).into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -166,7 +180,9 @@ mod test {
             0033 Index¥n\
             0034 Call¥n\
             0035 ReturnValue¥n\
-            0036 Return¥n";
+            0036 Return¥n\
+            0037 GetLocal 254¥n\
+            0039 SetLocal 254¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }
