@@ -28,7 +28,7 @@ pub fn start(executer: Executer) {
 fn start_vm() {
     let mut constants: Vec<object::Object> = vec![];
     let mut globals: vm::GlobalSpace = Default::default();
-    let mut symbol_table = compiler::SymbolTable::new();
+    let symbol_table = std::rc::Rc::new(std::cell::RefCell::new(compiler::SymbolTable::new()));
 
     loop {
         print!("{}", PROMPT);
@@ -50,7 +50,7 @@ fn start_vm() {
             }
         };
 
-        let mut comp = compiler::Compiler::new_with_state(&mut symbol_table, &mut constants);
+        let mut comp = compiler::Compiler::new_with_state(Rc::clone(&symbol_table), &mut constants);
         if let Err(e) = comp.compile(program.into()) {
             println!("Woops! Compilation failed: \n {}", e);
             continue;

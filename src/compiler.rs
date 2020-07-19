@@ -186,7 +186,7 @@ impl CompilationScopes {
 #[derive(Debug)]
 pub struct Compiler<'a> {
     constants: &'a mut Vec<object::Object>,
-    symbol_table: &'a mut symbol_table::SymbolTable,
+    symbol_table: Rc<RefCell<symbol_table::SymbolTable>>,
     scopes: CompilationScopes,
 }
 
@@ -219,12 +219,16 @@ impl<'a> Compiler<'a> {
                 }
                 ast::Stmt::Let(l) => {
                     self.compile(l.value.into())?;
-                    let symbol = self.symbol_table.define(l.name.value);
+                    let table = Rc::clone(&self.symbol_table);
+                    let mut table = table.borrow_mut();
+                    let symbol = table.define(l.name.value);
+
                     match symbol {
                         symbol_table::Symbol::Global { index, .. } => {
                             let op = opcode::SetGlobal(*index).into();
                             self.emit(op);
                         }
+                        symbol_table::Symbol::Local { index, .. } => unreachable!(),
                     };
                 }
                 ast::Stmt::Return(r) => {
@@ -313,13 +317,17 @@ impl<'a> Compiler<'a> {
                     self.emit(op.into());
                 }
                 ast::Expr::Identifier(id) => {
-                    let symbol = self.symbol_table.resolve(&id.value);
+                    let table = Rc::clone(&self.symbol_table);
+                    let table = table.borrow();
+                    let symbol = table.resolve(&id.value);
+
                     match symbol {
                         Some(symbol) => match symbol {
                             symbol_table::Symbol::Global { index, .. } => {
                                 let op = opcode::GetGlobal(*index).into();
                                 self.emit(op);
                             }
+                            symbol_table::Symbol::Local { index, .. } => unimplemented!(),
                         },
                         None => Err(anyhow::format_err!("undefined variable {}", id.value))?,
                     };
@@ -404,7 +412,7 @@ impl<'a> Compiler<'a> {
 
 impl<'a> Compiler<'a> {
     pub fn new_with_state(
-        sym_table: &'a mut symbol_table::SymbolTable,
+        sym_table: Rc<RefCell<symbol_table::SymbolTable>>,
         constants: &'a mut Vec<object::Object>,
     ) -> Self {
         Self {
@@ -415,8 +423,8 @@ impl<'a> Compiler<'a> {
     }
 }
 
-impl<'a> From<Compiler<'a>> for crate::vm::bytecode::Bytecode {
-    fn from(value: Compiler<'a>) -> Self {
+impl From<Compiler<'_>> for crate::vm::bytecode::Bytecode {
+    fn from(value: Compiler) -> Self {
         Self {
             instructions: value.current_instructions(),
             constants: value.constants.clone(),
@@ -945,7 +953,7 @@ mod tests {
     fn test_compiler_scopes() {
         let mut sym_table = Default::default();
         let mut constants = Default::default();
-        let mut compiler = Compiler::new_with_state(&mut sym_table, &mut constants);
+        let mut compiler = Compiler::new_with_state(sym_table, &mut constants);
         assert_eq!(compiler.scopes.pointer, 0);
         assert_eq!(compiler.scopes.data.len(), 1);
 
@@ -1047,15 +1055,83 @@ mod tests {
         run_compiler_tests(tests);
     }
 
+    #[test]
+    fn test_let_statement_scopes() {
+        let tests: Tests = vec![
+            (
+                "
+                    let num = 55;
+                    fn() { num }
+                ",
+                Vec::<Expected>::from(vec![
+                    55.into(),
+                    vec![opcode::GetGlobal(0).into(), opcode::ReturnValue.into()].into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "
+                    fn() { 
+                        let num = 55;
+                        num
+                    }
+                ",
+                Vec::<Expected>::from(vec![
+                    55.into(),
+                    vec![
+                        opcode::Constant(0).into(),
+                        opcode::SetLocal(0).into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Constant(1).into(), opcode::Pop.into()]),
+            ),
+            (
+                "
+                    fn() { 
+                        let a = 55;
+                        let b = 77;
+                        a + b
+                    }
+                ",
+                Vec::<Expected>::from(vec![
+                    55.into(),
+                    77.into(),
+                    vec![
+                        opcode::Constant(0).into(),
+                        opcode::SetLocal(0).into(),
+                        opcode::Constant(1).into(),
+                        opcode::SetLocal(1).into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::GetLocal(1).into(),
+                        opcode::Add.into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
+            ),
+        ]
+        .into();
+        run_compiler_tests(tests);
+    }
+
     fn run_compiler_tests(tests: Tests) {
         tests
             .0
             .into_iter()
             .for_each(|(input, expected_constants, expected_instructure)| {
                 let program = parse_test_input(input);
-                let mut sym_table = SymbolTable::new();
-                let mut constants = Vec::<object::Object>::new();
-                let mut compiler = Compiler::new_with_state(&mut sym_table, &mut constants);
+                let mut sym_table = Default::default();
+                let mut constants = Default::default();
+                let mut compiler = Compiler::new_with_state(sym_table, &mut constants);
                 if let Err(e) = compiler.compile(program.into()) {
                     panic!("{}", e);
                 };
