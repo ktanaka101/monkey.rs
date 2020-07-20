@@ -951,7 +951,7 @@ mod tests {
 
     #[test]
     fn test_compiler_scopes() {
-        let mut sym_table = Default::default();
+        let sym_table = Default::default();
         let mut constants = Default::default();
         let mut compiler = Compiler::new_with_state(sym_table, &mut constants);
         assert_eq!(compiler.scopes.pointer, 0);
@@ -1129,7 +1129,7 @@ mod tests {
             .into_iter()
             .for_each(|(input, expected_constants, expected_instructure)| {
                 let program = parse_test_input(input);
-                let mut sym_table = Default::default();
+                let sym_table = Default::default();
                 let mut constants = Default::default();
                 let mut compiler = Compiler::new_with_state(sym_table, &mut constants);
                 if let Err(e) = compiler.compile(program.into()) {
