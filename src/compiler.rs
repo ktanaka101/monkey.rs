@@ -223,7 +223,7 @@ impl<'a> Compiler<'a> {
                     let mut table = table.borrow_mut();
                     let symbol = table.define(l.name.value);
 
-                    match symbol {
+                    match &*symbol.borrow() {
                         symbol_table::Symbol::Global { index, .. } => {
                             let op = opcode::SetGlobal(*index).into();
                             self.emit(op);
@@ -322,7 +322,7 @@ impl<'a> Compiler<'a> {
                     let symbol = table.resolve(&id.value);
 
                     match symbol {
-                        Some(symbol) => match symbol {
+                        Some(symbol) => match &*symbol.borrow() {
                             symbol_table::Symbol::Global { index, .. } => {
                                 let op = opcode::GetGlobal(*index).into();
                                 self.emit(op);
