@@ -7,7 +7,7 @@ use std::rc::Rc;
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum Symbol {
     Global { name: String, index: u16 },
-    Local { name: String, index: u16 },
+    Local { name: String, index: u8 },
 }
 
 #[derive(Debug, Default, Clone)]
