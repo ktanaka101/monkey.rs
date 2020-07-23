@@ -228,7 +228,10 @@ impl<'a> Compiler<'a> {
                             let op = opcode::SetGlobal(*index).into();
                             self.emit(op);
                         }
-                        symbol_table::Symbol::Local { index, .. } => unreachable!(),
+                        symbol_table::Symbol::Local { index, .. } => {
+                            let op = opcode::SetLocal(*index).into();
+                            self.emit(op);
+                        }
                     };
                 }
                 ast::Stmt::Return(r) => {
@@ -327,7 +330,10 @@ impl<'a> Compiler<'a> {
                                 let op = opcode::GetGlobal(*index).into();
                                 self.emit(op);
                             }
-                            symbol_table::Symbol::Local { index, .. } => unimplemented!(),
+                            symbol_table::Symbol::Local { index, .. } => {
+                                let op = opcode::GetLocal(*index).into();
+                                self.emit(op);
+                            }
                         },
                         None => Err(anyhow::format_err!("undefined variable {}", id.value))?,
                     };
@@ -401,11 +407,22 @@ impl<'a> Compiler<'a> {
 
     fn enter_scope(&mut self) {
         self.scopes.push_new_scope();
+
+        self.symbol_table = {
+            let table = Rc::clone(&self.symbol_table);
+            Rc::new(RefCell::new(SymbolTable::new_enclosed(table)))
+        };
     }
 
     fn leave_scope(&mut self) -> Result<Rc<RefCell<CompilationScope>>> {
         let scope = self.scopes.pop();
         let scope = scope.ok_or(anyhow::format_err!("Empty scope"))?;
+
+        let table = self.symbol_table.borrow_mut().outer.take();
+        if let Some(table) = table {
+            self.symbol_table = table;
+        }
+
         Ok(scope)
     }
 }
