@@ -1135,6 +1135,29 @@ mod tests {
                 ]),
                 Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
             ),
+            (
+                "
+                    let one = fn() { let one = 1; one };
+                    one();
+                ",
+                Vec::<Expected>::from(vec![
+                    1.into(),
+                    vec![
+                        opcode::Constant(0).into(),
+                        opcode::SetLocal(0).into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(1).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Call.into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
         ]
         .into();
         run_compiler_tests(tests);
