@@ -370,10 +370,14 @@ impl<'a> Compiler<'a> {
                         self.emit(opcode::Return.into());
                     }
 
+                    let num_locals = self.symbol_table.borrow().num_definnitions;
                     let scope = self.leave_scope()?;
                     let instructions = scope.borrow().instructions.clone();
 
-                    let compiled_func = object::CompiledFunction { instructions };
+                    let compiled_func = object::CompiledFunction {
+                        instructions,
+                        num_locals,
+                    };
                     let constant = self.add_constant(compiled_func.into());
                     self.emit(opcode::Constant(constant).into());
                 }

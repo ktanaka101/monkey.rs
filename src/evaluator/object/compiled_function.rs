@@ -5,6 +5,7 @@ use super::prelude::*;
 #[derive(Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct CompiledFunction {
     pub instructions: bytecode::Instructions,
+    pub num_locals: u16,
 }
 
 impl Display for CompiledFunction {

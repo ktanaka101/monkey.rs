@@ -125,6 +125,7 @@ impl<'a> VM<'a> {
     ) -> Self {
         let main_fn = object::CompiledFunction {
             instructions: bytecode.instructions,
+            num_locals: 0,
         };
         let main_frame = frame::Frame::new(main_fn);
 
