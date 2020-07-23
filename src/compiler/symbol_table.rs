@@ -14,7 +14,7 @@ pub enum Symbol {
 pub struct SymbolTable {
     pub outer: Option<Rc<RefCell<SymbolTable>>>,
     store: HashMap<String, Rc<RefCell<Symbol>>>,
-    pub num_definnitions: u16,
+    pub num_definitions: u16,
 }
 
 impl SymbolTable {
@@ -26,7 +26,7 @@ impl SymbolTable {
         Self {
             outer: Some(outer),
             store: Default::default(),
-            num_definnitions: Default::default(),
+            num_definitions: Default::default(),
         }
     }
 
@@ -34,19 +34,19 @@ impl SymbolTable {
         let symbol = if self.outer.is_some() {
             Symbol::Local {
                 name: name.clone(),
-                index: u8::try_from(self.num_definnitions).unwrap(),
+                index: u8::try_from(self.num_definitions).unwrap(),
             }
         } else {
             Symbol::Global {
                 name: name.clone(),
-                index: self.num_definnitions,
+                index: self.num_definitions,
             }
         };
         let symbol = Rc::new(RefCell::new(symbol));
 
         self.store.insert(name.clone(), Rc::clone(&symbol));
 
-        self.num_definnitions += 1;
+        self.num_definitions += 1;
 
         symbol
     }

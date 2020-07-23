@@ -370,7 +370,7 @@ impl<'a> Compiler<'a> {
                         self.emit(opcode::Return.into());
                     }
 
-                    let num_locals = self.symbol_table.borrow().num_definnitions;
+                    let num_locals = self.symbol_table.borrow().num_definitions;
                     let scope = self.leave_scope()?;
                     let instructions = scope.borrow().instructions.clone();
 
