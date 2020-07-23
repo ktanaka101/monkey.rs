@@ -14,7 +14,7 @@ pub enum Symbol {
 pub struct SymbolTable {
     pub outer: Option<Rc<RefCell<SymbolTable>>>,
     store: HashMap<String, Rc<RefCell<Symbol>>>,
-    num_definnitions: u16,
+    pub num_definnitions: u16,
 }
 
 impl SymbolTable {

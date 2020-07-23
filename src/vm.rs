@@ -127,7 +127,7 @@ impl<'a> VM<'a> {
             instructions: bytecode.instructions,
             num_locals: 0,
         };
-        let main_frame = frame::Frame::new(main_fn);
+        let main_frame = frame::Frame::new(main_fn, 0);
 
         let mut stack_frame = frame::StackFrame::new();
         stack_frame.push(main_frame);
@@ -274,8 +274,10 @@ impl<'a> VM<'a> {
                     let obj = self.stack.top().ok_or(anyhow::format_err!("Empty stack"))?;
                     match obj {
                         object::Object::CompiledFunction(func) => {
-                            let frame = frame::Frame::new(func.clone());
+                            let frame = frame::Frame::new(func.clone(), self.stack.pointer);
+                            let bp = frame.base_pointer;
                             self.stack_frame.push(frame);
+                            self.stack.pointer = bp + usize::from(func.num_locals);
                         }
                         other_obj => Err(anyhow::format_err!(
                             "calling non-function. received {}",
@@ -285,23 +287,35 @@ impl<'a> VM<'a> {
                 }
                 opcode::Opcode::ReturnValue(_) => {
                     let return_value = self.stack.pop().clone();
-                    self.stack_frame.pop();
+                    let frame = self.stack_frame.pop();
+                    self.stack.pointer = frame.borrow().base_pointer - 1;
 
-                    self.stack.pop();
                     self.stack.push(return_value)?;
 
                     self.stack_frame.current().borrow_mut().pointer += 1;
                 }
                 opcode::Opcode::Return(_) => {
-                    self.stack_frame.pop();
-                    self.stack.pop();
+                    let frame = self.stack_frame.pop();
+                    self.stack.pointer = frame.borrow().base_pointer - 1;
 
                     self.stack.push(NULL.into())?;
 
                     self.stack_frame.current().borrow_mut().pointer += 1;
                 }
-                opcode::Opcode::GetLocal(local) => unimplemented!(),
-                opcode::Opcode::SetLocal(local) => unimplemented!(),
+                opcode::Opcode::GetLocal(local) => {
+                    let frame = self.stack_frame.current();
+                    let p = frame.borrow().base_pointer + usize::from(local.0);
+                    self.stack.push(self.stack.data[p].clone())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + local.readsize();
+                }
+                opcode::Opcode::SetLocal(local) => {
+                    let frame = self.stack_frame.current();
+                    let p = frame.borrow().base_pointer + usize::from(local.0);
+                    self.stack.data[p] = self.stack.pop().clone();
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + local.readsize();
+                }
             }
         }
 
@@ -830,6 +844,59 @@ mod tests {
             ",
             1,
         )]
+        .into();
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_calling_functions_with_bindings() {
+        let tests: Tests = vec![
+            (
+                "
+                    let one = fn() { let one = 1; one };
+                    one();
+                ",
+                1,
+            ),
+            (
+                "
+                    let one_and_two = fn() { let one = 1; let two = 2; one + two; };
+                    one_and_two();
+                ",
+                3,
+            ),
+            (
+                "
+                    let one_and_two = fn() { let one = 1; let two = 2; one + two; };
+                    let three_and_four = fn() { let three = 3; let four = 4; three + four; };
+                    one_and_two() + three_and_four();
+                ",
+                10,
+            ),
+            (
+                "
+                    let first_foobar = fn() { let foobar = 50; foobar; };
+                    let second_foobar = fn() { let foobar = 100; foobar; };
+                    first_foobar() + second_foobar();
+                ",
+                150,
+            ),
+            (
+                "
+                    let global_seed = 50;
+                    let minus_one = fn() {
+                        let num = 1;
+                        global_seed - num;
+                    }
+                    let minus_two = fn() {
+                        let num = 2;
+                        global_seed - num;
+                    }
+                    minus_one() + minus_two();
+                ",
+                97,
+            ),
+        ]
         .into();
         run_vm_tests(tests);
     }

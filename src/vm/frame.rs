@@ -12,11 +12,16 @@ pub const MAX_FRAMES: usize = 1024;
 pub struct Frame {
     pub func: object::CompiledFunction,
     pub pointer: usize,
+    pub base_pointer: usize,
 }
 
 impl Frame {
-    pub fn new(func: object::CompiledFunction) -> Self {
-        Self { func, pointer: 0 }
+    pub fn new(func: object::CompiledFunction, base_pointer: usize) -> Self {
+        Self {
+            func,
+            pointer: 0,
+            base_pointer,
+        }
     }
 
     pub fn instructions(&self) -> &bytecode::Instructions {
