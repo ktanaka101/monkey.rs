@@ -30,7 +30,7 @@ struct Stack {
 impl Stack {
     fn new() -> Self {
         Self {
-            data: Vec::with_capacity(STACK_SIZE),
+            data: vec![NULL.into(); STACK_SIZE],
             ..Self::default()
         }
     }
@@ -52,16 +52,7 @@ impl Stack {
             Err(anyhow::format_err!("stack overflow"))?;
         }
 
-        if self.pointer == self.data.len() {
-            self.data.push(o);
-        } else if self.pointer < self.data.len() {
-            self.data[self.pointer] = o;
-        } else {
-            unreachable!(
-                "null pointer. data: {:?} pointer: {:?}",
-                self.data, self.pointer
-            );
-        }
+        self.data[self.pointer] = o;
         self.pointer += 1;
 
         Ok(())
