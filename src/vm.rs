@@ -270,7 +270,9 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + index.readsize();
                 }
-                opcode::Opcode::Call(_) => {
+                opcode::Opcode::Call(call) => {
+                    self.stack_frame.current().borrow_mut().pointer += call.readsize();
+
                     let obj = self.stack.top().ok_or(anyhow::format_err!("Empty stack"))?;
                     match obj {
                         object::Object::CompiledFunction(func) => {

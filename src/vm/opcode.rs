@@ -414,7 +414,7 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::Array => Ok(Array(Array::try_read(&value[1..])?).into()),
             OperandType::Hash => Ok(Hash(Hash::try_read(&value[1..])?).into()),
             OperandType::Index => Ok(Index.into()),
-            OperandType::Call => Ok(Call.into()),
+            OperandType::Call => Ok(Call(Call::try_read(&value[1..])?).into()),
             OperandType::ReturnValue => Ok(ReturnValue.into()),
             OperandType::Return => Ok(Return.into()),
             OperandType::GetLocal => Ok(GetLocal(GetLocal::try_read(&value[1..])?).into()),

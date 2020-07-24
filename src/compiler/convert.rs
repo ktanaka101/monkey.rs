@@ -149,9 +149,9 @@ impl ToBytes<1, 0> for vm::opcode::Index {
     }
 }
 
-impl ToBytes<1, 0> for vm::opcode::Call {
-    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
-        [0; 0]
+impl ToBytes<2, 1> for vm::opcode::Call {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 1] {
+        self.0.to_be_bytes()
     }
 }
 
@@ -207,7 +207,7 @@ mod tests {
             (vm::opcode::Array(65534).into(), vec![18, 255, 254]),
             (vm::opcode::Hash(65534).into(), vec![19, 255, 254]),
             (vm::opcode::Index.into(), vec![20]),
-            (vm::opcode::Call.into(), vec![21]),
+            (vm::opcode::Call(254).into(), vec![21, 254]),
             (vm::opcode::ReturnValue.into(), vec![22]),
             (vm::opcode::Return.into(), vec![23]),
             (vm::opcode::GetLocal(254).into(), vec![24, 254]),

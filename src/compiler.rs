@@ -383,7 +383,7 @@ impl<'a> Compiler<'a> {
                 }
                 ast::Expr::Call(call) => {
                     self.compile((*call.func).into())?;
-                    self.emit(opcode::Call.into());
+                    self.emit(opcode::Call(0).into());
                 }
                 _ => unimplemented!(),
             },
@@ -1050,7 +1050,7 @@ mod tests {
                 ]),
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::Constant(1).into(),
-                    opcode::Call.into(),
+                    opcode::Call(0).into(),
                     opcode::Pop.into(),
                 ]),
             ),
@@ -1067,7 +1067,7 @@ mod tests {
                     opcode::Constant(1).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
-                    opcode::Call.into(),
+                    opcode::Call(0).into(),
                     opcode::Pop.into(),
                 ]),
             ),
@@ -1158,7 +1158,7 @@ mod tests {
                     opcode::Constant(1).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
-                    opcode::Call.into(),
+                    opcode::Call(0).into(),
                     opcode::Pop.into(),
                 ]),
             ),
@@ -1242,7 +1242,7 @@ mod tests {
             (vec![opcode::Array(65534).into()], "0000 Array 65534¥n"),
             (vec![opcode::Hash(65534).into()], "0000 Hash 65534¥n"),
             (vec![opcode::Index.into()], "0000 Index¥n"),
-            (vec![opcode::Call.into()], "0000 Call¥n"),
+            (vec![opcode::Call(254).into()], "0000 Call 254¥n"),
             (vec![opcode::ReturnValue.into()], "0000 ReturnValue¥n"),
             (vec![opcode::Return.into()], "0000 Return¥n"),
             (vec![opcode::GetLocal(254).into()], "0000 GetLocal 254¥n"),
