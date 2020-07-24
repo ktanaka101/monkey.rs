@@ -838,14 +838,26 @@ mod tests {
 
     #[test]
     fn test_first_class_functions() {
-        let tests: Tests = vec![(
-            "
-                let returns_one = fn() { 1; };
-                let returns_one_returner = fn() { returns_one };
-                returns_one_returner()();
-            ",
-            1,
-        )]
+        let tests: Tests = vec![
+            (
+                "
+                    let returns_one = fn() { 1; };
+                    let returns_one_returner = fn() { returns_one };
+                    returns_one_returner()();
+                ",
+                1,
+            ),
+            (
+                "
+                    let returns_one_returner = fn() {
+                        let returns_one = fn() { 1; };
+                        returns_one;
+                    }
+                    returns_one_returner()();
+                ",
+                1,
+            ),
+        ]
         .into();
         run_vm_tests(tests);
     }
