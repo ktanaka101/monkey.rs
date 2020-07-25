@@ -362,6 +362,10 @@ impl<'a> Compiler<'a> {
                 ast::Expr::Function(func) => {
                     self.enter_scope();
 
+                    func.params.into_iter().for_each(|param| {
+                        self.symbol_table.borrow_mut().define(param.value);
+                    });
+
                     self.compile(ast::Stmt::from(func.body).into())?;
                     if self.scopes.last_instruction_is(&opcode::Pop.into()) {
                         self.scopes.replace_last_pop_with_return()?;
@@ -383,7 +387,11 @@ impl<'a> Compiler<'a> {
                 }
                 ast::Expr::Call(call) => {
                     self.compile((*call.func).into())?;
-                    self.emit(opcode::Call(0).into());
+                    let arg_len = u8::try_from(call.args.len())?;
+                    call.args
+                        .into_iter()
+                        .try_for_each(|arg| self.compile(arg.into()))?;
+                    self.emit(opcode::Call(arg_len).into());
                 }
                 _ => unimplemented!(),
             },
@@ -1068,6 +1076,91 @@ mod tests {
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Call(0).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "
+                    let one_arg = fn(a) { };
+                    one_arg(24);
+                ",
+                Vec::<Expected>::from(vec![vec![opcode::Return.into()].into(), 24.into()]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Call(1).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "
+                    let one_arg = fn(a, b, c) { };
+                    one_arg(24, 25, 26);
+                ",
+                Vec::<Expected>::from(vec![
+                    vec![opcode::Return.into()].into(),
+                    24.into(),
+                    25.into(),
+                    26.into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Constant(3).into(),
+                    opcode::Call(3).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "
+                    let one_arg = fn(a) { a };
+                    one_arg(24);
+                ",
+                Vec::<Expected>::from(vec![
+                    vec![opcode::GetLocal(0).into(), opcode::ReturnValue.into()].into(),
+                    24.into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Call(1).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "
+                    let one_arg = fn(a, b, c) { a; b; c; };
+                    one_arg(24, 25, 26);
+                ",
+                Vec::<Expected>::from(vec![
+                    vec![
+                        opcode::GetLocal(0).into(),
+                        opcode::Pop.into(),
+                        opcode::GetLocal(1).into(),
+                        opcode::Pop.into(),
+                        opcode::GetLocal(2).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                    24.into(),
+                    25.into(),
+                    26.into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Constant(1).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Constant(3).into(),
+                    opcode::Call(3).into(),
                     opcode::Pop.into(),
                 ]),
             ),

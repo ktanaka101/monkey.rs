@@ -273,10 +273,12 @@ impl<'a> VM<'a> {
                 opcode::Opcode::Call(call) => {
                     self.stack_frame.current().borrow_mut().pointer += call.readsize();
 
-                    let obj = self.stack.top().ok_or(anyhow::format_err!("Empty stack"))?;
+                    let num_args = usize::from(call.0);
+                    let obj = &self.stack.data[self.stack.pointer - 1 - num_args];
                     match obj {
                         object::Object::CompiledFunction(func) => {
-                            let frame = frame::Frame::new(func.clone(), self.stack.pointer);
+                            let frame =
+                                frame::Frame::new(func.clone(), self.stack.pointer - num_args);
                             let bp = frame.base_pointer;
                             self.stack_frame.push(frame);
                             self.stack.pointer = bp + usize::from(func.num_locals);
@@ -909,6 +911,42 @@ mod tests {
                     minus_one() + minus_two();
                 ",
                 97,
+            ),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_calling_functions_with_arguments_and_bindings() {
+        let tests: Tests = vec![
+            (
+                "
+                    let identity = fn(a) { a; };
+                    identity(4);
+                ",
+                4,
+            ),
+            (
+                "
+                    let sum = fn(a, b) { a + b; };
+                    sum(1, 2);
+                ",
+                3,
+            ),
+            (
+                "
+                    let global_num = 10;
+                    let sum = fn(a, b) {
+                        let c = a + b;
+                        c + global_num;
+                    }
+                    let outer = fn() {
+                        sum(1, 2) + sum(3, 4) + global_num;
+                    }
+                    outer() + global_num;
+                ",
+                50,
             ),
         ]
         .into();
