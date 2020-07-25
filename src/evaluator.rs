@@ -312,7 +312,10 @@ fn apply_function(func: &object::Object, args: &[object::Object]) -> Result<obje
             let evaluated = eval_stmt(&f.body.clone().into(), extended_env)?;
             Ok(unwrap_return_value(&evaluated))
         }
-        object::Object::Builtin(builtin) => builtin.call(args),
+        object::Object::Builtin(builtin) => Ok(match builtin.call(args)? {
+            Some(res) => res,
+            None => NULL.into(),
+        }),
         invalid => new_error(&format!("not a function: {}", invalid.o_type())),
     }
 }

@@ -16,7 +16,7 @@ impl Display for Builtin {
 }
 
 impl Builtin {
-    pub fn call(&self, args: &[Object]) -> Result<Object> {
+    pub fn call(&self, args: &[Object]) -> Result<Option<Object>> {
         self.func.call(args)
     }
 }
