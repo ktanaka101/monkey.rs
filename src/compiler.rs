@@ -362,6 +362,8 @@ impl<'a> Compiler<'a> {
                 ast::Expr::Function(func) => {
                     self.enter_scope();
 
+                    let num_parameters = u8::try_from(func.params.len())?;
+
                     func.params.into_iter().for_each(|param| {
                         self.symbol_table.borrow_mut().define(param.value);
                     });
@@ -381,6 +383,7 @@ impl<'a> Compiler<'a> {
                     let compiled_func = object::CompiledFunction {
                         instructions,
                         num_locals,
+                        num_parameters,
                     };
                     let constant = self.add_constant(compiled_func.into());
                     self.emit(opcode::Constant(constant).into());

@@ -126,6 +126,7 @@ impl<'a> VM<'a> {
         let main_fn = object::CompiledFunction {
             instructions: bytecode.instructions,
             num_locals: 0,
+            num_parameters: 0,
         };
         let main_frame = frame::Frame::new(main_fn, 0);
 
@@ -273,12 +274,22 @@ impl<'a> VM<'a> {
                 opcode::Opcode::Call(call) => {
                     self.stack_frame.current().borrow_mut().pointer += call.readsize();
 
-                    let num_args = usize::from(call.0);
-                    let obj = &self.stack.data[self.stack.pointer - 1 - num_args];
+                    let num_args = call.0;
+                    let obj = &self.stack.data[self.stack.pointer - 1 - usize::from(num_args)];
                     match obj {
                         object::Object::CompiledFunction(func) => {
-                            let frame =
-                                frame::Frame::new(func.clone(), self.stack.pointer - num_args);
+                            if func.num_parameters != num_args {
+                                Err(anyhow::format_err!(
+                                    "wrong number of arguments: want={}, got={}",
+                                    func.num_parameters,
+                                    num_args
+                                ))?;
+                            }
+
+                            let frame = frame::Frame::new(
+                                func.clone(),
+                                self.stack.pointer - usize::from(num_args),
+                            );
                             let bp = frame.base_pointer;
                             self.stack_frame.push(frame);
                             self.stack.pointer = bp + usize::from(func.num_locals);
@@ -951,6 +962,47 @@ mod tests {
         ]
         .into();
         run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_calling_funcitons_with_wrong_arguments() {
+        let tests = vec![
+            (
+                "fn() { 1; }(1);",
+                "wrong number of arguments: want=0, got=1",
+            ),
+            (
+                "fn(a) { a; }();",
+                "wrong number of arguments: want=1, got=0",
+            ),
+            (
+                "fn(a, b) { a + b; }(1);",
+                "wrong number of arguments: want=2, got=1",
+            ),
+        ]
+        .into();
+        run_vm_err_test(tests);
+    }
+
+    fn run_vm_err_test(tests: Vec<(&'static str, &'static str)>) {
+        tests.into_iter().for_each(|(input, expected)| {
+            let program = parse(input);
+            let sym_table = std::rc::Rc::new(std::cell::RefCell::new(compiler::SymbolTable::new()));
+            let mut constants = Default::default();
+            let mut comp = compiler::Compiler::new_with_state(sym_table, &mut constants);
+            if let Err(e) = comp.compile(program.into()) {
+                panic!(format!("compiler error {}: ", e));
+            }
+            let bytecode: bytecode::Bytecode = comp.into();
+
+            let mut globals = Default::default();
+            let mut vm = VM::new_with_globals_store(bytecode, &mut globals);
+            if let Err(e) = vm.run() {
+                assert_eq!(e.to_string(), expected);
+            } else {
+                panic!("expected VM error but resulted in none.")
+            }
+        });
     }
 
     fn run_vm_tests(tests: Tests) {

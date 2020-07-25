@@ -6,6 +6,7 @@ use super::prelude::*;
 pub struct CompiledFunction {
     pub instructions: bytecode::Instructions,
     pub num_locals: u16,
+    pub num_parameters: u8,
 }
 
 impl Display for CompiledFunction {
