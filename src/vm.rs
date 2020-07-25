@@ -4,6 +4,7 @@ mod frame;
 pub mod opcode;
 
 use crate::compiler;
+use crate::evaluator::builtin;
 use crate::evaluator::object;
 use crate::vm::bytecode::Instructions;
 use crate::vm::convert::Read;
@@ -294,6 +295,29 @@ impl<'a> VM<'a> {
                             self.stack_frame.push(frame);
                             self.stack.pointer = bp + usize::from(func.num_locals);
                         }
+                        object::Object::Builtin(builtin) => {
+                            self.stack_frame.current().borrow_mut().pointer += 1;
+
+                            let start_p = self.stack.pointer - usize::from(num_args);
+                            let args = &self.stack.data[start_p..self.stack.pointer];
+
+                            let result = builtin.call(args);
+                            self.stack.pointer = self.stack.pointer - usize::from(num_args) - 1;
+
+                            match result {
+                                Ok(result) => {
+                                    if let Some(result) = result {
+                                        self.stack.push(result.into())?;
+                                    } else {
+                                        self.stack.push(NULL.into())?;
+                                    }
+                                }
+                                Err(e) => {
+                                    self.stack
+                                        .push(object::Error::Standard(e.to_string()).into())?;
+                                }
+                            }
+                        }
                         other_obj => Err(anyhow::format_err!(
                             "calling non-function. received {}",
                             other_obj
@@ -331,7 +355,12 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + local.readsize();
                 }
-                opcode::Opcode::GetBuiltin(builtin) => unimplemented!(),
+                opcode::Opcode::GetBuiltin(builtin) => {
+                    let definition = builtin::Function::by_index(usize::from(builtin.0));
+                    self.stack.push(definition.into())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + builtin.readsize();
+                }
             }
         }
 
@@ -563,6 +592,7 @@ mod tests {
         String(String),
         IntArray(Vec<i64>),
         IntHash(Vec<(i64, i64)>),
+        Err(String),
     }
 
     struct Tests(Vec<(String, Expected)>);
@@ -985,6 +1015,51 @@ mod tests {
         run_vm_err_test(tests);
     }
 
+    #[test]
+    fn test_builtin_functions() {
+        let tests: Tests = vec![
+            (r#"len("")"#, 0.into()),
+            (r#"len("four")"#, 4.into()),
+            (r#"len("hello world")"#, 11.into()),
+            ("len([1, 2, 3])", 3.into()),
+            ("len([])", 0.into()),
+            (
+                "len(1)",
+                Expected::Err("argument to 'len' not supported, got Integer".into()),
+            ),
+            (
+                r#"len("one", "two")"#,
+                Expected::Err("wrong number of arguments. got=2, want=1".into()),
+            ),
+            (r#"puts("hello", "world")"#, Expected::Null),
+            ("first([1, 2, 3])", 1.into()),
+            ("first([])", Expected::Null),
+            (
+                "first(1)",
+                Expected::Err("argument to 'first' must be Array, got Integer".into()),
+            ),
+            ("last([1, 2, 3])", 3.into()),
+            ("last([])", Expected::Null),
+            (
+                "last(1)",
+                Expected::Err("argument to 'last' must be Array, got Integer".into()),
+            ),
+            ("rest([1, 2, 3])", vec![2, 3].into()),
+            ("rest([])", Expected::Null),
+            (
+                "rest(1)",
+                Expected::Err("argument to 'rest' must be Array, got Integer".into()),
+            ),
+            ("push([], 1)", vec![1].into()),
+            (
+                "push(1, 1)",
+                Expected::Err("argument to 'push' must be Array, got Integer".into()),
+            ),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_err_test(tests: Vec<(&'static str, &'static str)>) {
         tests.into_iter().for_each(|(input, expected)| {
             let program = parse(input);
@@ -1052,6 +1127,9 @@ mod tests {
             Expected::IntHash(expected_hash) => {
                 test_int_hash_object(actual.clone(), expected_hash);
             }
+            Expected::Err(expected_err) => {
+                test_err_object(actual, expected_err);
+            }
         }
     }
 
@@ -1117,6 +1195,15 @@ mod tests {
                 assert_eq!(hash.pairs, expected_hash);
             }
             obj => panic!("expected hash. received {}", obj),
+        }
+    }
+
+    fn test_err_object(actual: &object::Object, expected: &String) {
+        match actual {
+            object::Object::Error(err) => match err {
+                object::Error::Standard(msg) => assert_eq!(msg, expected),
+            },
+            obj => panic!("expected error. received {}", obj),
         }
     }
 
