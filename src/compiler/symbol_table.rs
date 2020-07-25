@@ -8,6 +8,7 @@ use std::rc::Rc;
 pub enum Symbol {
     Global { name: String, index: u16 },
     Local { name: String, index: u8 },
+    Builtin { name: String, index: u8 },
 }
 
 #[derive(Debug, Default, Clone)]
@@ -47,6 +48,18 @@ impl SymbolTable {
         self.store.insert(name.clone(), Rc::clone(&symbol));
 
         self.num_definitions += 1;
+
+        symbol
+    }
+
+    pub fn define_builtin(&mut self, index: u8, name: String) -> Rc<RefCell<Symbol>> {
+        let symbol = Symbol::Builtin {
+            index,
+            name: name.clone(),
+        };
+        let symbol = Rc::new(RefCell::new(symbol));
+
+        self.store.insert(name, Rc::clone(&symbol));
 
         symbol
     }
@@ -171,7 +184,7 @@ mod tests {
                     let result = global.resolve(name).unwrap();
                     assert_eq!(result, Rc::new(RefCell::new(expected_symbol)));
                 }
-                Symbol::Local { .. } => unreachable!(),
+                _ => unreachable!(),
             });
     }
 
@@ -215,6 +228,7 @@ mod tests {
                     let result = local.resolve(name).unwrap();
                     assert_eq!(result, Rc::new(RefCell::new(expected_symbol)));
                 }
+                _ => unreachable!(),
             });
     }
 
@@ -292,7 +306,41 @@ mod tests {
                         let result = table.resolve(&name).unwrap();
                         assert_eq!(result, Rc::new(RefCell::new(expected_symbol)));
                     }
+                    _ => unreachable!(),
                 });
         });
+    }
+
+    #[test]
+    fn test_define_resolve_builtins() {
+        let global = Rc::new(RefCell::new(SymbolTable::new()));
+        let first_local = Rc::new(RefCell::new(SymbolTable::new_enclosed(Rc::clone(&global))));
+        let second_local = Rc::new(RefCell::new(SymbolTable::new_enclosed(Rc::clone(
+            &first_local,
+        ))));
+
+        let expected = vec![("a", 0), ("c", 1), ("e", 2), ("f", 3)];
+        expected.iter().for_each(|(name, index)| {
+            global.borrow_mut().define_builtin(*index, name.to_string());
+        });
+
+        vec![global, first_local, second_local]
+            .into_iter()
+            .for_each(move |symbol_table| {
+                expected.iter().for_each(|(name, index)| {
+                    let result = symbol_table.borrow().resolve(name);
+                    if let Some(result) = result {
+                        assert_eq!(
+                            *result.borrow(),
+                            Symbol::Builtin {
+                                index: *index,
+                                name: name.to_string()
+                            }
+                        );
+                    } else {
+                        panic!("name {} not resolvable", name);
+                    }
+                });
+            });
     }
 }
