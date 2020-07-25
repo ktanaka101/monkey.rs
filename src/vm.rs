@@ -331,6 +331,7 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + local.readsize();
                 }
+                opcode::Opcode::GetBuiltin(builtin) => unimplemented!(),
             }
         }
 

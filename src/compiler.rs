@@ -1343,6 +1343,10 @@ mod tests {
             (vec![opcode::Return.into()], "0000 Return¥n"),
             (vec![opcode::GetLocal(254).into()], "0000 GetLocal 254¥n"),
             (vec![opcode::SetLocal(254).into()], "0000 SetLocal 254¥n"),
+            (
+                vec![opcode::GetBuiltin(254).into()],
+                "0000 GetBuiltin 254¥n",
+            ),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

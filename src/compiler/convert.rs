@@ -179,6 +179,12 @@ impl ToBytes<2, 1> for vm::opcode::SetLocal {
     }
 }
 
+impl ToBytes<2, 1> for vm::opcode::GetBuiltin {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 1] {
+        self.0.to_be_bytes()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,6 +218,7 @@ mod tests {
             (vm::opcode::Return.into(), vec![23]),
             (vm::opcode::GetLocal(254).into(), vec![24, 254]),
             (vm::opcode::SetLocal(254).into(), vec![25, 254]),
+            (vm::opcode::GetBuiltin(254).into(), vec![26, 254]),
         ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {

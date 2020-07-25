@@ -5,6 +5,7 @@ mod call;
 mod constant;
 mod div;
 mod equal;
+mod get_builtin;
 mod get_global;
 mod get_local;
 mod greater_than;
@@ -32,6 +33,7 @@ pub use call::Call;
 pub use constant::Constant;
 pub use div::Div;
 pub use equal::Equal;
+pub use get_builtin::GetBuiltin;
 pub use get_global::GetGlobal;
 pub use get_local::GetLocal;
 pub use greater_than::GreaterThan;
@@ -91,6 +93,7 @@ pub enum OperandType {
     Return = 23,
     GetLocal = 24,
     SetLocal = 25,
+    GetBuiltin = 26,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -124,6 +127,7 @@ impl TryFrom<u8> for OperandType {
             23 => Self::Return,
             24 => Self::GetLocal,
             25 => Self::SetLocal,
+            26 => Self::GetBuiltin,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -163,6 +167,7 @@ pub enum Opcode {
     Return(Return),
     GetLocal(GetLocal),
     SetLocal(SetLocal),
+    GetBuiltin(GetBuiltin),
 }
 
 impl Opcode {
@@ -194,6 +199,7 @@ impl Opcode {
             Opcode::Return(o) => o.to_bytes().to_vec(),
             Opcode::GetLocal(o) => o.to_bytes().to_vec(),
             Opcode::SetLocal(o) => o.to_bytes().to_vec(),
+            Opcode::GetBuiltin(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -225,6 +231,7 @@ impl Opcode {
             Opcode::Return(o) => o.readsize(),
             Opcode::GetLocal(o) => o.readsize(),
             Opcode::SetLocal(o) => o.readsize(),
+            Opcode::GetBuiltin(o) => o.readsize(),
         }
     }
 }
@@ -385,6 +392,12 @@ impl From<SetLocal> for Opcode {
     }
 }
 
+impl From<GetBuiltin> for Opcode {
+    fn from(value: GetBuiltin) -> Self {
+        Opcode::GetBuiltin(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -419,6 +432,7 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::Return => Ok(Return.into()),
             OperandType::GetLocal => Ok(GetLocal(GetLocal::try_read(&value[1..])?).into()),
             OperandType::SetLocal => Ok(SetLocal(SetLocal::try_read(&value[1..])?).into()),
+            OperandType::GetBuiltin => Ok(GetBuiltin(GetBuiltin::try_read(&value[1..])?).into()),
         }
     }
 }
@@ -452,6 +466,7 @@ impl Display for Opcode {
             Self::Return(o) => write!(f, "{}", o),
             Self::GetLocal(o) => write!(f, "{}", o),
             Self::SetLocal(o) => write!(f, "{}", o),
+            Self::GetBuiltin(o) => write!(f, "{}", o),
         }
     }
 }
