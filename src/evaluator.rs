@@ -1,7 +1,6 @@
+pub mod builtin;
 pub mod env;
 pub mod object;
-
-mod builtin;
 
 use std::cell::RefCell;
 use std::convert::TryFrom;

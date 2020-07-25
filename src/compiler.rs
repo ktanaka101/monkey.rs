@@ -1269,7 +1269,7 @@ mod tests {
             .into_iter()
             .for_each(|(input, expected_constants, expected_instructure)| {
                 let program = parse_test_input(input);
-                let sym_table = Default::default();
+                let sym_table = Rc::new(RefCell::new(SymbolTable::new_with_builtin()));
                 let mut constants = Default::default();
                 let mut compiler = Compiler::new_with_state(sym_table, &mut constants);
                 if let Err(e) = compiler.compile(program.into()) {

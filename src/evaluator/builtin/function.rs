@@ -16,6 +16,36 @@ pub enum Function {
     Puts,
 }
 
+static FUNCTIONS: [Function; 6] = [
+    Function::Len,
+    Function::First,
+    Function::Last,
+    Function::Rest,
+    Function::Push,
+    Function::Puts,
+];
+
+impl Function {
+    pub fn iterator() -> std::slice::Iter<'static, Function> {
+        FUNCTIONS.iter()
+    }
+
+    pub fn by_index(idx: usize) -> Function {
+        FUNCTIONS[idx].clone()
+    }
+
+    pub fn name(&self) -> &'static str {
+        match *self {
+            Function::Len => "len",
+            Function::First => "first",
+            Function::Last => "last",
+            Function::Rest => "rest",
+            Function::Push => "push",
+            Function::Puts => "puts",
+        }
+    }
+}
+
 impl TryFrom<&str> for Function {
     type Error = &'static str;
 

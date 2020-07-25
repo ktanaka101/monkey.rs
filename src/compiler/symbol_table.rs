@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use super::preludes::*;
+use crate::evaluator::builtin;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -21,6 +22,17 @@ pub struct SymbolTable {
 impl SymbolTable {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn new_with_builtin() -> Self {
+        let mut sym_table = Self::new();
+        builtin::Function::iterator()
+            .enumerate()
+            .for_each(|(i, func)| {
+                sym_table.define_builtin(u8::try_from(i).unwrap(), func.name().to_string());
+            });
+
+        sym_table
     }
 
     pub fn new_enclosed(outer: Rc<RefCell<Self>>) -> Self {
