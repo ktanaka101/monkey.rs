@@ -232,6 +232,7 @@ impl<'a> Compiler<'a> {
                             let op = opcode::SetLocal(*index).into();
                             self.emit(op);
                         }
+                        symbol_table::Symbol::Builtin { .. } => unreachable!(),
                     };
                 }
                 ast::Stmt::Return(r) => {
@@ -325,16 +326,20 @@ impl<'a> Compiler<'a> {
                     let symbol = table.resolve(&id.value);
 
                     match symbol {
-                        Some(symbol) => match &*symbol.borrow() {
-                            symbol_table::Symbol::Global { index, .. } => {
-                                let op = opcode::GetGlobal(*index).into();
-                                self.emit(op);
-                            }
-                            symbol_table::Symbol::Local { index, .. } => {
-                                let op = opcode::GetLocal(*index).into();
-                                self.emit(op);
-                            }
-                        },
+                        Some(symbol) => {
+                            let symbol = match &*symbol.borrow() {
+                                symbol_table::Symbol::Global { index, .. } => {
+                                    opcode::GetGlobal(*index).into()
+                                }
+                                symbol_table::Symbol::Local { index, .. } => {
+                                    opcode::GetLocal(*index).into()
+                                }
+                                symbol_table::Symbol::Builtin { index, .. } => {
+                                    opcode::GetBuiltin(*index).into()
+                                }
+                            };
+                            self.emit(symbol);
+                        }
                         None => Err(anyhow::format_err!("undefined variable {}", id.value))?,
                     };
                 }
@@ -1255,6 +1260,53 @@ mod tests {
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Call(0).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+        ]
+        .into();
+        run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_builtins() {
+        let tests: Tests = vec![
+            (
+                "
+                len([]);
+                push([], 1);
+            ",
+                Vec::<Expected>::from(vec![1.into()]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::GetBuiltin(0).into(),
+                    opcode::Array(0).into(),
+                    opcode::Call(1).into(),
+                    opcode::Pop.into(),
+                    opcode::GetBuiltin(4).into(),
+                    opcode::Array(0).into(),
+                    opcode::Constant(0).into(),
+                    opcode::Call(2).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "fn() { len([]) }",
+                Vec::<Expected>::from(vec![vec![
+                    opcode::GetBuiltin(0).into(),
+                    opcode::Array(0).into(),
+                    opcode::Call(1).into(),
+                    opcode::ReturnValue.into(),
+                ]
+                .into()]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Constant(0).into(), opcode::Pop.into()]),
+            ),
+            (
+                r#"len("")"#,
+                Vec::<Expected>::from(vec!["".into()]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::GetBuiltin(0).into(),
+                    opcode::Constant(0).into(),
+                    opcode::Call(1).into(),
                     opcode::Pop.into(),
                 ]),
             ),
