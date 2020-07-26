@@ -233,6 +233,7 @@ impl<'a> Compiler<'a> {
                             self.emit(op);
                         }
                         symbol_table::Symbol::Builtin { .. } => unreachable!(),
+                        symbol_table::Symbol::Free { .. } => unreachable!(),
                     };
                 }
                 ast::Stmt::Return(r) => {
@@ -322,7 +323,7 @@ impl<'a> Compiler<'a> {
                 }
                 ast::Expr::Identifier(id) => {
                     let table = Rc::clone(&self.symbol_table);
-                    let table = table.borrow();
+                    let mut table = table.borrow_mut();
                     let symbol = table.resolve(&id.value);
 
                     match symbol {
@@ -370,9 +371,14 @@ impl<'a> Compiler<'a> {
                         self.emit(opcode::Return.into());
                     }
 
+                    let free_symbols = self.symbol_table.borrow().free_symbols.clone();
                     let num_locals = self.symbol_table.borrow().num_definitions;
                     let scope = self.leave_scope()?;
                     let instructions = scope.borrow().instructions.clone();
+
+                    free_symbols.iter().for_each(|sym| {
+                        self.load_symbol(&*sym.borrow());
+                    });
 
                     let compiled_func = object::CompiledFunction {
                         instructions,
@@ -380,7 +386,7 @@ impl<'a> Compiler<'a> {
                         num_parameters,
                     };
                     let constant = self.add_constant(compiled_func.into());
-                    self.emit(opcode::Closure(constant, 0).into());
+                    self.emit(opcode::Closure(constant, u8::try_from(free_symbols.len())?).into());
                 }
                 ast::Expr::Call(call) => {
                     self.compile((*call.func).into())?;
@@ -1306,6 +1312,136 @@ mod tests {
                     opcode::GetBuiltin(0).into(),
                     opcode::Constant(0).into(),
                     opcode::Call(1).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+        ]
+        .into();
+        run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_closures() {
+        let tests: Tests = vec![
+            (
+                "
+                    fn(a) {
+                        fn(b) {
+                            a + b
+                        }
+                    }
+                ",
+                Vec::<Expected>::from(vec![
+                    vec![
+                        opcode::GetFree(0).into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Add.into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                    vec![
+                        opcode::GetLocal(0).into(),
+                        opcode::Closure(0, 1).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Closure(1, 0).into(), opcode::Pop.into()]),
+            ),
+            (
+                "
+                    fn(a) {
+                        fn(b) {
+                            fn(c) {
+                                a + b + c
+                            }
+                        }
+                    }
+                ",
+                Vec::<Expected>::from(vec![
+                    vec![
+                        opcode::GetFree(0).into(),
+                        opcode::GetFree(1).into(),
+                        opcode::Add.into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Add.into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                    vec![
+                        opcode::GetFree(0).into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Closure(0, 2).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                    vec![
+                        opcode::GetLocal(0).into(),
+                        opcode::Closure(1, 1).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
+            ),
+            (
+                "
+                    let global = 55;
+
+                    fn() {
+                        let a = 66;
+
+                        fn() {
+                            let b = 77;
+
+                            fn() {
+                                let c = 88;
+
+                                global + a + b + c;
+                            }
+                        }
+                    }
+                ",
+                Vec::<Expected>::from(vec![
+                    55.into(),
+                    66.into(),
+                    77.into(),
+                    88.into(),
+                    vec![
+                        opcode::Constant(3).into(),
+                        opcode::SetLocal(0).into(),
+                        opcode::GetGlobal(0).into(),
+                        opcode::GetFree(0).into(),
+                        opcode::Add.into(),
+                        opcode::GetFree(1).into(),
+                        opcode::Add.into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Add.into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                    vec![
+                        opcode::Constant(2).into(),
+                        opcode::SetLocal(0).into(),
+                        opcode::GetFree(0).into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Closure(4, 2).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                    vec![
+                        opcode::Constant(1).into(),
+                        opcode::SetLocal(0).into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Closure(5, 1).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Constant(0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::Closure(6, 0).into(),
                     opcode::Pop.into(),
                 ]),
             ),
