@@ -16,6 +16,7 @@ But in this repository it is written in Rust.
 - [x] REPL
 - [x] Test case
 - [x] Evaluator and VM benchmarks
+- [ ] Refactoring
 - [ ] Optimize data structure
 - [ ] Support LLVM
 
