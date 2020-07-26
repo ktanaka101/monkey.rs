@@ -20,6 +20,41 @@ But in this repository it is written in Rust.
 - [x] Test case
 - [x] Evaluator and VM benchmarks
 
+## Example
+
+### REPL
+
+```sh
+$ cargo run
+>> let a = 5
+5
+>> a + 10
+15
+>> let new_closure = fn(a) { fn() { a; }; };
+Closure[CompiledFunction[0000 GetLocal 0¥n0002 Closure 3 1¥n0006 ReturnValue¥n] ]
+>> let closure = new_closure(99);
+Closure[CompiledFunction[0000 GetFree 0¥n0002 ReturnValue¥n] 99]
+>> closure();
+99
+```
+
+### Fibonacchi
+
+```monkey
+let fibonacci = fn(x) {
+    if (x == 0) {
+      return 0;
+    } else {
+      if (x == 1) {
+        return 1;
+      } else {
+      fibonacci(x - 1) + fibonacci(x - 2);
+    }
+  }
+};
+fibonacci(15); #=> 610
+```
+
 ## TODO
 
 - [ ] Refactoring
