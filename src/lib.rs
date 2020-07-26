@@ -7,10 +7,9 @@ mod preludes {
     pub use std::fmt::{Display, Formatter};
 }
 
-mod compiler;
-mod lexer;
-mod parser;
-
+pub mod compiler;
 pub mod evaluator;
+pub mod lexer;
+pub mod parser;
 pub mod repl;
 pub mod vm;
