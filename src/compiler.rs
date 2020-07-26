@@ -237,6 +237,7 @@ impl<'a> Compiler<'a> {
                         }
                         symbol_table::Symbol::Builtin { .. } => unreachable!(),
                         symbol_table::Symbol::Free { .. } => unreachable!(),
+                        symbol_table::Symbol::Function { .. } => unreachable!(),
                     };
                 }
                 ast::Stmt::Return(r) => {
@@ -360,6 +361,12 @@ impl<'a> Compiler<'a> {
                 ast::Expr::Function(func) => {
                     self.enter_scope();
 
+                    if !func.name.is_empty() {
+                        self.symbol_table
+                            .borrow_mut()
+                            .define_function_name(func.name);
+                    }
+
                     let num_parameters = u8::try_from(func.params.len())?;
 
                     func.params.into_iter().for_each(|param| {
@@ -450,6 +457,7 @@ impl<'a> Compiler<'a> {
             symbol_table::Symbol::Local { index, .. } => opcode::GetLocal(*index).into(),
             symbol_table::Symbol::Builtin { index, .. } => opcode::GetBuiltin(*index).into(),
             symbol_table::Symbol::Free { index, .. } => opcode::GetFree(*index).into(),
+            symbol_table::Symbol::Function { .. } => opcode::CurrentClosure.into(),
         };
         self.emit(symbol);
     }
@@ -1445,6 +1453,79 @@ mod tests {
                     opcode::Constant(0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::Closure(6, 0).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+        ]
+        .into();
+        run_compiler_tests(tests);
+    }
+
+    #[test]
+    fn test_recursive_functions() {
+        let tests: Tests = vec![
+            (
+                "
+                    let count_down = fn(x) { count_down(x - 1); };
+                    count_down(1);
+                ",
+                Vec::<Expected>::from(vec![
+                    1.into(),
+                    vec![
+                        opcode::CurrentClosure.into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Constant(0).into(),
+                        opcode::Sub.into(),
+                        opcode::Call(1).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                    1.into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Closure(1, 0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Constant(2).into(),
+                    opcode::Call(1).into(),
+                    opcode::Pop.into(),
+                ]),
+            ),
+            (
+                "
+                    let wrapper = fn() {
+                        let count_down = fn(x) { count_down(x - 1); };
+                        count_down(1);
+                    }
+                    wrapper();
+                ",
+                Vec::<Expected>::from(vec![
+                    1.into(),
+                    vec![
+                        opcode::CurrentClosure.into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Constant(0).into(),
+                        opcode::Sub.into(),
+                        opcode::Call(1).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                    1.into(),
+                    vec![
+                        opcode::Closure(1, 0).into(),
+                        opcode::SetLocal(0).into(),
+                        opcode::GetLocal(0).into(),
+                        opcode::Constant(2).into(),
+                        opcode::Call(1).into(),
+                        opcode::ReturnValue.into(),
+                    ]
+                    .into(),
+                ]),
+                Vec::<opcode::Opcode>::from(vec![
+                    opcode::Closure(3, 0).into(),
+                    opcode::SetGlobal(0).into(),
+                    opcode::GetGlobal(0).into(),
+                    opcode::Call(0).into(),
                     opcode::Pop.into(),
                 ]),
             ),
