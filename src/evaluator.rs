@@ -1278,6 +1278,37 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_fibonacci() {
+        let input = "            
+            let fibonacci = fn(x) {
+                if (x == 0) {
+                    return 0;
+                } else {
+                    if (x == 1) {
+                        return 1;
+                    } else {
+                        fibonacci(x - 1) + fibonacci(x - 2);
+                    }
+                }
+            };
+            fibonacci(15);
+        ";
+
+        let env = Rc::new(RefCell::new(Environment::new(None)));
+        let program = {
+            let l = crate::lexer::Lexer::new(input.into());
+            let mut p = crate::parser::Parser::new(l);
+            p.parse_program().unwrap()
+        };
+
+        let obj = eval_node(&program.into(), env).unwrap();
+        match obj {
+            object::Object::Integer(i) => assert_eq!(i.value, 610),
+            other => panic!("expected Integer. received {}", other),
+        };
+    }
+
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T
     where
         E: std::fmt::Debug,
