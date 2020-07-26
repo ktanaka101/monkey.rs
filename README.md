@@ -57,6 +57,7 @@ fibonacci(15); #=> 610
 
 ## TODO
 
+- [ ] Improve REPL
 - [ ] Refactoring
 - [ ] Optimize data structure
 - [ ] Support LLVM
