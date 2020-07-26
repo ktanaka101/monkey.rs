@@ -8,7 +8,15 @@ That interpreter is Monkey.
 In the book the Moneky interpreter is written in Go.  
 But in this repository it is written in Rust.  
 
-Caution!! Since I wrote Rust for the first time, the source code for this repository may not be the best practice.
+- [x] Lexer
+- [x] Parser
+- [x] Evaluator
+- [x] Compiler
+- [x] VM
+- [x] Test case
+- [x] Evaluator and VM benchmarks
+- [ ] Optimize data structure
+- [ ] Support LLVM
 
 ## Contributors
 
