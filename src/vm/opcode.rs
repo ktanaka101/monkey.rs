@@ -2,6 +2,7 @@ mod add;
 mod array;
 mod bang;
 mod call;
+mod closure;
 mod constant;
 mod div;
 mod equal;
@@ -30,6 +31,7 @@ pub use add::Add;
 pub use array::Array;
 pub use bang::Bang;
 pub use call::Call;
+pub use closure::Closure;
 pub use constant::Constant;
 pub use div::Div;
 pub use equal::Equal;
@@ -94,6 +96,7 @@ pub enum OperandType {
     GetLocal = 24,
     SetLocal = 25,
     GetBuiltin = 26,
+    Closure = 27,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -128,6 +131,7 @@ impl TryFrom<u8> for OperandType {
             24 => Self::GetLocal,
             25 => Self::SetLocal,
             26 => Self::GetBuiltin,
+            27 => Self::Closure,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -168,6 +172,7 @@ pub enum Opcode {
     GetLocal(GetLocal),
     SetLocal(SetLocal),
     GetBuiltin(GetBuiltin),
+    Closure(Closure),
 }
 
 impl Opcode {
@@ -200,6 +205,7 @@ impl Opcode {
             Opcode::GetLocal(o) => o.to_bytes().to_vec(),
             Opcode::SetLocal(o) => o.to_bytes().to_vec(),
             Opcode::GetBuiltin(o) => o.to_bytes().to_vec(),
+            Opcode::Closure(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -232,6 +238,7 @@ impl Opcode {
             Opcode::GetLocal(o) => o.readsize(),
             Opcode::SetLocal(o) => o.readsize(),
             Opcode::GetBuiltin(o) => o.readsize(),
+            Opcode::Closure(o) => o.readsize(),
         }
     }
 }
@@ -398,6 +405,12 @@ impl From<GetBuiltin> for Opcode {
     }
 }
 
+impl From<Closure> for Opcode {
+    fn from(value: Closure) -> Self {
+        Opcode::Closure(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -433,6 +446,10 @@ impl TryFrom<&[Instruction]> for Opcode {
             OperandType::GetLocal => Ok(GetLocal(GetLocal::try_read(&value[1..])?).into()),
             OperandType::SetLocal => Ok(SetLocal(SetLocal::try_read(&value[1..])?).into()),
             OperandType::GetBuiltin => Ok(GetBuiltin(GetBuiltin::try_read(&value[1..])?).into()),
+            OperandType::Closure => {
+                let res = Closure::try_read(&value[1..])?;
+                Ok(Closure(res.0, res.1).into())
+            }
         }
     }
 }
@@ -467,6 +484,7 @@ impl Display for Opcode {
             Self::GetLocal(o) => write!(f, "{}", o),
             Self::SetLocal(o) => write!(f, "{}", o),
             Self::GetBuiltin(o) => write!(f, "{}", o),
+            Self::Closure(o) => write!(f, "{}", o),
         }
     }
 }

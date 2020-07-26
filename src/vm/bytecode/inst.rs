@@ -80,6 +80,12 @@ impl From<opcode::GetBuiltin> for Instructions {
     }
 }
 
+impl From<opcode::Closure> for Instructions {
+    fn from(value: opcode::Closure) -> Self {
+        value.to_bytes().to_vec().into()
+    }
+}
+
 impl<T: ToBytes<1, 0>> From<T> for Instructions {
     fn from(value: T) -> Self {
         value.to_bytes().to_vec().into()
@@ -168,6 +174,7 @@ mod test {
             opcode::GetLocal(254).into(),
             opcode::SetLocal(254).into(),
             opcode::GetBuiltin(254).into(),
+            opcode::Closure(65535, 255).into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -196,7 +203,8 @@ mod test {
             0037 Return¥n\
             0038 GetLocal 254¥n\
             0040 SetLocal 254¥n\
-            0042 GetBuiltin 254¥n";
+            0042 GetBuiltin 254¥n\
+            0044 Closure 65535 255¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }
