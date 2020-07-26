@@ -57,6 +57,7 @@ fibonacci(15); #=> 610
 
 ## TODO
 
+- [ ] Improve print output
 - [ ] Improve REPL
 - [ ] Refactoring
 - [ ] Optimize data structure
