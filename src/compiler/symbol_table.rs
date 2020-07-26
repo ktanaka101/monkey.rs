@@ -10,6 +10,19 @@ pub enum Symbol {
     Global { name: String, index: u16 },
     Local { name: String, index: u8 },
     Builtin { name: String, index: u8 },
+    Free { name: String, index: u8 },
+}
+
+impl Symbol {
+    fn name(&self) -> String {
+        match self {
+            Symbol::Global { name, .. } => name,
+            Symbol::Local { name, .. } => name,
+            Symbol::Builtin { name, .. } => name,
+            Symbol::Free { name, .. } => name,
+        }
+        .clone()
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -17,6 +30,7 @@ pub struct SymbolTable {
     pub outer: Option<Rc<RefCell<SymbolTable>>>,
     store: HashMap<String, Rc<RefCell<Symbol>>>,
     pub num_definitions: u16,
+    pub free_symbols: Vec<Rc<RefCell<Symbol>>>,
 }
 
 impl SymbolTable {
@@ -40,6 +54,7 @@ impl SymbolTable {
             outer: Some(outer),
             store: Default::default(),
             num_definitions: Default::default(),
+            free_symbols: Default::default(),
         }
     }
 
@@ -76,15 +91,40 @@ impl SymbolTable {
         symbol
     }
 
-    pub fn resolve(&self, name: &str) -> Option<Rc<RefCell<Symbol>>> {
+    pub fn define_free(&mut self, original: Rc<RefCell<Symbol>>) -> Rc<RefCell<Symbol>> {
+        self.free_symbols.push(Rc::clone(&original));
+
+        let name = original.borrow().name();
+
+        let symbol = Rc::new(RefCell::new(Symbol::Free {
+            name: name.clone(),
+            index: u8::try_from(self.free_symbols.len()).unwrap() - 1,
+        }));
+
+        self.store.insert(name, Rc::clone(&symbol));
+
+        symbol
+    }
+
+    pub fn resolve(&mut self, name: &str) -> Option<Rc<RefCell<Symbol>>> {
         let result = self.store.get(name).map(|sym| Rc::clone(&sym));
         if result.is_some() {
             return result;
         }
 
         if let Some(outer) = &self.outer {
-            let outer = outer.borrow();
-            outer.resolve(name)
+            let result = outer.borrow_mut().resolve(name);
+            if let Some(res) = result {
+                match *res.borrow() {
+                    Symbol::Global { .. } | Symbol::Builtin { .. } => Some(Rc::clone(&res)),
+                    Symbol::Free { .. } | Symbol::Local { .. } => {
+                        let free = self.define_free(Rc::clone(&res));
+                        Some(free)
+                    }
+                }
+            } else {
+                result
+            }
         } else {
             None
         }
@@ -309,12 +349,12 @@ mod tests {
                 .into_iter()
                 .for_each(|expected_symbol| match &expected_symbol {
                     Symbol::Global { name, .. } => {
-                        let table = table.borrow();
+                        let mut table = table.borrow_mut();
                         let result = table.resolve(&name).unwrap();
                         assert_eq!(result, Rc::new(RefCell::new(expected_symbol)));
                     }
                     Symbol::Local { name, .. } => {
-                        let table = table.borrow();
+                        let mut table = table.borrow_mut();
                         let result = table.resolve(&name).unwrap();
                         assert_eq!(result, Rc::new(RefCell::new(expected_symbol)));
                     }
@@ -340,7 +380,7 @@ mod tests {
             .into_iter()
             .for_each(move |symbol_table| {
                 expected.iter().for_each(|(name, index)| {
-                    let result = symbol_table.borrow().resolve(name);
+                    let result = symbol_table.borrow_mut().resolve(name);
                     if let Some(result) = result {
                         assert_eq!(
                             *result.borrow(),
@@ -354,5 +394,161 @@ mod tests {
                     }
                 });
             });
+    }
+
+    #[test]
+    fn test_resolve_free() {
+        let mut global = SymbolTable::new();
+        global.define("a".to_string());
+        global.define("b".to_string());
+
+        let mut first_local = SymbolTable::new_enclosed(Rc::new(RefCell::new(global)));
+        first_local.define("c".to_string());
+        first_local.define("d".to_string());
+        let first_local = Rc::new(RefCell::new(first_local));
+
+        let mut second_local = SymbolTable::new_enclosed(Rc::clone(&first_local));
+        second_local.define("e".to_string());
+        second_local.define("f".to_string());
+
+        let tests: Vec<(Rc<RefCell<SymbolTable>>, Vec<Symbol>, Vec<Symbol>)> = vec![
+            (
+                first_local,
+                vec![
+                    Symbol::Global {
+                        name: "a".to_string(),
+                        index: 0,
+                    },
+                    Symbol::Global {
+                        name: "b".to_string(),
+                        index: 1,
+                    },
+                    Symbol::Local {
+                        name: "c".to_string(),
+                        index: 0,
+                    },
+                    Symbol::Local {
+                        name: "d".to_string(),
+                        index: 1,
+                    },
+                ],
+                vec![],
+            ),
+            (
+                Rc::new(RefCell::new(second_local)),
+                vec![
+                    Symbol::Global {
+                        name: "a".to_string(),
+                        index: 0,
+                    },
+                    Symbol::Global {
+                        name: "b".to_string(),
+                        index: 1,
+                    },
+                    Symbol::Free {
+                        name: "c".to_string(),
+                        index: 0,
+                    },
+                    Symbol::Free {
+                        name: "d".to_string(),
+                        index: 1,
+                    },
+                    Symbol::Local {
+                        name: "e".to_string(),
+                        index: 0,
+                    },
+                    Symbol::Local {
+                        name: "f".to_string(),
+                        index: 1,
+                    },
+                ],
+                vec![
+                    Symbol::Local {
+                        name: "c".to_string(),
+                        index: 0,
+                    },
+                    Symbol::Local {
+                        name: "d".to_string(),
+                        index: 1,
+                    },
+                ],
+            ),
+        ];
+
+        tests
+            .into_iter()
+            .for_each(|(symbol_table, expected_symbols, expected_free_symbols)| {
+                expected_symbols.into_iter().for_each(|sym| {
+                    let result = symbol_table.borrow_mut().resolve(&sym.name());
+                    if let Some(result) = result {
+                        assert_eq!(*result.borrow(), sym);
+                    } else {
+                        panic!("name {} not resolvable", sym.name());
+                    }
+                });
+
+                assert_eq!(
+                    symbol_table.borrow().free_symbols.len(),
+                    expected_free_symbols.len()
+                );
+
+                expected_free_symbols
+                    .iter()
+                    .enumerate()
+                    .for_each(|(i, sym)| {
+                        let table = symbol_table.borrow();
+                        let result = table.free_symbols[i].borrow();
+                        assert_eq!(&*result, sym);
+                    });
+            });
+    }
+
+    #[test]
+    fn test_resolve_unresolveable_free() {
+        let mut global = SymbolTable::new();
+        global.define("a".to_string());
+
+        let mut first_local = SymbolTable::new_enclosed(Rc::new(RefCell::new(global)));
+        first_local.define("c".to_string());
+
+        let mut second_local = SymbolTable::new_enclosed(Rc::new(RefCell::new(first_local)));
+        second_local.define("e".to_string());
+        second_local.define("f".to_string());
+
+        let expected = vec![
+            Symbol::Global {
+                name: "a".to_string(),
+                index: 0,
+            },
+            Symbol::Free {
+                name: "c".to_string(),
+                index: 0,
+            },
+            Symbol::Local {
+                name: "e".to_string(),
+                index: 0,
+            },
+            Symbol::Local {
+                name: "f".to_string(),
+                index: 1,
+            },
+        ];
+
+        expected.into_iter().for_each(|expected_sym| {
+            let result = second_local.resolve(&expected_sym.name());
+            if let Some(result) = result {
+                assert_eq!(*result.borrow(), expected_sym);
+            } else {
+                panic!("name {} not resolvable", expected_sym.name())
+            }
+        });
+
+        let expected_unresolvable = vec!["b", "d"];
+
+        expected_unresolvable.iter().for_each(|name| {
+            if let Some(_) = second_local.resolve(name) {
+                panic!("name {} resolved, but was expected not to", name);
+            }
+        });
     }
 }
