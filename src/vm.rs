@@ -369,9 +369,17 @@ impl<'a> VM<'a> {
                     let constant = &self.constants[usize::from(closure.0)];
                     match constant {
                         object::Object::CompiledFunction(func) => {
+                            let free = (0..usize::from(closure.1))
+                                .map(|i| {
+                                    self.stack.data[self.stack.pointer - usize::from(closure.1) + i]
+                                        .clone()
+                                })
+                                .collect::<Vec<_>>();
+                            self.stack.pointer -= usize::from(closure.1);
+
                             let cl_obj = object::Closure {
                                 func: func.clone(),
-                                free: Default::default(),
+                                free,
                             };
                             self.stack.push(cl_obj.into())?;
                         }
@@ -380,7 +388,13 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + closure.readsize();
                 }
-                opcode::Opcode::GetFree(free) => unimplemented!(),
+                opcode::Opcode::GetFree(free) => {
+                    self.stack.push(
+                        self.stack_frame.current().borrow().cl.free[usize::from(free.0)].clone(),
+                    )?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + free.readsize();
+                }
             }
         }
 
@@ -1074,6 +1088,86 @@ mod tests {
             (
                 "push(1, 1)",
                 Expected::Err("argument to 'push' must be Array, got Integer".into()),
+            ),
+        ]
+        .into();
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_closures() {
+        let tests: Tests = vec![
+            (
+                "
+                    let new_closure = fn(a) {
+                        fn() { a; };
+                    };
+                    let closure = new_closure(99);
+                    closure();
+                ",
+                99,
+            ),
+            (
+                "
+                    let new_adder = fn(a, b) {
+                        fn(c) { a + b + c };
+                    };
+                    let adder = new_adder(1, 2);
+                    adder(8);
+                ",
+                11,
+            ),
+            (
+                "
+                    let new_adder = fn(a, b) {
+                        let c = a + b;
+                        fn(d) { c + d };
+                    };
+                    let adder = new_adder(1, 2);
+                    adder(8);
+                ",
+                11,
+            ),
+            (
+                "
+                    let new_adder_outer = fn(a, b) {
+                        let c = a + b;
+                        fn(d) {
+                            let e = d + c;
+                            fn(f) { e + f; };
+                        };
+                    };
+                    let new_adder_inner = new_adder_outer(1, 2);
+                    let adder = new_adder_inner(3);
+                    adder(8);
+                ",
+                14,
+            ),
+            (
+                "
+                    let a = 1;
+                    let new_adder_outer = fn(b) {
+                        fn(c) {
+                            fn(d) { a + b + c + d; };
+                        };
+                    };
+                    let new_adder_inner = new_adder_outer(2);
+                    let adder = new_adder_inner(3);
+                    adder(8);
+                ",
+                14,
+            ),
+            (
+                "
+                    let new_closure = fn(a, b) {
+                        let one = fn() { a; };
+                        let two = fn() { b; };
+                        fn() { one() + two(); };
+                    };
+                    let closure = new_closure(9, 90);
+                    closure();
+                ",
+                99,
             ),
         ]
         .into();
