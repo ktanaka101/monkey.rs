@@ -13,6 +13,7 @@ But in this repository it is written in Rust.
 - [x] Evaluator
 - [x] Compiler
 - [x] VM
+- [x] REPL
 - [x] Test case
 - [x] Evaluator and VM benchmarks
 - [ ] Optimize data structure
