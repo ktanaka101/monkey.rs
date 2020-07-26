@@ -395,7 +395,12 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + free.readsize();
                 }
-                opcode::Opcode::CurrentClosure(curr_cl) => unimplemented!(),
+                opcode::Opcode::CurrentClosure(curr_cl) => {
+                    let current_closure = self.stack_frame.current().borrow().cl.clone();
+                    self.stack.push(current_closure.into())?;
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + curr_cl.readsize();
+                }
             }
         }
 
@@ -1177,19 +1182,53 @@ mod tests {
 
     #[test]
     fn test_recursive_functions() {
-        let tests: Tests = vec![(
-            "
-                let count_down = fn(x) {
-                    if (x == 0) {
-                        return 0;
-                    } else {
-                        count_down(x - 1);
-                    }
-                };
-                count_down(1);
-            ",
-            0,
-        )]
+        let tests: Tests = vec![
+            (
+                "
+                    let count_down = fn(x) {
+                        if (x == 0) {
+                            return 0;
+                        } else {
+                            count_down(x - 1);
+                        }
+                    };
+                    count_down(1);
+                ",
+                0,
+            ),
+            (
+                "
+                    let count_down = fn(x) {
+                        if (x == 0) {
+                            return 0;
+                        } else {
+                            count_down(x - 1);
+                        }
+                    };
+                    let wrapper = fn() {
+                        count_down(1);
+                    };
+                    wrapper();
+                ",
+                0,
+            ),
+            (
+                "
+                    let wrapper = fn() {
+                        let count_down = fn(x) {
+                            if (x == 0) {
+                                return 0;
+                            } else {
+                                count_down(x - 1);
+                            }
+                        };
+                        count_down(1);
+                    };
+                    wrapper();
+                ",
+                0,
+            ),
+        ]
         .into();
         run_vm_tests(tests);
     }
