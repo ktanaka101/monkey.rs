@@ -338,7 +338,7 @@ fn extend_function_env(
 
 fn unwrap_return_value(obj: &object::Object) -> object::Object {
     match obj.clone() {
-        object::Object::Return(o) => o.into(),
+        object::Object::Return(o) => *o.value,
         o => o,
     }
 }
