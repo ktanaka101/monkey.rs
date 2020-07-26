@@ -327,18 +327,7 @@ impl<'a> Compiler<'a> {
 
                     match symbol {
                         Some(symbol) => {
-                            let symbol = match &*symbol.borrow() {
-                                symbol_table::Symbol::Global { index, .. } => {
-                                    opcode::GetGlobal(*index).into()
-                                }
-                                symbol_table::Symbol::Local { index, .. } => {
-                                    opcode::GetLocal(*index).into()
-                                }
-                                symbol_table::Symbol::Builtin { index, .. } => {
-                                    opcode::GetBuiltin(*index).into()
-                                }
-                            };
-                            self.emit(symbol);
+                            self.load_symbol(&*symbol.borrow());
                         }
                         None => Err(anyhow::format_err!("undefined variable {}", id.value))?,
                     };
@@ -444,6 +433,16 @@ impl<'a> Compiler<'a> {
         }
 
         Ok(scope)
+    }
+
+    fn load_symbol(&mut self, symbol: &symbol_table::Symbol) {
+        let symbol = match symbol {
+            symbol_table::Symbol::Global { index, .. } => opcode::GetGlobal(*index).into(),
+            symbol_table::Symbol::Local { index, .. } => opcode::GetLocal(*index).into(),
+            symbol_table::Symbol::Builtin { index, .. } => opcode::GetBuiltin(*index).into(),
+            symbol_table::Symbol::Free { index, .. } => opcode::GetFree(*index).into(),
+        };
+        self.emit(symbol);
     }
 }
 
