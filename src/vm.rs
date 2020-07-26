@@ -1174,6 +1174,25 @@ mod tests {
         run_vm_tests(tests);
     }
 
+    #[test]
+    fn test_recursive_functions() {
+        let tests: Tests = vec![(
+            "
+                let count_down = fn(x) {
+                    if (x == 0) {
+                        return 0;
+                    } else {
+                        count_down(x - 1);
+                    }
+                };
+                count_down(1);
+            ",
+            0,
+        )]
+        .into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_err_test(tests: Vec<(&'static str, &'static str)>) {
         tests.into_iter().for_each(|(input, expected)| {
             let program = parse(input);

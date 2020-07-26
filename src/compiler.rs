@@ -218,10 +218,13 @@ impl<'a> Compiler<'a> {
                         .try_for_each(|stmt| self.compile(stmt.into()))?;
                 }
                 ast::Stmt::Let(l) => {
+                    let symbol = {
+                        let table = Rc::clone(&self.symbol_table);
+                        let mut table = table.borrow_mut();
+                        table.define(l.name.value)
+                    };
+
                     self.compile(l.value.into())?;
-                    let table = Rc::clone(&self.symbol_table);
-                    let mut table = table.borrow_mut();
-                    let symbol = table.define(l.name.value);
 
                     match &*symbol.borrow() {
                         symbol_table::Symbol::Global { index, .. } => {
