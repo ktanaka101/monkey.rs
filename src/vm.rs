@@ -129,7 +129,11 @@ impl<'a> VM<'a> {
             num_locals: 0,
             num_parameters: 0,
         };
-        let main_frame = frame::Frame::new(main_fn, 0);
+        let closure = object::Closure {
+            func: main_fn,
+            ..Default::default()
+        };
+        let main_frame = frame::Frame::new(closure, 0);
 
         let mut stack_frame = frame::StackFrame::new();
         stack_frame.push(main_frame);
@@ -278,22 +282,22 @@ impl<'a> VM<'a> {
                     let num_args = call.0;
                     let obj = &self.stack.data[self.stack.pointer - 1 - usize::from(num_args)];
                     match obj {
-                        object::Object::CompiledFunction(func) => {
-                            if func.num_parameters != num_args {
+                        object::Object::Closure(cl) => {
+                            if cl.func.num_parameters != num_args {
                                 Err(anyhow::format_err!(
                                     "wrong number of arguments: want={}, got={}",
-                                    func.num_parameters,
+                                    cl.func.num_parameters,
                                     num_args
                                 ))?;
                             }
 
                             let frame = frame::Frame::new(
-                                func.clone(),
+                                cl.clone(),
                                 self.stack.pointer - usize::from(num_args),
                             );
                             let bp = frame.base_pointer;
                             self.stack_frame.push(frame);
-                            self.stack.pointer = bp + usize::from(func.num_locals);
+                            self.stack.pointer = bp + usize::from(cl.func.num_locals);
                         }
                         object::Object::Builtin(builtin) => {
                             self.stack_frame.current().borrow_mut().pointer += 1;
@@ -361,7 +365,21 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + builtin.readsize();
                 }
-                opcode::Opcode::Closure(closure) => unimplemented!(),
+                opcode::Opcode::Closure(closure) => {
+                    let constant = &self.constants[usize::from(closure.0)];
+                    match constant {
+                        object::Object::CompiledFunction(func) => {
+                            let cl_obj = object::Closure {
+                                func: func.clone(),
+                                free: Default::default(),
+                            };
+                            self.stack.push(cl_obj.into())?;
+                        }
+                        other => Err(anyhow::format_err!("not a function: {}", other))?,
+                    }
+
+                    self.stack_frame.current().borrow_mut().pointer += 1 + closure.readsize();
+                }
             }
         }
 

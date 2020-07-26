@@ -8,34 +8,34 @@ use vm::bytecode;
 
 pub const MAX_FRAMES: usize = 1024;
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Frame {
-    pub func: object::CompiledFunction,
+    pub cl: object::Closure,
     pub pointer: usize,
     pub base_pointer: usize,
 }
 
 impl Frame {
-    pub fn new(func: object::CompiledFunction, base_pointer: usize) -> Self {
+    pub fn new(cl: object::Closure, base_pointer: usize) -> Self {
         Self {
-            func,
+            cl,
             pointer: 0,
             base_pointer,
         }
     }
 
     pub fn instructions(&self) -> &bytecode::Instructions {
-        &self.func.instructions
+        &self.cl.func.instructions
     }
 }
 
 impl From<Frame> for bytecode::Instructions {
     fn from(value: Frame) -> Self {
-        value.func.instructions
+        value.cl.func.instructions
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StackFrame {
     frames: Vec<Rc<RefCell<Frame>>>,
     pointer: usize,

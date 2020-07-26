@@ -391,7 +391,7 @@ impl<'a> Compiler<'a> {
                         num_parameters,
                     };
                     let constant = self.add_constant(compiled_func.into());
-                    self.emit(opcode::Constant(constant).into());
+                    self.emit(opcode::Closure(constant, 0).into());
                 }
                 ast::Expr::Call(call) => {
                     self.compile((*call.func).into())?;
@@ -949,7 +949,7 @@ mod tests {
                     ])
                     .into(),
                 ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
             ),
             (
                 "fn() { 5 + 10 }",
@@ -964,7 +964,7 @@ mod tests {
                     ])
                     .into(),
                 ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
             ),
             (
                 "fn() { 1; 2 }",
@@ -979,7 +979,7 @@ mod tests {
                     ])
                     .into(),
                 ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
             ),
         ]
         .into();
@@ -1049,7 +1049,7 @@ mod tests {
         let tests: Tests = vec![(
             "fn() { }",
             vec![vec![opcode::Return.into()]],
-            Vec::<opcode::Opcode>::from(vec![opcode::Constant(0).into(), opcode::Pop.into()]),
+            Vec::<opcode::Opcode>::from(vec![opcode::Closure(0, 0).into(), opcode::Pop.into()]),
         )]
         .into();
         run_compiler_tests(tests);
@@ -1065,7 +1065,7 @@ mod tests {
                     vec![opcode::Constant(0).into(), opcode::ReturnValue.into()].into(),
                 ]),
                 Vec::<opcode::Opcode>::from(vec![
-                    opcode::Constant(1).into(),
+                    opcode::Closure(1, 0).into(),
                     opcode::Call(0).into(),
                     opcode::Pop.into(),
                 ]),
@@ -1080,7 +1080,7 @@ mod tests {
                     vec![opcode::Constant(0).into(), opcode::ReturnValue.into()].into(),
                 ]),
                 Vec::<opcode::Opcode>::from(vec![
-                    opcode::Constant(1).into(),
+                    opcode::Closure(1, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Call(0).into(),
@@ -1094,7 +1094,7 @@ mod tests {
                 ",
                 Vec::<Expected>::from(vec![vec![opcode::Return.into()].into(), 24.into()]),
                 Vec::<opcode::Opcode>::from(vec![
-                    opcode::Constant(0).into(),
+                    opcode::Closure(0, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Constant(1).into(),
@@ -1104,8 +1104,8 @@ mod tests {
             ),
             (
                 "
-                    let one_arg = fn(a, b, c) { };
-                    one_arg(24, 25, 26);
+                    let many_arg = fn(a, b, c) { };
+                    many_arg(24, 25, 26);
                 ",
                 Vec::<Expected>::from(vec![
                     vec![opcode::Return.into()].into(),
@@ -1114,7 +1114,7 @@ mod tests {
                     26.into(),
                 ]),
                 Vec::<opcode::Opcode>::from(vec![
-                    opcode::Constant(0).into(),
+                    opcode::Closure(0, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Constant(1).into(),
@@ -1134,7 +1134,7 @@ mod tests {
                     24.into(),
                 ]),
                 Vec::<opcode::Opcode>::from(vec![
-                    opcode::Constant(0).into(),
+                    opcode::Closure(0, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Constant(1).into(),
@@ -1144,8 +1144,8 @@ mod tests {
             ),
             (
                 "
-                    let one_arg = fn(a, b, c) { a; b; c; };
-                    one_arg(24, 25, 26);
+                    let many_arg = fn(a, b, c) { a; b; c; };
+                    many_arg(24, 25, 26);
                 ",
                 Vec::<Expected>::from(vec![
                     vec![
@@ -1162,7 +1162,7 @@ mod tests {
                     26.into(),
                 ]),
                 Vec::<opcode::Opcode>::from(vec![
-                    opcode::Constant(0).into(),
+                    opcode::Closure(0, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Constant(1).into(),
@@ -1192,7 +1192,7 @@ mod tests {
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::Constant(0).into(),
                     opcode::SetGlobal(0).into(),
-                    opcode::Constant(1).into(),
+                    opcode::Closure(1, 0).into(),
                     opcode::Pop.into(),
                 ]),
             ),
@@ -1213,7 +1213,7 @@ mod tests {
                     ]
                     .into(),
                 ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Constant(1).into(), opcode::Pop.into()]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Closure(1, 0).into(), opcode::Pop.into()]),
             ),
             (
                 "
@@ -1238,7 +1238,7 @@ mod tests {
                     ]
                     .into(),
                 ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Constant(2).into(), opcode::Pop.into()]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
             ),
             (
                 "
@@ -1256,7 +1256,7 @@ mod tests {
                     .into(),
                 ]),
                 Vec::<opcode::Opcode>::from(vec![
-                    opcode::Constant(1).into(),
+                    opcode::Closure(1, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Call(0).into(),
@@ -1298,7 +1298,7 @@ mod tests {
                     opcode::ReturnValue.into(),
                 ]
                 .into()]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Constant(0).into(), opcode::Pop.into()]),
+                Vec::<opcode::Opcode>::from(vec![opcode::Closure(0, 0).into(), opcode::Pop.into()]),
             ),
             (
                 r#"len("")"#,
