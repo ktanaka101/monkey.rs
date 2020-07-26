@@ -4,6 +4,7 @@ use super::prelude::*;
 pub struct Function {
     pub params: Vec<Identifier>,
     pub body: Block,
+    pub name: String,
 }
 
 impl Function {
@@ -15,8 +16,9 @@ impl Function {
 impl Display for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let out = format!(
-            "{}({}) {}",
+            "{} {}({}) {}",
             Self::literal(),
+            self.name,
             self.params
                 .iter()
                 .map(|p| p.to_string())

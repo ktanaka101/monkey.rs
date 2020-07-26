@@ -266,6 +266,7 @@ mod tests {
                     body: Block {
                         statements: vec![ExprStmt { expr: one() }.into()],
                     },
+                    name: "".to_string(),
                 })
                 .into(),
                 Expr::from(Function {
@@ -273,6 +274,7 @@ mod tests {
                     body: Block {
                         statements: vec![ExprStmt { expr: two() }.into()],
                     },
+                    name: "".to_string(),
                 })
                 .into(),
             ),

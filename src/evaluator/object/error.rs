@@ -3,5 +3,5 @@ use thiserror::Error as Err;
 #[derive(Err, Debug, Clone, PartialEq)]
 pub enum Error {
     #[error("{0}")]
-    Eval(String),
+    Standard(String),
 }

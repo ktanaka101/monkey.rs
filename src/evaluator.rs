@@ -1,3 +1,7 @@
+pub mod builtin;
+pub mod env;
+pub mod object;
+
 use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::rc::Rc;
@@ -6,9 +10,8 @@ use anyhow::Result;
 
 use crate::parser::{ast, tools};
 
-use super::builtin::{Function, FALSE, NULL, TRUE};
-use super::env::Environment;
-use super::object;
+use crate::evaluator::builtin::{Function, FALSE, NULL, TRUE};
+use crate::evaluator::env::Environment;
 
 pub fn eval_node(node: &ast::Node, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
     match node {
@@ -85,7 +88,7 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
 }
 
 pub(crate) fn new_error<T>(message: &str) -> Result<T> {
-    Err(object::Error::Eval(message.into()))?
+    Err(object::Error::Standard(message.into()))?
 }
 
 fn eval_program(program: &ast::Program, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
@@ -308,7 +311,10 @@ fn apply_function(func: &object::Object, args: &[object::Object]) -> Result<obje
             let evaluated = eval_stmt(&f.body.clone().into(), extended_env)?;
             Ok(unwrap_return_value(&evaluated))
         }
-        object::Object::Builtin(builtin) => builtin.call(args),
+        object::Object::Builtin(builtin) => Ok(match builtin.call(args)? {
+            Some(res) => res,
+            None => NULL.into(),
+        }),
         invalid => new_error(&format!("not a function: {}", invalid.o_type())),
     }
 }
@@ -332,7 +338,7 @@ fn extend_function_env(
 
 fn unwrap_return_value(obj: &object::Object) -> object::Object {
     match obj.clone() {
-        object::Object::Return(o) => o.into(),
+        object::Object::Return(o) => *o.value,
         o => o,
     }
 }
@@ -1270,6 +1276,37 @@ mod tests {
             assert_eq!(expanded.to_string(), expected.to_string());
             assert_eq!(expanded, expected.into());
         });
+    }
+
+    #[test]
+    fn test_fibonacci() {
+        let input = "            
+            let fibonacci = fn(x) {
+                if (x == 0) {
+                    return 0;
+                } else {
+                    if (x == 1) {
+                        return 1;
+                    } else {
+                        fibonacci(x - 1) + fibonacci(x - 2);
+                    }
+                }
+            };
+            fibonacci(15);
+        ";
+
+        let env = Rc::new(RefCell::new(Environment::new(None)));
+        let program = {
+            let l = crate::lexer::Lexer::new(input.into());
+            let mut p = crate::parser::Parser::new(l);
+            p.parse_program().unwrap()
+        };
+
+        let obj = eval_node(&program.into(), env).unwrap();
+        match obj {
+            object::Object::Integer(i) => assert_eq!(i.value, 610),
+            other => panic!("expected Integer. received {}", other),
+        };
     }
 
     fn check_err_and_unrwap<T, E>(result: std::result::Result<T, E>, input: &str) -> T

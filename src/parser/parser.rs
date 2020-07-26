@@ -121,6 +121,13 @@ impl Parser {
             self.next_token();
         }
 
+        let value = if let Expr::Function(mut func) = value {
+            func.name = name.value.clone();
+            func.into()
+        } else {
+            value.into()
+        };
+
         Ok(ast::Let { name, value })
     }
 
@@ -307,7 +314,11 @@ impl Parser {
 
         let body = self.parse_block_statement()?;
 
-        Ok(ast::Function { params, body })
+        Ok(ast::Function {
+            params,
+            body,
+            name: "".to_string(),
+        })
     }
 
     fn parse_function_params(&mut self) -> Result<Vec<ast::Identifier>> {
@@ -1005,6 +1016,29 @@ mod tests {
             "+",
             &Val::Id(Id("y")),
         );
+    }
+
+    #[test]
+    fn test_function_literal_with_name() {
+        let input = "let my_function = fn() {};";
+        let program = test_parse(input);
+        assert_eq!(program.statements.len(), 1);
+
+        let stmt = program.statements[0].clone();
+        let let_stmt = if let Stmt::Let(l) = stmt {
+            l
+        } else {
+            panic!("expected Let. received {}", stmt);
+        };
+
+        let expr = let_stmt.value;
+        let func = if let Expr::Function(f) = expr {
+            f
+        } else {
+            panic!("expected Function. received {}", expr)
+        };
+
+        assert_eq!(func.name, "my_function".to_string());
     }
 
     fn test_infix_by_expr(expr: &Expr, l: &Val, o: &str, r: &Val) {
