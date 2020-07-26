@@ -380,6 +380,7 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + closure.readsize();
                 }
+                opcode::Opcode::GetFree(free) => unimplemented!(),
             }
         }
 

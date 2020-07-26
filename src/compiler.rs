@@ -1403,6 +1403,7 @@ mod tests {
                 vec![opcode::Closure(65534, 254).into()],
                 "0000 Closure 65534 254¥n",
             ),
+            (vec![opcode::GetFree(254).into()], "0000 GetFree 254¥n"),
         ];
 
         tests.into_iter().for_each(|(input, expected)| {

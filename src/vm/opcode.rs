@@ -7,6 +7,7 @@ mod constant;
 mod div;
 mod equal;
 mod get_builtin;
+mod get_free;
 mod get_global;
 mod get_local;
 mod greater_than;
@@ -36,6 +37,7 @@ pub use constant::Constant;
 pub use div::Div;
 pub use equal::Equal;
 pub use get_builtin::GetBuiltin;
+pub use get_free::GetFree;
 pub use get_global::GetGlobal;
 pub use get_local::GetLocal;
 pub use greater_than::GreaterThan;
@@ -97,6 +99,7 @@ pub enum OperandType {
     SetLocal = 25,
     GetBuiltin = 26,
     Closure = 27,
+    GetFree = 28,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -132,6 +135,7 @@ impl TryFrom<u8> for OperandType {
             25 => Self::SetLocal,
             26 => Self::GetBuiltin,
             27 => Self::Closure,
+            28 => Self::GetFree,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -173,6 +177,7 @@ pub enum Opcode {
     SetLocal(SetLocal),
     GetBuiltin(GetBuiltin),
     Closure(Closure),
+    GetFree(GetFree),
 }
 
 impl Opcode {
@@ -206,6 +211,7 @@ impl Opcode {
             Opcode::SetLocal(o) => o.to_bytes().to_vec(),
             Opcode::GetBuiltin(o) => o.to_bytes().to_vec(),
             Opcode::Closure(o) => o.to_bytes().to_vec(),
+            Opcode::GetFree(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -239,6 +245,7 @@ impl Opcode {
             Opcode::SetLocal(o) => o.readsize(),
             Opcode::GetBuiltin(o) => o.readsize(),
             Opcode::Closure(o) => o.readsize(),
+            Opcode::GetFree(o) => o.readsize(),
         }
     }
 }
@@ -411,6 +418,12 @@ impl From<Closure> for Opcode {
     }
 }
 
+impl From<GetFree> for Opcode {
+    fn from(value: GetFree) -> Self {
+        Opcode::GetFree(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -450,6 +463,7 @@ impl TryFrom<&[Instruction]> for Opcode {
                 let res = Closure::try_read(&value[1..])?;
                 Ok(Closure(res.0, res.1).into())
             }
+            OperandType::GetFree => Ok(GetFree(GetFree::try_read(&value[1..])?).into()),
         }
     }
 }
@@ -485,6 +499,7 @@ impl Display for Opcode {
             Self::SetLocal(o) => write!(f, "{}", o),
             Self::GetBuiltin(o) => write!(f, "{}", o),
             Self::Closure(o) => write!(f, "{}", o),
+            Self::GetFree(o) => write!(f, "{}", o),
         }
     }
 }
