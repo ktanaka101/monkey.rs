@@ -1233,6 +1233,29 @@ mod tests {
         run_vm_tests(tests);
     }
 
+    #[test]
+    fn test_recursive_fibonacci() {
+        let tests: Tests = vec![(
+            "
+                let fibonacci = fn(x) {
+                    if (x == 0) {
+                        return 0;
+                    } else {
+                        if (x == 1) {
+                            return 1;
+                        } else {
+                            fibonacci(x - 1) + fibonacci(x - 2);
+                        }
+                    }
+                };
+                fibonacci(15);
+            ",
+            610,
+        )]
+        .into();
+        run_vm_tests(tests);
+    }
+
     fn run_vm_err_test(tests: Vec<(&'static str, &'static str)>) {
         tests.into_iter().for_each(|(input, expected)| {
             let program = parse(input);
