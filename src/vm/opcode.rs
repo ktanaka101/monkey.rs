@@ -4,6 +4,7 @@ mod bang;
 mod call;
 mod closure;
 mod constant;
+mod current_closure;
 mod div;
 mod equal;
 mod get_builtin;
@@ -34,6 +35,7 @@ pub use bang::Bang;
 pub use call::Call;
 pub use closure::Closure;
 pub use constant::Constant;
+pub use current_closure::CurrentClosure;
 pub use div::Div;
 pub use equal::Equal;
 pub use get_builtin::GetBuiltin;
@@ -100,6 +102,7 @@ pub enum OperandType {
     GetBuiltin = 26,
     Closure = 27,
     GetFree = 28,
+    CurrentClosure = 29,
 }
 
 impl TryFrom<u8> for OperandType {
@@ -136,6 +139,7 @@ impl TryFrom<u8> for OperandType {
             26 => Self::GetBuiltin,
             27 => Self::Closure,
             28 => Self::GetFree,
+            29 => Self::CurrentClosure,
             bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
         })
     }
@@ -178,6 +182,7 @@ pub enum Opcode {
     GetBuiltin(GetBuiltin),
     Closure(Closure),
     GetFree(GetFree),
+    CurrentClosure(CurrentClosure),
 }
 
 impl Opcode {
@@ -212,6 +217,7 @@ impl Opcode {
             Opcode::GetBuiltin(o) => o.to_bytes().to_vec(),
             Opcode::Closure(o) => o.to_bytes().to_vec(),
             Opcode::GetFree(o) => o.to_bytes().to_vec(),
+            Opcode::CurrentClosure(o) => o.to_bytes().to_vec(),
         }
     }
 
@@ -246,6 +252,7 @@ impl Opcode {
             Opcode::GetBuiltin(o) => o.readsize(),
             Opcode::Closure(o) => o.readsize(),
             Opcode::GetFree(o) => o.readsize(),
+            Opcode::CurrentClosure(o) => o.readsize(),
         }
     }
 }
@@ -424,6 +431,12 @@ impl From<GetFree> for Opcode {
     }
 }
 
+impl From<CurrentClosure> for Opcode {
+    fn from(value: CurrentClosure) -> Self {
+        Opcode::CurrentClosure(value)
+    }
+}
+
 impl TryFrom<&[Instruction]> for Opcode {
     type Error = anyhow::Error;
 
@@ -464,6 +477,7 @@ impl TryFrom<&[Instruction]> for Opcode {
                 Ok(Closure(res.0, res.1).into())
             }
             OperandType::GetFree => Ok(GetFree(GetFree::try_read(&value[1..])?).into()),
+            OperandType::CurrentClosure => Ok(CurrentClosure.into()),
         }
     }
 }
@@ -500,6 +514,7 @@ impl Display for Opcode {
             Self::GetBuiltin(o) => write!(f, "{}", o),
             Self::Closure(o) => write!(f, "{}", o),
             Self::GetFree(o) => write!(f, "{}", o),
+            Self::CurrentClosure(o) => write!(f, "{}", o),
         }
     }
 }

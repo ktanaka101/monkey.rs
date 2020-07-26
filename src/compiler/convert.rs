@@ -198,6 +198,12 @@ impl ToBytes<2, 1> for vm::opcode::GetFree {
     }
 }
 
+impl ToBytes<1, 0> for vm::opcode::CurrentClosure {
+    fn target_to_bytes(&self) -> [vm::bytecode::Instruction; 0] {
+        [0; 0]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,6 +243,7 @@ mod tests {
                 vec![27, 255, 253, 254],
             ),
             (vm::opcode::GetFree(254).into(), vec![28, 254]),
+            (vm::opcode::CurrentClosure.into(), vec![29]),
         ];
 
         tests.into_iter().for_each(|(bytes, expected_bytes)| {

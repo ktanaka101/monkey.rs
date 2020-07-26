@@ -182,6 +182,7 @@ mod test {
             opcode::GetBuiltin(254).into(),
             opcode::Closure(65535, 255).into(),
             opcode::GetFree(254).into(),
+            opcode::CurrentClosure.into(),
         ]
         .into();
         let instructions = Instructions::from(instructions);
@@ -212,7 +213,8 @@ mod test {
             0040 SetLocal 254¥n\
             0042 GetBuiltin 254¥n\
             0044 Closure 65535 255¥n\
-            0048 GetFree 254¥n";
+            0048 GetFree 254¥n\
+            0050 CurrentClosure¥n";
 
         assert_eq!(instructions.to_string(), expected);
     }

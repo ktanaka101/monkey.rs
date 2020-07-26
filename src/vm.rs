@@ -395,6 +395,7 @@ impl<'a> VM<'a> {
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + free.readsize();
                 }
+                opcode::Opcode::CurrentClosure(curr_cl) => unimplemented!(),
             }
         }
 
