@@ -6,7 +6,7 @@ use crate::evaluator::object;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Closure {
     pub func: object::CompiledFunction,
-    pub free: Rc<Vec<object::Object>>,
+    pub free: Vec<object::Object>,
 }
 
 impl Display for Closure {
