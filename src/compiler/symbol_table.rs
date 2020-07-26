@@ -11,15 +11,17 @@ pub enum Symbol {
     Local { name: String, index: u8 },
     Builtin { name: String, index: u8 },
     Free { name: String, index: u8 },
+    Function { name: String, index: u8 },
 }
 
 impl Symbol {
     fn name(&self) -> String {
         match self {
-            Symbol::Global { name, .. } => name,
-            Symbol::Local { name, .. } => name,
-            Symbol::Builtin { name, .. } => name,
-            Symbol::Free { name, .. } => name,
+            Symbol::Global { name, .. }
+            | Symbol::Function { name, .. }
+            | Symbol::Local { name, .. }
+            | Symbol::Builtin { name, .. }
+            | Symbol::Free { name, .. } => name,
         }
         .clone()
     }
@@ -116,7 +118,9 @@ impl SymbolTable {
             let result = outer.borrow_mut().resolve(name);
             if let Some(res) = result {
                 match *res.borrow() {
-                    Symbol::Global { .. } | Symbol::Builtin { .. } => Some(Rc::clone(&res)),
+                    Symbol::Global { .. } | Symbol::Builtin { .. } | Symbol::Function { .. } => {
+                        Some(Rc::clone(&res))
+                    }
                     Symbol::Free { .. } | Symbol::Local { .. } => {
                         let free = self.define_free(Rc::clone(&res));
                         Some(free)
@@ -128,6 +132,16 @@ impl SymbolTable {
         } else {
             None
         }
+    }
+
+    pub fn define_function_name(&mut self, name: String) -> Rc<RefCell<Symbol>> {
+        let symbol = Rc::new(RefCell::new(Symbol::Function {
+            name: name.clone(),
+            index: 0,
+        }));
+        self.store.insert(name, Rc::clone(&symbol));
+
+        symbol
     }
 }
 
@@ -550,5 +564,35 @@ mod tests {
                 panic!("name {} resolved, but was expected not to", name);
             }
         });
+    }
+
+    #[test]
+    fn test_define_and_rresolve_function_name() {
+        let mut global = SymbolTable::new();
+        global.define_function_name("a".to_string());
+
+        let expected = Symbol::Function {
+            name: "a".to_string(),
+            index: 0,
+        };
+
+        let result = global.resolve(&expected.name()).unwrap();
+        assert_eq!(*result.borrow(), expected);
+    }
+
+    #[test]
+    fn test_shadowing_function_name() {
+        let mut global = SymbolTable::new();
+        global.define_function_name("a".to_string());
+        global.define("a".to_string());
+
+        let expected = Symbol::Global {
+            name: "a".to_string(),
+            index: 0,
+        };
+
+        let result = global.resolve(&expected.name()).unwrap();
+
+        assert_eq!(*result.borrow(), expected);
     }
 }
