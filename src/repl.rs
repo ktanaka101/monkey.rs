@@ -27,7 +27,7 @@ pub fn start(executer: Executer) {
 
 fn start_vm() {
     let mut constants: Vec<object::Object> = vec![];
-    let mut globals: vm::GlobalSpace = Default::default();
+    let mut globals: vm::GlobalSpace = vm::GlobalSpace::new();
     let symbol_table = std::rc::Rc::new(std::cell::RefCell::new(
         compiler::SymbolTable::new_with_builtin(),
     ));

@@ -104,7 +104,7 @@ impl Default for GlobalSpace {
 }
 
 impl GlobalSpace {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 }
