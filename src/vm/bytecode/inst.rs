@@ -1,6 +1,6 @@
 use super::preludes::*;
 
-use vm::compiler::convert::ToBytes;
+use vm::convert::ToBytes;
 use vm::opcode;
 
 pub type Instruction = u8;

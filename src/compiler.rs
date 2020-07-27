@@ -1,13 +1,12 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub mod convert;
 mod symbol_table;
 
 use crate::evaluator::object;
 use crate::parser::ast;
+use crate::vm::convert::ToBytes;
 use crate::vm::{bytecode, opcode};
-use convert::ToBytes;
 
 pub use symbol_table::SymbolTable;
 

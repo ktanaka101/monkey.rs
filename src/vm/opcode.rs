@@ -60,7 +60,7 @@ pub use set_global::SetGlobal;
 pub use set_local::SetLocal;
 pub use sub::Sub;
 
-use crate::compiler::convert::ToBytes;
+use crate::vm::convert::ToBytes;
 
 use vm::convert::{Read, TryRead};
 
