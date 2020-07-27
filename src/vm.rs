@@ -14,8 +14,9 @@ mod preludes {
 
 use preludes::*;
 
-const STACK_SIZE: usize = 2048;
+pub const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
+
 const TRUE: object::Boolean = object::Boolean { value: true };
 const FALSE: object::Boolean = object::Boolean { value: false };
 const NULL: object::Null = object::Null {};
