@@ -5,7 +5,6 @@ mod symbol_table;
 
 use crate::evaluator::object;
 use crate::parser::ast;
-use crate::vm::convert::ToBytes;
 use crate::vm::{bytecode, opcode};
 
 pub use symbol_table::SymbolTable;

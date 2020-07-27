@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use super::prelude::*;
 use crate::evaluator::object;
 

@@ -3,10 +3,8 @@ pub mod convert;
 mod frame;
 pub mod opcode;
 
-use crate::compiler;
 use crate::evaluator::builtin;
 use crate::evaluator::object;
-use crate::vm::bytecode::Instructions;
 use crate::vm::convert::Read;
 
 mod preludes {
@@ -618,6 +616,7 @@ impl<'a> VM<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::compiler;
     use crate::lexer;
     use crate::parser;
     use crate::parser::ast;

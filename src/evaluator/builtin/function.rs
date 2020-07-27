@@ -2,7 +2,6 @@ use std::convert::TryFrom;
 
 use anyhow::Result;
 
-use crate::evaluator::builtin::NULL;
 use crate::evaluator::new_error;
 use crate::evaluator::object;
 
