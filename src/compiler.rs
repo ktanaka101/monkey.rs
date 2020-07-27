@@ -166,12 +166,6 @@ impl CompilationScopes {
         self.current().borrow_mut().remove_last_pop()
     }
 
-    fn replace_instructions(&mut self, pos: Pos, new_instructions: bytecode::Instructions) {
-        self.current()
-            .borrow_mut()
-            .replace_instructions(pos, new_instructions);
-    }
-
     fn change_operand(&mut self, op_pos: Pos, operand: u16) -> Result<()> {
         self.current().borrow_mut().change_operand(op_pos, operand)
     }
