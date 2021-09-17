@@ -173,7 +173,9 @@ impl Parser {
             | t @ Token::Rbracket
             | t @ Token::Let
             | t @ Token::Else
-            | t @ Token::Return => return Err(ParserError::ExpectExpression(format!("{:?}", t)).into()),
+            | t @ Token::Return => {
+                return Err(ParserError::ExpectExpression(format!("{:?}", t)).into())
+            }
             Token::Ident(_)
             | Token::Int(_)
             | Token::Bang
@@ -219,7 +221,8 @@ impl Parser {
     fn parse_integer_literal(&self) -> Result<ast::Integer> {
         let value = match &self.cur_token {
             Token::Int(val) => val
-                .parse::<i64>().map_err(|e| ParserError::InvalidInteger(format!("{:?}", e)))?,
+                .parse::<i64>()
+                .map_err(|e| ParserError::InvalidInteger(format!("{:?}", e)))?,
             t => return Err(ParserError::InvalidIntegerLiteral(format!("{:?}", t)).into()),
         };
 
@@ -419,10 +422,9 @@ impl Parser {
             pairs.push(ast::Pair { key, value });
 
             if !self.peek_token_is(Token::Rbrace) && self.expect_peek(Token::Comma).is_err() {
-                return Err(ParserError::InvalidHashLiteral(format!(
-                    "{:?}",
-                    self.cur_token
-                )).into())
+                return Err(
+                    ParserError::InvalidHashLiteral(format!("{:?}", self.cur_token)).into(),
+                );
             }
         }
         self.expect_peek(Token::Rbrace)?;
@@ -442,44 +444,20 @@ impl Parser {
 
     fn cur_token_is(&self, token_t: Token) -> bool {
         match token_t {
-            Token::Illegal(_) => match self.cur_token {
-                Token::Illegal(_) => true,
-                _ => false,
-            },
-            Token::Ident(_) => match self.cur_token {
-                Token::Ident(_) => true,
-                _ => false,
-            },
-            Token::Int(_) => match self.cur_token {
-                Token::Int(_) => true,
-                _ => false,
-            },
-            Token::StringLiteral(_) => match self.cur_token {
-                Token::StringLiteral(_) => true,
-                _ => false,
-            },
+            Token::Illegal(_) => matches!(self.cur_token, Token::Illegal(_)),
+            Token::Ident(_) => matches!(self.cur_token, Token::Ident(_)),
+            Token::Int(_) => matches!(self.cur_token, Token::Int(_)),
+            Token::StringLiteral(_) => matches!(self.cur_token, Token::StringLiteral(_)),
             t => self.cur_token == t,
         }
     }
 
     fn peek_token_is(&self, token_t: Token) -> bool {
         match token_t {
-            Token::Illegal(_) => match self.peek_token {
-                Token::Illegal(_) => true,
-                _ => false,
-            },
-            Token::Ident(_) => match self.peek_token {
-                Token::Ident(_) => true,
-                _ => false,
-            },
-            Token::Int(_) => match self.peek_token {
-                Token::Int(_) => true,
-                _ => false,
-            },
-            Token::StringLiteral(_) => match self.peek_token {
-                Token::StringLiteral(_) => true,
-                _ => false,
-            },
+            Token::Illegal(_) => matches!(self.peek_token, Token::Illegal(_)),
+            Token::Ident(_) => matches!(self.peek_token, Token::Ident(_)),
+            Token::Int(_) => matches!(self.peek_token, Token::Int(_)),
+            Token::StringLiteral(_) => matches!(self.peek_token, Token::StringLiteral(_)),
             t => self.peek_token == t,
         }
     }
@@ -492,7 +470,8 @@ impl Parser {
             return Err(ParserError::ExpectPeek(
                 format!("{:?}", &token_t),
                 format!("{:?}", &self.peek_token),
-            ).into())
+            )
+            .into());
         }
     }
 
@@ -642,7 +621,7 @@ mod tests {
         for (input, left, ope, right) in inputs.into_iter() {
             let program = test_parse(input);
             assert_eq!(program.statements.len(), 1);
-            test_infix_by_stmt(&program.statements[0], &left, &ope, &right);
+            test_infix_by_stmt(&program.statements[0], &left, ope, &right);
         }
     }
 
@@ -1047,7 +1026,7 @@ mod tests {
             panic!("Expect type is Expr::InfixExpr.");
         };
 
-        test_infix(&infix, l, o, r);
+        test_infix(infix, l, o, r);
     }
 
     fn test_infix_by_stmt(stmt: &Stmt, l: &Val, o: &str, r: &Val) {
@@ -1063,7 +1042,7 @@ mod tests {
             panic!("Expect type is Expr::InfixExpr");
         };
 
-        test_infix(&infix, &l, &o, &r);
+        test_infix(infix, l, o, r);
     }
 
     fn test_infix(infix: &ast::InfixExpr, l: &Val, o: &str, r: &Val) {
@@ -1085,7 +1064,7 @@ mod tests {
             panic!("Expect type is Expr::PrefixExpr");
         };
         test_operator(&prefix_expr.ope, ope);
-        test_expr(&prefix_expr.right, &r);
+        test_expr(&prefix_expr.right, r);
     }
 
     fn test_operator(ope: &ast::Operator, ope_s: &str) {
@@ -1154,7 +1133,7 @@ mod tests {
         } else {
             panic!("Expect type is Expr::Identifier");
         };
-        test_identifier(&identifier, literal);
+        test_identifier(identifier, literal);
     }
 
     fn test_interger_by_stmt(stmt: &Stmt, v: i64) {
@@ -1169,11 +1148,11 @@ mod tests {
         } else {
             panic!("Expect type is Expr::Integer");
         };
-        test_integer(&integer, v);
+        test_integer(integer, v);
     }
 
     fn test_integer(integer: &ast::Integer, v: i64) {
-        assert_eq!(*integer, ast::Integer { value: v.into() });
+        assert_eq!(*integer, ast::Integer { value: v });
     }
 
     fn test_identifier(identifier: &ast::Identifier, literal: &str) {
