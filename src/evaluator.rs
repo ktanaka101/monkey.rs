@@ -464,13 +464,13 @@ pub fn define_macros(program: &mut ast::Program, env: Rc<RefCell<Environment>>) 
 }
 
 fn is_macro_definition(stmt: &ast::Stmt) -> bool {
-    match stmt {
-        ast::Stmt::Let(ast::Let { value, .. }) => match value {
-            ast::Expr::MacroLit(_) => true,
-            _ => false,
-        },
-        _ => false,
-    }
+    return matches!(
+        stmt,
+        ast::Stmt::Let(ast::Let {
+            value: ast::Expr::MacroLit(_),
+            ..
+        })
+    );
 }
 
 fn add_macro(stmt: &ast::Stmt, env: Rc<RefCell<Environment>>) -> Result<()> {
@@ -514,17 +514,16 @@ pub fn expand_macros(program: ast::Node, env: Rc<RefCell<Environment>>) -> Resul
         let args = quote_args(call.clone());
         let eval_env = extend_macro_env(m_macro.clone(), args);
 
-        let evaluated = eval_stmt(
-            &m_macro.body.into(),
-            Rc::new(RefCell::new(eval_env)),
-        )?;
+        let evaluated = eval_stmt(&m_macro.body.into(), Rc::new(RefCell::new(eval_env)))?;
 
         let quote = match evaluated {
             object::Object::Quote(q) => q,
-            o => return Err(anyhow::format_err!(
-                "we only support returning AST-nodes from macros. {}",
-                o
-            )),
+            o => {
+                return Err(anyhow::format_err!(
+                    "we only support returning AST-nodes from macros. {}",
+                    o
+                ))
+            }
         };
 
         Ok(quote.node)
@@ -960,9 +959,9 @@ mod tests {
                 vec![1_i64, 2_i64, 3_i64, 4_i64],
             ),
         ];
-        tests.into_iter().for_each(|(input, expected)| {
-            assert_integer_array_object(eval(input), expected.into())
-        });
+        tests
+            .into_iter()
+            .for_each(|(input, expected)| assert_integer_array_object(eval(input), expected));
 
         let input = "push([1, 2, 3], [4, 5])";
         let expected1 = 1_i64;
@@ -1202,11 +1201,11 @@ mod tests {
 
         assert_eq!(program.statements.len(), 2);
 
-        assert_eq!(env.borrow().get("number").is_none(), true);
-        assert_eq!(env.borrow().get("function").is_none(), true);
+        assert!(env.borrow().get("number").is_none());
+        assert!(env.borrow().get("function").is_none());
 
         let obj = env.borrow().get("mymacro");
-        assert_eq!(obj.is_some(), true);
+        assert!(obj.is_some());
 
         let m_macro = match obj.unwrap() {
             object::Object::Macro(m) => m,

@@ -90,10 +90,12 @@ impl CompilationScope {
                 op.0 = operand;
                 self.replace_instructions(op_pos, op.into());
             }
-            _ => return Err(anyhow::format_err!(
-                "Expected JumpNotTruthy or Jump. received {}",
-                op
-            )),
+            _ => {
+                return Err(anyhow::format_err!(
+                    "Expected JumpNotTruthy or Jump. received {}",
+                    op
+                ))
+            }
         }
 
         Ok(())
@@ -256,7 +258,9 @@ impl<'a> Compiler<'a> {
                             ast::Operator::Equal => self.emit(opcode::Equal.into()),
                             ast::Operator::NotEqual => self.emit(opcode::NotEqual.into()),
                             ast::Operator::Lt => unreachable!(),
-                            unknown => return Err(anyhow::format_err!("unknown operator {}", unknown)),
+                            unknown => {
+                                return Err(anyhow::format_err!("unknown operator {}", unknown))
+                            }
                         };
                     }
                 }
@@ -433,7 +437,7 @@ impl<'a> Compiler<'a> {
 
     fn leave_scope(&mut self) -> Result<Rc<RefCell<CompilationScope>>> {
         let scope = self.scopes.pop();
-        let scope = scope.ok_or(anyhow::format_err!("Empty scope"))?;
+        let scope = scope.ok_or_else(|| anyhow::format_err!("Empty scope"))?;
 
         let table = self.symbol_table.borrow_mut().outer.take();
         if let Some(table) = table {
@@ -1206,7 +1210,7 @@ mod tests {
             ),
             (
                 "
-                    fn() { 
+                    fn() {
                         let num = 55;
                         num
                     }
@@ -1225,7 +1229,7 @@ mod tests {
             ),
             (
                 "
-                    fn() { 
+                    fn() {
                         let a = 55;
                         let b = 77;
                         a + b
