@@ -15,7 +15,5 @@ impl Display for Null {
 }
 
 impl vm::convert::Read<(), 0> for Null {
-    fn read(_: [vm::bytecode::Instruction; 0]) {
-        
-    }
+    fn read(_: [vm::bytecode::Instruction; 0]) {}
 }

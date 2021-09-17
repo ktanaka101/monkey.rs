@@ -15,7 +15,5 @@ impl Display for Sub {
 }
 
 impl vm::convert::Read<(), 0> for Sub {
-    fn read(_: [vm::bytecode::Instruction; 0]) {
-        
-    }
+    fn read(_: [vm::bytecode::Instruction; 0]) {}
 }

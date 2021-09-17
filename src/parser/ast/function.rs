@@ -37,10 +37,9 @@ impl TryFrom<Expr> for Function {
     fn try_from(value: Expr) -> Result<Self> {
         match value {
             Expr::Function(func) => Ok(func),
-            expr => return Err(ParserError::Convert(
-                format!("{:?}", expr),
-                "Function".into(),
-            ).into()),
+            expr => {
+                return Err(ParserError::Convert(format!("{:?}", expr), "Function".into()).into())
+            }
         }
     }
 }

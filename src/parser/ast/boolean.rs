@@ -17,10 +17,9 @@ impl TryFrom<Expr> for Boolean {
     fn try_from(value: Expr) -> Result<Self> {
         match value {
             Expr::Boolean(b) => Ok(b),
-            expr => return Err(ParserError::Convert(
-                format!("{:?}", expr),
-                "Boolean".into(),
-            ).into()),
+            expr => {
+                return Err(ParserError::Convert(format!("{:?}", expr), "Boolean".into()).into())
+            }
         }
     }
 }

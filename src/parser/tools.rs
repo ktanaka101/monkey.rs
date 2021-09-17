@@ -85,8 +85,7 @@ where
                     .params
                     .into_iter()
                     .map(|param| {
-                        Expr::try_from(modify(Expr::from(param).into(), modifier)?)?
-                            .try_into()
+                        Expr::try_from(modify(Expr::from(param).into(), modifier)?)?.try_into()
                     })
                     .collect::<Result<Vec<Identifier>>>()?;
 

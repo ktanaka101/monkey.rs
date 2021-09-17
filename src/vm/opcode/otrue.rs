@@ -15,7 +15,5 @@ impl Display for True {
 }
 
 impl vm::convert::Read<(), 0> for True {
-    fn read(_: [vm::bytecode::Instruction; 0]) {
-        
-    }
+    fn read(_: [vm::bytecode::Instruction; 0]) {}
 }
