@@ -540,6 +540,7 @@ mod tests {
         let tests = vec![(
             "1 + 2",
             vec![1, 2],
+            #[allow(clippy::useless_conversion)] // Bug in clippy
             Vec::<opcode::Opcode>::from(vec![
                 opcode::Constant(0).into(),
                 opcode::Constant(1).into(),
@@ -558,6 +559,7 @@ mod tests {
             (
                 "1 + 2",
                 vec![1, 2],
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::Constant(0).into(),
                     opcode::Constant(1).into(),
@@ -626,6 +628,7 @@ mod tests {
             (
                 "true",
                 vec![],
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![opcode::True.into(), opcode::Pop.into()]),
             ),
             (
@@ -719,6 +722,7 @@ mod tests {
             (
                 "if (true) { 10 }; 3333;",
                 vec![10, 3333],
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::True.into(),
                     opcode::JumpNotTruthy(10).into(),
@@ -758,6 +762,7 @@ mod tests {
                 let two = 2;
                 ",
                 vec![1, 2],
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::Constant(0).into(),
                     opcode::SetGlobal(0).into(),
@@ -806,6 +811,7 @@ mod tests {
             (
                 r#""monkey""#,
                 vec!["monkey"],
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![opcode::Constant(0).into(), opcode::Pop.into()]),
             ),
             (
@@ -830,6 +836,7 @@ mod tests {
             (
                 "[]",
                 vec![],
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![opcode::Array(0).into(), opcode::Pop.into()]),
             ),
             (
@@ -871,6 +878,7 @@ mod tests {
             (
                 "{}",
                 vec![],
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![opcode::Hash(0).into(), opcode::Pop.into()]),
             ),
             (
@@ -914,6 +922,7 @@ mod tests {
             (
                 "[1, 2, 3][1 + 1]",
                 vec![1, 2, 3, 1, 1],
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::Constant(0).into(),
                     opcode::Constant(1).into(),
@@ -950,6 +959,7 @@ mod tests {
         let tests: Tests = vec![
             (
                 "fn() { return 5 + 10 }",
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<Expected>::from(vec![
                     5.into(),
                     10.into(),
@@ -961,37 +971,38 @@ mod tests {
                     ])
                     .into(),
                 ]),
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
             ),
             (
                 "fn() { 5 + 10 }",
-                Vec::<Expected>::from(vec![
+                vec![
                     5.into(),
                     10.into(),
-                    Vec::<opcode::Opcode>::from(vec![
+                    vec![
                         opcode::Constant(0).into(),
                         opcode::Constant(1).into(),
                         opcode::Add.into(),
                         opcode::ReturnValue.into(),
-                    ])
+                    ]
                     .into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
+                ],
+                vec![opcode::Closure(2, 0).into(), opcode::Pop.into()],
             ),
             (
                 "fn() { 1; 2 }",
-                Vec::<Expected>::from(vec![
+                vec![
                     1.into(),
                     2.into(),
-                    Vec::<opcode::Opcode>::from(vec![
+                    vec![
                         opcode::Constant(0).into(),
                         opcode::Pop.into(),
                         opcode::Constant(1).into(),
                         opcode::ReturnValue.into(),
-                    ])
+                    ]
                     .into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
+                ],
+                vec![opcode::Closure(2, 0).into(), opcode::Pop.into()],
             ),
         ]
         .into();
@@ -1061,6 +1072,7 @@ mod tests {
         let tests: Tests = vec![(
             "fn() { }",
             vec![vec![opcode::Return.into()]],
+            #[allow(clippy::useless_conversion)] // Bug in clippy
             Vec::<opcode::Opcode>::from(vec![opcode::Closure(0, 0).into(), opcode::Pop.into()]),
         )]
         .into();
@@ -1072,10 +1084,12 @@ mod tests {
         let tests: Tests = vec![
             (
                 "fn() { 24 }()",
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<Expected>::from(vec![
                     24.into(),
                     vec![opcode::Constant(0).into(), opcode::ReturnValue.into()].into(),
                 ]),
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::Closure(1, 0).into(),
                     opcode::Call(0).into(),
@@ -1087,45 +1101,45 @@ mod tests {
                     let no_arg = fn() { 24 };
                     no_arg();
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     24.into(),
                     vec![opcode::Constant(0).into(), opcode::ReturnValue.into()].into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![
+                ],
+                vec![
                     opcode::Closure(1, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Call(0).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
             (
                 "
                     let one_arg = fn(a) { };
                     one_arg(24);
                 ",
-                Vec::<Expected>::from(vec![vec![opcode::Return.into()].into(), 24.into()]),
-                Vec::<opcode::Opcode>::from(vec![
+                vec![vec![opcode::Return.into()].into(), 24.into()],
+                vec![
                     opcode::Closure(0, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Constant(1).into(),
                     opcode::Call(1).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
             (
                 "
                     let many_arg = fn(a, b, c) { };
                     many_arg(24, 25, 26);
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     vec![opcode::Return.into()].into(),
                     24.into(),
                     25.into(),
                     26.into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![
+                ],
+                vec![
                     opcode::Closure(0, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
@@ -1134,32 +1148,32 @@ mod tests {
                     opcode::Constant(3).into(),
                     opcode::Call(3).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
             (
                 "
                     let one_arg = fn(a) { a };
                     one_arg(24);
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     vec![opcode::GetLocal(0).into(), opcode::ReturnValue.into()].into(),
                     24.into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![
+                ],
+                vec![
                     opcode::Closure(0, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Constant(1).into(),
                     opcode::Call(1).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
             (
                 "
                     let many_arg = fn(a, b, c) { a; b; c; };
                     many_arg(24, 25, 26);
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     vec![
                         opcode::GetLocal(0).into(),
                         opcode::Pop.into(),
@@ -1172,8 +1186,8 @@ mod tests {
                     24.into(),
                     25.into(),
                     26.into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![
+                ],
+                vec![
                     opcode::Closure(0, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
@@ -1182,7 +1196,7 @@ mod tests {
                     opcode::Constant(3).into(),
                     opcode::Call(3).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
         ]
         .into();
@@ -1197,10 +1211,12 @@ mod tests {
                     let num = 55;
                     fn() { num }
                 ",
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<Expected>::from(vec![
                     55.into(),
                     vec![opcode::GetGlobal(0).into(), opcode::ReturnValue.into()].into(),
                 ]),
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::Constant(0).into(),
                     opcode::SetGlobal(0).into(),
@@ -1215,7 +1231,7 @@ mod tests {
                         num
                     }
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     55.into(),
                     vec![
                         opcode::Constant(0).into(),
@@ -1224,8 +1240,8 @@ mod tests {
                         opcode::ReturnValue.into(),
                     ]
                     .into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Closure(1, 0).into(), opcode::Pop.into()]),
+                ],
+                vec![opcode::Closure(1, 0).into(), opcode::Pop.into()],
             ),
             (
                 "
@@ -1235,7 +1251,7 @@ mod tests {
                         a + b
                     }
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     55.into(),
                     77.into(),
                     vec![
@@ -1249,15 +1265,15 @@ mod tests {
                         opcode::ReturnValue.into(),
                     ]
                     .into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
+                ],
+                vec![opcode::Closure(2, 0).into(), opcode::Pop.into()],
             ),
             (
                 "
                     let one = fn() { let one = 1; one };
                     one();
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     1.into(),
                     vec![
                         opcode::Constant(0).into(),
@@ -1266,14 +1282,14 @@ mod tests {
                         opcode::ReturnValue.into(),
                     ]
                     .into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![
+                ],
+                vec![
                     opcode::Closure(1, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Call(0).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
         ]
         .into();
@@ -1285,10 +1301,12 @@ mod tests {
         let tests: Tests = vec![
             (
                 "
-                len([]);
-                push([], 1);
-            ",
+                    len([]);
+                    push([], 1);
+                ",
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<Expected>::from(vec![1.into()]),
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::GetBuiltin(0).into(),
                     opcode::Array(0).into(),
@@ -1303,24 +1321,24 @@ mod tests {
             ),
             (
                 "fn() { len([]) }",
-                Vec::<Expected>::from(vec![vec![
+                vec![vec![
                     opcode::GetBuiltin(0).into(),
                     opcode::Array(0).into(),
                     opcode::Call(1).into(),
                     opcode::ReturnValue.into(),
                 ]
-                .into()]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Closure(0, 0).into(), opcode::Pop.into()]),
+                .into()],
+                vec![opcode::Closure(0, 0).into(), opcode::Pop.into()],
             ),
             (
                 r#"len("")"#,
-                Vec::<Expected>::from(vec!["".into()]),
-                Vec::<opcode::Opcode>::from(vec![
+                vec!["".into()],
+                vec![
                     opcode::GetBuiltin(0).into(),
                     opcode::Constant(0).into(),
                     opcode::Call(1).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
         ]
         .into();
@@ -1338,6 +1356,7 @@ mod tests {
                         }
                     }
                 ",
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<Expected>::from(vec![
                     vec![
                         opcode::GetFree(0).into(),
@@ -1353,6 +1372,7 @@ mod tests {
                     ]
                     .into(),
                 ]),
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![opcode::Closure(1, 0).into(), opcode::Pop.into()]),
             ),
             (
@@ -1365,7 +1385,7 @@ mod tests {
                         }
                     }
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     vec![
                         opcode::GetFree(0).into(),
                         opcode::GetFree(1).into(),
@@ -1388,8 +1408,8 @@ mod tests {
                         opcode::ReturnValue.into(),
                     ]
                     .into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![opcode::Closure(2, 0).into(), opcode::Pop.into()]),
+                ],
+                vec![opcode::Closure(2, 0).into(), opcode::Pop.into()],
             ),
             (
                 "
@@ -1409,7 +1429,7 @@ mod tests {
                         }
                     }
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     55.into(),
                     66.into(),
                     77.into(),
@@ -1444,13 +1464,13 @@ mod tests {
                         opcode::ReturnValue.into(),
                     ]
                     .into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![
+                ],
+                vec![
                     opcode::Constant(0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::Closure(6, 0).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
         ]
         .into();
@@ -1465,6 +1485,7 @@ mod tests {
                     let count_down = fn(x) { count_down(x - 1); };
                     count_down(1);
                 ",
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<Expected>::from(vec![
                     1.into(),
                     vec![
@@ -1478,6 +1499,7 @@ mod tests {
                     .into(),
                     1.into(),
                 ]),
+                #[allow(clippy::useless_conversion)] // Bug in clippy
                 Vec::<opcode::Opcode>::from(vec![
                     opcode::Closure(1, 0).into(),
                     opcode::SetGlobal(0).into(),
@@ -1495,7 +1517,7 @@ mod tests {
                     }
                     wrapper();
                 ",
-                Vec::<Expected>::from(vec![
+                vec![
                     1.into(),
                     vec![
                         opcode::CurrentClosure.into(),
@@ -1516,14 +1538,14 @@ mod tests {
                         opcode::ReturnValue.into(),
                     ]
                     .into(),
-                ]),
-                Vec::<opcode::Opcode>::from(vec![
+                ],
+                vec![
                     opcode::Closure(3, 0).into(),
                     opcode::SetGlobal(0).into(),
                     opcode::GetGlobal(0).into(),
                     opcode::Call(0).into(),
                     opcode::Pop.into(),
-                ]),
+                ],
             ),
         ]
         .into();
