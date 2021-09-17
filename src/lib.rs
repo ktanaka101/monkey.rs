@@ -1,6 +1,3 @@
-#![allow(incomplete_features)]
-#![feature(const_generics)]
-
 mod preludes {
     pub use anyhow::Result;
     pub use std::convert::{TryFrom, TryInto};
