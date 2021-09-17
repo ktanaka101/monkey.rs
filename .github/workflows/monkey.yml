@@ -21,9 +21,6 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Run build
-        run: cargo build --verbose
-
       - name: Run format
         run: cargo fmt -- --check
 
