@@ -15,13 +15,11 @@ where
 {
     fn try_read(bytes: &[bytecode::Instruction]) -> Result<T> {
         if bytes.len() < SIZE {
-            return Err(anyhow::format_err!("expected bytes length >= {}", SIZE))
+            return Err(anyhow::format_err!("expected bytes length >= {}", SIZE));
         }
 
         let mut b: [bytecode::Instruction; SIZE] = [0; SIZE];
-        for i in 0..SIZE {
-            b[i] = bytes[i];
-        }
+        b[..SIZE].clone_from_slice(&bytes[..SIZE]);
 
         Ok(Self::read(b))
     }
@@ -38,9 +36,7 @@ where
         let mut v: [vm::bytecode::Instruction; SIZE] = [0; SIZE];
         v[0] = Self::TYPE.into();
         let v2: [vm::bytecode::Instruction; TARGET_SIZE] = self.target_to_bytes();
-        for i in 0..TARGET_SIZE {
-            v[i + 1] = v2[i];
-        }
+        v[1..(TARGET_SIZE + 1)].clone_from_slice(&v2[..TARGET_SIZE]);
 
         v
     }

@@ -183,8 +183,7 @@ mod test {
             opcode::Closure(65535, 255).into(),
             opcode::GetFree(254).into(),
             opcode::CurrentClosure.into(),
-        ]
-        .into();
+        ];
         let instructions = Instructions::from(instructions);
 
         let expected = "\
