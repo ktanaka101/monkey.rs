@@ -88,7 +88,7 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
 }
 
 pub(crate) fn new_error<T>(message: &str) -> Result<T> {
-    return Err(object::Error::Standard(message.into()).into())
+    Err(object::Error::Standard(message.into()).into())
 }
 
 fn eval_program(program: &ast::Program, env: Rc<RefCell<Environment>>) -> Result<object::Object> {

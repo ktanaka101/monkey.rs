@@ -65,7 +65,7 @@ impl CompilationScope {
 
             Ok(())
         } else {
-            return Err(anyhow::format_err!("uninitialized"))
+            Err(anyhow::format_err!("uninitialized"))
         }
     }
 
