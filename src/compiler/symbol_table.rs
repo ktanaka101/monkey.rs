@@ -364,12 +364,12 @@ mod tests {
                 .for_each(|expected_symbol| match &expected_symbol {
                     Symbol::Global { name, .. } => {
                         let mut table = table.borrow_mut();
-                        let result = table.resolve(&name).unwrap();
+                        let result = table.resolve(name).unwrap();
                         assert_eq!(result, Rc::new(RefCell::new(expected_symbol)));
                     }
                     Symbol::Local { name, .. } => {
                         let mut table = table.borrow_mut();
-                        let result = table.resolve(&name).unwrap();
+                        let result = table.resolve(name).unwrap();
                         assert_eq!(result, Rc::new(RefCell::new(expected_symbol)));
                     }
                     _ => unreachable!(),
@@ -425,7 +425,8 @@ mod tests {
         second_local.define("e".to_string());
         second_local.define("f".to_string());
 
-        let tests: Vec<(Rc<RefCell<SymbolTable>>, Vec<Symbol>, Vec<Symbol>)> = vec![
+        type Symbols = Vec<Symbol>;
+        let tests: Vec<(Rc<RefCell<SymbolTable>>, Symbols, Symbols)> = vec![
             (
                 first_local,
                 vec![
@@ -560,7 +561,7 @@ mod tests {
         let expected_unresolvable = vec!["b", "d"];
 
         expected_unresolvable.iter().for_each(|name| {
-            if let Some(_) = second_local.resolve(name) {
+            if second_local.resolve(name).is_some() {
                 panic!("name {} resolved, but was expected not to", name);
             }
         });
