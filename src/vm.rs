@@ -1263,7 +1263,7 @@ mod tests {
             let mut constants = Default::default();
             let mut comp = compiler::Compiler::new_with_state(sym_table, &mut constants);
             if let Err(e) = comp.compile(program.into()) {
-                panic!(format!("compiler error {}: ", e));
+                panic!("compiler error {}: ", e);
             }
             let bytecode: bytecode::Bytecode = comp.into();
 
@@ -1286,7 +1286,7 @@ mod tests {
             let mut constants = Default::default();
             let mut comp = compiler::Compiler::new_with_state(sym_table, &mut constants);
             if let Err(e) = comp.compile(program.into()) {
-                panic!(format!("compiler error {}: ", e));
+                panic!("compiler error {}: ", e);
             }
             let bytecode: bytecode::Bytecode = comp.into();
             let debug = bytecode.clone();

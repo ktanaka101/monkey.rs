@@ -997,12 +997,12 @@ mod tests {
 
         let expr_stmt = match &program.statements[0] {
             Stmt::ExprStmt(expr_stmt) => expr_stmt,
-            stmt => panic!(format!("expect Stmt::ExprStmt. received {}", stmt)),
+            stmt => panic!("expect Stmt::ExprStmt. received {}", stmt),
         };
 
         let m_macro = match &expr_stmt.expr {
             Expr::MacroLit(m) => m,
-            expr => panic!(format!("expect Expr::MacroLiteral. received {}", expr)),
+            expr => panic!("expect Expr::MacroLiteral. received {}", expr),
         };
 
         assert_eq!(m_macro.params.len(), 2);
