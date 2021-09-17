@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::compiler;
 use crate::evaluator::env::Environment;
-use crate::evaluator::object;
+use crate::evaluator::objects;
 use crate::evaluator::{define_macros, eval_node, expand_macros};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
@@ -26,7 +26,7 @@ pub fn start(executer: Executer) {
 }
 
 fn start_vm() {
-    let mut constants: Vec<object::Object> = vec![];
+    let mut constants: Vec<objects::Object> = vec![];
     let mut globals: vm::GlobalSpace = vm::GlobalSpace::new();
     let symbol_table = std::rc::Rc::new(std::cell::RefCell::new(
         compiler::SymbolTable::new_with_builtin(),
@@ -111,7 +111,7 @@ fn start_evaluator() {
         let evaluated = eval_node(&expanded, Rc::clone(&env));
         match evaluated {
             Ok(o) => match o {
-                object::Object::Null(_) => continue,
+                objects::Object::Null(_) => continue,
                 o => println!("{}", o),
             },
             Err(e) => {

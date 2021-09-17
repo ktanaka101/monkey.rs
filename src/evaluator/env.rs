@@ -2,12 +2,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use super::object;
+use super::objects;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Environment {
     outer: Option<Rc<RefCell<Environment>>>,
-    scope: HashMap<String, object::Object>,
+    scope: HashMap<String, objects::Object>,
 }
 
 impl Environment {
@@ -18,11 +18,11 @@ impl Environment {
     pub fn new(outer: Option<Rc<RefCell<Environment>>>) -> Environment {
         Environment {
             outer,
-            scope: HashMap::<String, object::Object>::new(),
+            scope: HashMap::<String, objects::Object>::new(),
         }
     }
 
-    pub fn get(&self, key: &str) -> Option<object::Object> {
+    pub fn get(&self, key: &str) -> Option<objects::Object> {
         let res = self.scope.get(key);
         if let Some(v) = res {
             Some(v.clone())
@@ -34,7 +34,7 @@ impl Environment {
         }
     }
 
-    pub fn insert(&mut self, key: &str, value: object::Object) -> Option<object::Object> {
+    pub fn insert(&mut self, key: &str, value: objects::Object) -> Option<objects::Object> {
         self.scope.insert(key.to_string(), value)
     }
 }
@@ -46,7 +46,7 @@ mod tests {
     #[test]
     fn test_get() {
         let mut env = Environment::new(None);
-        let obj = object::Object::Boolean(object::Boolean { value: true });
+        let obj = objects::Object::Boolean(objects::Boolean { value: true });
 
         env.insert("key_a", obj.clone());
         let get_obj = env.get("key_a").unwrap();

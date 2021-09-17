@@ -1,10 +1,10 @@
 use super::prelude::*;
-use crate::evaluator::object;
+use crate::evaluator::objects;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Closure {
-    pub func: object::CompiledFunction,
-    pub free: Vec<object::Object>,
+    pub func: objects::CompiledFunction,
+    pub free: Vec<objects::Object>,
 }
 
 impl Display for Closure {

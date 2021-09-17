@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 mod symbol_table;
 
-use crate::evaluator::object;
+use crate::evaluator::objects;
 use crate::parser::ast;
 use crate::vm::{bytecode, opcode};
 
@@ -179,7 +179,7 @@ impl CompilationScopes {
 
 #[derive(Debug)]
 pub struct Compiler<'a> {
-    constants: &'a mut Vec<object::Object>,
+    constants: &'a mut Vec<objects::Object>,
     symbol_table: Rc<RefCell<symbol_table::SymbolTable>>,
     scopes: CompilationScopes,
 }
@@ -306,7 +306,7 @@ impl<'a> Compiler<'a> {
                     }
                 }
                 ast::Expr::Integer(int) => {
-                    let int = object::Integer { value: int.value };
+                    let int = objects::Integer { value: int.value };
                     let op = opcode::Constant::from(self.add_constant(int.into()));
                     self.emit(op.into());
                 }
@@ -317,7 +317,7 @@ impl<'a> Compiler<'a> {
                     });
                 }
                 ast::Expr::StringLit(s) => {
-                    let s = object::StringLit { value: s.value };
+                    let s = objects::StringLit { value: s.value };
                     let op = opcode::Constant::from(self.add_constant(s.into()));
                     self.emit(op.into());
                 }
@@ -386,7 +386,7 @@ impl<'a> Compiler<'a> {
                         self.load_symbol(&*sym.borrow());
                     });
 
-                    let compiled_func = object::CompiledFunction {
+                    let compiled_func = objects::CompiledFunction {
                         instructions,
                         num_locals,
                         num_parameters,
@@ -412,7 +412,7 @@ impl<'a> Compiler<'a> {
         self.scopes.current().borrow().instructions.clone()
     }
 
-    fn add_constant(&mut self, obj: object::Object) -> Pos {
+    fn add_constant(&mut self, obj: objects::Object) -> Pos {
         self.constants.push(obj);
         Pos::try_from(self.constants.len()).unwrap() - 1
     }
@@ -462,7 +462,7 @@ impl<'a> Compiler<'a> {
 impl<'a> Compiler<'a> {
     pub fn new_with_state(
         sym_table: Rc<RefCell<symbol_table::SymbolTable>>,
-        constants: &'a mut Vec<object::Object>,
+        constants: &'a mut Vec<objects::Object>,
     ) -> Self {
         Self {
             symbol_table: sym_table,
@@ -1653,7 +1653,7 @@ mod tests {
         });
     }
 
-    fn test_constants(actual: Vec<object::Object>, expected: Vec<Expected>) {
+    fn test_constants(actual: Vec<objects::Object>, expected: Vec<Expected>) {
         actual
             .into_iter()
             .zip(expected)
@@ -1666,27 +1666,27 @@ mod tests {
             });
     }
 
-    fn test_integer_object(actual: object::Object, expected: i64) {
+    fn test_integer_object(actual: objects::Object, expected: i64) {
         match actual {
-            object::Object::Integer(int_o) => {
+            objects::Object::Integer(int_o) => {
                 assert_eq!(int_o.value, expected);
             }
             o => panic!("expected object::Integer. received {}", o),
         }
     }
 
-    fn test_string_object(actual: object::Object, expected: &str) {
+    fn test_string_object(actual: objects::Object, expected: &str) {
         match actual {
-            object::Object::StringLit(s) => {
+            objects::Object::StringLit(s) => {
                 assert_eq!(s.value, expected);
             }
             o => panic!("expected object::StringLit. received {}", o),
         }
     }
 
-    fn test_compiled_function_object(actual: object::Object, expected: bytecode::Instructions) {
+    fn test_compiled_function_object(actual: objects::Object, expected: bytecode::Instructions) {
         match actual {
-            object::Object::CompiledFunction(f) => test_instructions(f.instructions, expected),
+            objects::Object::CompiledFunction(f) => test_instructions(f.instructions, expected),
             o => panic!("expected object::CompiledFunction. received {}", o),
         }
     }

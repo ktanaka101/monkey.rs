@@ -3,20 +3,20 @@ use super::preludes::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::evaluator::object;
+use crate::evaluator::objects;
 use vm::bytecode;
 
 pub const MAX_FRAMES: usize = 1024;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Frame {
-    pub cl: object::Closure,
+    pub cl: objects::Closure,
     pub pointer: usize,
     pub base_pointer: usize,
 }
 
 impl Frame {
-    pub fn new(cl: object::Closure, base_pointer: usize) -> Self {
+    pub fn new(cl: objects::Closure, base_pointer: usize) -> Self {
         Self {
             cl,
             pointer: 0,

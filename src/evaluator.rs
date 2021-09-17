@@ -1,6 +1,6 @@
 pub mod builtin;
 pub mod env;
-pub mod object;
+pub mod objects;
 
 use std::cell::RefCell;
 use std::convert::TryFrom;
@@ -13,14 +13,14 @@ use crate::parser::{ast, tools};
 use crate::evaluator::builtin::{Function, FALSE, NULL, TRUE};
 use crate::evaluator::env::Environment;
 
-pub fn eval_node(node: &ast::Node, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
+pub fn eval_node(node: &ast::Node, env: Rc<RefCell<Environment>>) -> Result<objects::Object> {
     match node {
         ast::Node::Program(n) => eval_program(n, Rc::clone(&env)),
         ast::Node::Stmt(stmt) => eval_stmt(stmt, Rc::clone(&env)),
         ast::Node::Expr(expr) => eval_expr(expr, Rc::clone(&env)),
     }
 }
-fn eval_stmt(stmt: &ast::Stmt, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
+fn eval_stmt(stmt: &ast::Stmt, env: Rc<RefCell<Environment>>) -> Result<objects::Object> {
     match stmt {
         ast::Stmt::ExprStmt(stmt) => eval_expr(&stmt.expr, Rc::clone(&env)),
         ast::Stmt::Let(stmt) => {
@@ -31,18 +31,18 @@ fn eval_stmt(stmt: &ast::Stmt, env: Rc<RefCell<Environment>>) -> Result<object::
         ast::Stmt::Block(stmt) => eval_block(stmt, Rc::clone(&env)),
         ast::Stmt::Return(stmt) => {
             let val = eval_expr(&stmt.return_value, Rc::clone(&env))?;
-            Ok(object::Return {
+            Ok(objects::Return {
                 value: Box::new(val),
             }
             .into())
         }
     }
 }
-fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
+fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<objects::Object> {
     match expr {
         ast::Expr::Array(expr) => {
             let elements = eval_expressions(&expr.elements, Rc::clone(&env))?;
-            Ok(object::Array { elements }.into())
+            Ok(objects::Array { elements }.into())
         }
         ast::Expr::Boolean(expr) => Ok(native_bool_to_boolean_object(expr.value)),
         ast::Expr::Call(expr) => {
@@ -54,7 +54,7 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
             let args = eval_expressions(&expr.args, Rc::clone(&env))?;
             Ok(apply_function(&func, &args)?)
         }
-        ast::Expr::Function(expr) => Ok(object::Function {
+        ast::Expr::Function(expr) => Ok(objects::Function {
             params: expr.params.clone(),
             body: expr.body.clone(),
             env: Rc::clone(&env),
@@ -74,12 +74,12 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
             let right = eval_expr(&expr.right, Rc::clone(&env))?;
             Ok(eval_infix_expr(&expr.ope, &left, &right)?)
         }
-        ast::Expr::Integer(expr) => Ok(object::Integer { value: expr.value }.into()),
+        ast::Expr::Integer(expr) => Ok(objects::Integer { value: expr.value }.into()),
         ast::Expr::PrefixExpr(expr) => {
             let right = eval_expr(&expr.right, Rc::clone(&env))?;
             Ok(eval_prefix_expr(&expr.ope, &right)?)
         }
-        ast::Expr::StringLit(expr) => Ok(object::StringLit {
+        ast::Expr::StringLit(expr) => Ok(objects::StringLit {
             value: expr.value.clone(),
         }
         .into()),
@@ -88,14 +88,14 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
 }
 
 pub(crate) fn new_error<T>(message: &str) -> Result<T> {
-    Err(object::Error::Standard(message.into()).into())
+    Err(objects::Error::Standard(message.into()).into())
 }
 
-fn eval_program(program: &ast::Program, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
-    let mut obj: object::Object = NULL.into();
+fn eval_program(program: &ast::Program, env: Rc<RefCell<Environment>>) -> Result<objects::Object> {
+    let mut obj: objects::Object = NULL.into();
     for stmt in program.statements.iter() {
         match eval_stmt(stmt, Rc::clone(&env))? {
-            object::Object::Return(r) => return Ok(r.value.as_ref().clone()),
+            objects::Object::Return(r) => return Ok(r.value.as_ref().clone()),
             o => obj = o,
         }
     }
@@ -103,11 +103,11 @@ fn eval_program(program: &ast::Program, env: Rc<RefCell<Environment>>) -> Result
     Ok(obj)
 }
 
-fn eval_block(block: &ast::Block, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
-    let mut obj: object::Object = NULL.into();
+fn eval_block(block: &ast::Block, env: Rc<RefCell<Environment>>) -> Result<objects::Object> {
+    let mut obj: objects::Object = NULL.into();
     for stmt in block.statements.iter() {
         match eval_stmt(stmt, Rc::clone(&env))? {
-            object::Object::Return(r) => return Ok(r.into()),
+            objects::Object::Return(r) => return Ok(r.into()),
             o => obj = o,
         }
     }
@@ -115,7 +115,7 @@ fn eval_block(block: &ast::Block, env: Rc<RefCell<Environment>>) -> Result<objec
     Ok(obj)
 }
 
-fn eval_prefix_expr(ope: &ast::Operator, right: &object::Object) -> Result<object::Object> {
+fn eval_prefix_expr(ope: &ast::Operator, right: &objects::Object) -> Result<objects::Object> {
     match ope {
         ast::Operator::Bang => Ok(eval_bang_ope_expr(right)),
         ast::Operator::Minus => Ok(eval_minus_prefix_ope_expr(right)?),
@@ -123,30 +123,30 @@ fn eval_prefix_expr(ope: &ast::Operator, right: &object::Object) -> Result<objec
     }
 }
 
-fn native_bool_to_boolean_object(input: bool) -> object::Object {
-    object::Object::Boolean(if input { TRUE } else { FALSE })
+fn native_bool_to_boolean_object(input: bool) -> objects::Object {
+    objects::Object::Boolean(if input { TRUE } else { FALSE })
 }
 
-fn eval_bang_ope_expr(right: &object::Object) -> object::Object {
-    object::Object::Boolean(match right {
-        object::Object::Boolean(b) => match b {
+fn eval_bang_ope_expr(right: &objects::Object) -> objects::Object {
+    objects::Object::Boolean(match right {
+        objects::Object::Boolean(b) => match b {
             _ if b == &TRUE => FALSE,
             _ if b == &FALSE => TRUE,
             _ => unreachable!(),
         },
-        object::Object::Null(_) => TRUE,
+        objects::Object::Null(_) => TRUE,
         _ => FALSE,
     })
 }
 
-fn eval_minus_prefix_ope_expr(right: &object::Object) -> Result<object::Object> {
+fn eval_minus_prefix_ope_expr(right: &objects::Object) -> Result<objects::Object> {
     match right {
-        object::Object::Integer(i) => {
+        objects::Object::Integer(i) => {
             let value = match i.value.checked_neg() {
                 Some(v) => v,
                 None => new_error(&format!("overflow: {}", i))?,
             };
-            Ok(object::Integer { value }.into())
+            Ok(objects::Integer { value }.into())
         }
         unknown => new_error(&format!("unknown operator: -{}", unknown.o_type())),
     }
@@ -154,14 +154,14 @@ fn eval_minus_prefix_ope_expr(right: &object::Object) -> Result<object::Object> 
 
 fn eval_infix_expr(
     ope: &ast::Operator,
-    left: &object::Object,
-    right: &object::Object,
-) -> Result<object::Object> {
+    left: &objects::Object,
+    right: &objects::Object,
+) -> Result<objects::Object> {
     match (ope, left, right) {
-        (o, object::Object::Integer(l), object::Object::Integer(r)) => {
+        (o, objects::Object::Integer(l), objects::Object::Integer(r)) => {
             eval_integer_infix_expr(o, l, r)
         }
-        (o, object::Object::StringLit(l), object::Object::StringLit(r)) => {
+        (o, objects::Object::StringLit(l), objects::Object::StringLit(r)) => {
             eval_string_infix_expr(o, l, r)
         }
         (ast::Operator::Equal, l, r) => Ok(native_bool_to_boolean_object(l == r)),
@@ -188,9 +188,9 @@ fn eval_infix_expr(
 
 fn eval_integer_infix_expr(
     ope: &ast::Operator,
-    left: &object::Integer,
-    right: &object::Integer,
-) -> Result<object::Object> {
+    left: &objects::Integer,
+    right: &objects::Integer,
+) -> Result<objects::Object> {
     use ast::Operator::*;
     let res = match ope {
         Plus => {
@@ -198,28 +198,28 @@ fn eval_integer_infix_expr(
                 Some(v) => v,
                 None => new_error(&format!("overflow: {} + {}", left.value, right.value))?,
             };
-            object::Integer { value }.into()
+            objects::Integer { value }.into()
         }
         Minus => {
             let value = match left.value.checked_sub(right.value) {
                 Some(v) => v,
                 None => new_error(&format!("overflow: {} - {}", left.value, right.value))?,
             };
-            object::Integer { value }.into()
+            objects::Integer { value }.into()
         }
         Asterisk => {
             let value = match left.value.checked_mul(right.value) {
                 Some(v) => v,
                 None => new_error(&format!("overflow: {} - {}", left.value, right.value))?,
             };
-            object::Integer { value }.into()
+            objects::Integer { value }.into()
         }
         Slash => {
             let value = match left.value.checked_div(right.value) {
                 Some(v) => v,
                 None => new_error(&format!("overflow: {} - {}", left.value, right.value))?,
             };
-            object::Integer { value }.into()
+            objects::Integer { value }.into()
         }
         Lt => native_bool_to_boolean_object(left.value < right.value),
         Gt => native_bool_to_boolean_object(left.value > right.value),
@@ -233,20 +233,20 @@ fn eval_integer_infix_expr(
 
 fn eval_string_infix_expr(
     ope: &ast::Operator,
-    left: &object::StringLit,
-    right: &object::StringLit,
-) -> Result<object::Object> {
+    left: &objects::StringLit,
+    right: &objects::StringLit,
+) -> Result<objects::Object> {
     match ope {
         ast::Operator::Plus => {
             let mut value = left.value.clone();
             value.push_str(&right.value);
-            Ok(object::StringLit { value }.into())
+            Ok(objects::StringLit { value }.into())
         }
         unknown => new_error(&format!("unknown operator: String {} String", unknown)),
     }
 }
 
-fn eval_if_expr(if_expr: &ast::If, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
+fn eval_if_expr(if_expr: &ast::If, env: Rc<RefCell<Environment>>) -> Result<objects::Object> {
     let cond = eval_expr(if_expr.cond.as_ref(), Rc::clone(&env))?;
 
     if is_truthy(cond) {
@@ -261,10 +261,10 @@ fn eval_if_expr(if_expr: &ast::If, env: Rc<RefCell<Environment>>) -> Result<obje
     }
 }
 
-fn is_truthy(obj: object::Object) -> bool {
+fn is_truthy(obj: objects::Object) -> bool {
     match obj {
-        object::Object::Null(_) => false,
-        object::Object::Boolean(b) => match b {
+        objects::Object::Null(_) => false,
+        objects::Object::Boolean(b) => match b {
             _ if b == TRUE => true,
             _ if b == FALSE => false,
             _ => unreachable!(),
@@ -276,7 +276,7 @@ fn is_truthy(obj: object::Object) -> bool {
 fn eval_identifier(
     node: &ast::Identifier,
     env: Rc<RefCell<Environment>>,
-) -> Result<object::Object> {
+) -> Result<objects::Object> {
     let cur_env = env.borrow_mut();
     let ident = cur_env.get(&node.value);
     if let Some(id) = ident {
@@ -294,8 +294,8 @@ fn eval_identifier(
 fn eval_expressions(
     expr_list: &[ast::Expr],
     env: Rc<RefCell<Environment>>,
-) -> Result<Vec<object::Object>> {
-    let mut result = Vec::<object::Object>::new();
+) -> Result<Vec<objects::Object>> {
+    let mut result = Vec::<objects::Object>::new();
 
     for expr in expr_list.iter() {
         result.push(eval_expr(expr, Rc::clone(&env))?);
@@ -304,14 +304,14 @@ fn eval_expressions(
     Ok(result)
 }
 
-fn apply_function(func: &object::Object, args: &[object::Object]) -> Result<object::Object> {
+fn apply_function(func: &objects::Object, args: &[objects::Object]) -> Result<objects::Object> {
     match func {
-        object::Object::Function(f) => {
+        objects::Object::Function(f) => {
             let extended_env = extend_function_env(f, args)?;
             let evaluated = eval_stmt(&f.body.clone().into(), extended_env)?;
             Ok(unwrap_return_value(&evaluated))
         }
-        object::Object::Builtin(builtin) => Ok(match builtin.call(args)? {
+        objects::Object::Builtin(builtin) => Ok(match builtin.call(args)? {
             Some(res) => res,
             None => NULL.into(),
         }),
@@ -320,8 +320,8 @@ fn apply_function(func: &object::Object, args: &[object::Object]) -> Result<obje
 }
 
 fn extend_function_env(
-    func: &object::Function,
-    args: &[object::Object],
+    func: &objects::Function,
+    args: &[objects::Object],
 ) -> Result<Rc<RefCell<Environment>>> {
     let mut env = Environment::new_enclose(Rc::clone(&func.env));
 
@@ -336,75 +336,75 @@ fn extend_function_env(
     Ok(Rc::new(RefCell::new(env)))
 }
 
-fn unwrap_return_value(obj: &object::Object) -> object::Object {
+fn unwrap_return_value(obj: &objects::Object) -> objects::Object {
     match obj.clone() {
-        object::Object::Return(o) => *o.value,
+        objects::Object::Return(o) => *o.value,
         o => o,
     }
 }
 
 fn eval_index_expr<'a>(
-    left: &'a object::Object,
-    index: &object::Object,
-) -> Result<&'a object::Object> {
+    left: &'a objects::Object,
+    index: &objects::Object,
+) -> Result<&'a objects::Object> {
     match (left, index) {
-        (object::Object::Array(l), object::Object::Integer(idx)) => {
+        (objects::Object::Array(l), objects::Object::Integer(idx)) => {
             Ok(eval_array_index_expr(l, idx)?)
         }
-        (object::Object::Hash(l), idx) => Ok(eval_hash_index_expr(l, idx)?),
+        (objects::Object::Hash(l), idx) => Ok(eval_hash_index_expr(l, idx)?),
         (l, _) => new_error(&format!("index operator not supported: {}", l.o_type()))?,
     }
 }
 
 fn eval_array_index_expr<'a>(
-    array: &'a object::Array,
-    index: &object::Integer,
-) -> Result<&'a object::Object> {
+    array: &'a objects::Array,
+    index: &objects::Integer,
+) -> Result<&'a objects::Object> {
     if index.value < 0 {
-        return Ok(&object::Object::Null(NULL));
+        return Ok(&objects::Object::Null(NULL));
     }
     let idx = usize::try_from(index.value).or_else(|e| new_error(&e.to_string()))?;
 
     match array.elements.get(idx) {
         Some(obj) => Ok(obj),
-        None => Ok(&object::Object::Null(NULL)),
+        None => Ok(&objects::Object::Null(NULL)),
     }
 }
 
-fn eval_hash_literal(node: &ast::Hash, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
-    let mut pairs = object::HashPairs::new();
+fn eval_hash_literal(node: &ast::Hash, env: Rc<RefCell<Environment>>) -> Result<objects::Object> {
+    let mut pairs = objects::HashPairs::new();
 
     for pair in node.pairs.iter() {
         let key = eval_expr(&pair.key, Rc::clone(&env))?;
         let value = eval_expr(&pair.value, Rc::clone(&env))?;
         let key_type = key.o_type();
 
-        match object::HashableObject::try_from(key) {
+        match objects::HashableObject::try_from(key) {
             Ok(o) => pairs.insert(o, value),
             Err(_) => new_error(&format!("unusable as hash key: {}", key_type))?,
         };
     }
 
-    Ok(object::Hash { pairs }.into())
+    Ok(objects::Hash { pairs }.into())
 }
 
 fn eval_hash_index_expr<'a>(
-    hash: &'a object::Hash,
-    key: &object::Object,
-) -> Result<&'a object::Object> {
+    hash: &'a objects::Hash,
+    key: &objects::Object,
+) -> Result<&'a objects::Object> {
     let key_type = key.o_type();
-    match object::HashableObject::try_from(key.clone()) {
+    match objects::HashableObject::try_from(key.clone()) {
         Ok(o) => Ok(match hash.pairs.get(&o) {
             Some(value) => value,
-            None => &object::Object::Null(NULL),
+            None => &objects::Object::Null(NULL),
         }),
         Err(_) => new_error(&format!("unusable as hash key: {}", key_type))?,
     }
 }
 
-fn quote(node: ast::Node, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
+fn quote(node: ast::Node, env: Rc<RefCell<Environment>>) -> Result<objects::Object> {
     let node = eval_unquote_calls(node, env)?;
-    Ok(object::Quote { node }.into())
+    Ok(objects::Quote { node }.into())
 }
 
 fn eval_unquote_calls(quoted: ast::Node, env: Rc<RefCell<Environment>>) -> Result<ast::Node> {
@@ -430,11 +430,11 @@ fn eval_unquote_calls(quoted: ast::Node, env: Rc<RefCell<Environment>>) -> Resul
     })
 }
 
-fn convert_object_to_ast_node(obj: object::Object) -> ast::Node {
+fn convert_object_to_ast_node(obj: objects::Object) -> ast::Node {
     match obj {
-        object::Object::Integer(int) => ast::Expr::from(ast::Integer { value: int.value }).into(),
-        object::Object::Boolean(b) => ast::Expr::from(ast::Boolean { value: b.value }).into(),
-        object::Object::Quote(q) => q.node,
+        objects::Object::Integer(int) => ast::Expr::from(ast::Integer { value: int.value }).into(),
+        objects::Object::Boolean(b) => ast::Expr::from(ast::Boolean { value: b.value }).into(),
+        objects::Object::Quote(q) => q.node,
         _ => unimplemented!(),
     }
 }
@@ -486,7 +486,7 @@ fn add_macro(stmt: &ast::Stmt, env: Rc<RefCell<Environment>>) -> Result<()> {
     };
     let ast::MacroLit { params, body, .. } = m_macro;
 
-    let m_macro = object::Macro {
+    let m_macro = objects::Macro {
         params: params.clone(),
         body: body.clone(),
         env: Rc::clone(&env),
@@ -517,7 +517,7 @@ pub fn expand_macros(program: ast::Node, env: Rc<RefCell<Environment>>) -> Resul
         let evaluated = eval_stmt(&m_macro.body.into(), Rc::new(RefCell::new(eval_env)))?;
 
         let quote = match evaluated {
-            object::Object::Quote(q) => q,
+            objects::Object::Quote(q) => q,
             o => {
                 return Err(anyhow::format_err!(
                     "we only support returning AST-nodes from macros. {}",
@@ -530,7 +530,7 @@ pub fn expand_macros(program: ast::Node, env: Rc<RefCell<Environment>>) -> Resul
     })
 }
 
-fn get_macro_in_env(call: &ast::Call, env: Rc<RefCell<Environment>>) -> Option<object::Macro> {
+fn get_macro_in_env(call: &ast::Call, env: Rc<RefCell<Environment>>) -> Option<objects::Macro> {
     let ident = match &(*call.func) {
         ast::Expr::Identifier(id) => id,
         _ => return None,
@@ -538,19 +538,19 @@ fn get_macro_in_env(call: &ast::Call, env: Rc<RefCell<Environment>>) -> Option<o
 
     let obj = env.borrow().get(&ident.value)?;
     match obj {
-        object::Object::Macro(m) => Some(m),
+        objects::Object::Macro(m) => Some(m),
         _ => None,
     }
 }
 
-fn quote_args(call: ast::Call) -> Vec<object::Quote> {
+fn quote_args(call: ast::Call) -> Vec<objects::Quote> {
     call.args
         .into_iter()
-        .map(|arg| object::Quote { node: arg.into() })
-        .collect::<Vec<object::Quote>>()
+        .map(|arg| objects::Quote { node: arg.into() })
+        .collect::<Vec<objects::Quote>>()
 }
 
-fn extend_macro_env(m_macro: object::Macro, args: Vec<object::Quote>) -> Environment {
+fn extend_macro_env(m_macro: objects::Macro, args: Vec<objects::Quote>) -> Environment {
     let mut extended = Environment::new(Some(Rc::clone(&m_macro.env)));
 
     m_macro
@@ -735,7 +735,7 @@ mod tests {
             |(input, expected_params_size, expected_params, expected_body)| {
                 let obj = eval(input);
                 match obj {
-                    object::Object::Function(o) => {
+                    objects::Object::Function(o) => {
                         assert_eq!(o.params.len(), expected_params_size);
                         assert_eq!(o.params[0].to_string(), expected_params);
                         assert_eq!(o.body.to_string(), expected_body);
@@ -970,7 +970,7 @@ mod tests {
         let expected4 = vec![4_i64, 5_i64];
         let evaluated = eval(input);
         match evaluated {
-            object::Object::Array(o) => {
+            objects::Object::Array(o) => {
                 assert_eq!(o.elements.len(), 4);
                 assert_integer_object(o.elements[0].clone(), expected1);
                 assert_integer_object(o.elements[1].clone(), expected2);
@@ -1047,49 +1047,55 @@ mod tests {
 
         let evaluated = eval(input);
         match evaluated {
-            object::Object::Hash(evaluated) => {
+            objects::Object::Hash(evaluated) => {
                 assert_eq!(evaluated.pairs.len(), 6);
 
                 let expected = vec![
                     (
-                        object::HashableObject::try_from(object::Object::from(object::StringLit {
-                            value: "one".into(),
-                        }))
+                        objects::HashableObject::try_from(objects::Object::from(
+                            objects::StringLit {
+                                value: "one".into(),
+                            },
+                        ))
                         .unwrap(),
                         1_i64,
                     ),
                     (
-                        object::HashableObject::try_from(object::Object::from(object::StringLit {
-                            value: "two".into(),
-                        }))
+                        objects::HashableObject::try_from(objects::Object::from(
+                            objects::StringLit {
+                                value: "two".into(),
+                            },
+                        ))
                         .unwrap(),
                         2_i64,
                     ),
                     (
-                        object::HashableObject::try_from(object::Object::from(object::StringLit {
-                            value: "three".into(),
-                        }))
+                        objects::HashableObject::try_from(objects::Object::from(
+                            objects::StringLit {
+                                value: "three".into(),
+                            },
+                        ))
                         .unwrap(),
                         3_i64,
                     ),
                     (
-                        object::HashableObject::try_from(object::Object::from(object::Integer {
-                            value: 4_i64,
-                        }))
+                        objects::HashableObject::try_from(objects::Object::from(
+                            objects::Integer { value: 4_i64 },
+                        ))
                         .unwrap(),
                         4_i64,
                     ),
                     (
-                        object::HashableObject::try_from(object::Object::from(object::Boolean {
-                            value: true,
-                        }))
+                        objects::HashableObject::try_from(objects::Object::from(
+                            objects::Boolean { value: true },
+                        ))
                         .unwrap(),
                         5_i64,
                     ),
                     (
-                        object::HashableObject::try_from(object::Object::from(object::Boolean {
-                            value: false,
-                        }))
+                        objects::HashableObject::try_from(objects::Object::from(
+                            objects::Boolean { value: false },
+                        ))
                         .unwrap(),
                         6_i64,
                     ),
@@ -1135,7 +1141,7 @@ mod tests {
         tests.into_iter().for_each(|(input, expected)| {
             let evaluated = eval(input);
             match evaluated {
-                object::Object::Quote(o) => assert_eq!(o.to_string(), expected),
+                objects::Object::Quote(o) => assert_eq!(o.to_string(), expected),
                 o => panic!("expected Quote. received {:?}", o),
             }
         });
@@ -1176,7 +1182,7 @@ mod tests {
         tests.into_iter().for_each(|(input, expected)| {
             let evaluated = eval(input);
             match evaluated {
-                object::Object::Quote(o) => assert_eq!(o.to_string(), expected),
+                objects::Object::Quote(o) => assert_eq!(o.to_string(), expected),
                 o => panic!("expected Quote. received {:?}", o),
             }
         });
@@ -1208,7 +1214,7 @@ mod tests {
         assert!(obj.is_some());
 
         let m_macro = match obj.unwrap() {
-            object::Object::Macro(m) => m,
+            objects::Object::Macro(m) => m,
             obj => panic!("expect Macro. received {}", obj),
         };
 
@@ -1303,7 +1309,7 @@ mod tests {
 
         let obj = eval_node(&program.into(), env).unwrap();
         match obj {
-            object::Object::Integer(i) => assert_eq!(i.value, 610),
+            objects::Object::Integer(i) => assert_eq!(i.value, 610),
             other => panic!("expected Integer. received {}", other),
         };
     }
@@ -1317,12 +1323,12 @@ mod tests {
             .unwrap()
     }
 
-    fn eval(input: &str) -> object::Object {
+    fn eval(input: &str) -> objects::Object {
         let evaluated = eval_non_check(input);
         check_err_and_unrwap(evaluated, input)
     }
 
-    fn eval_non_check(input: &str) -> Result<object::Object> {
+    fn eval_non_check(input: &str) -> Result<objects::Object> {
         let l = crate::lexer::Lexer::new(input.to_string());
         let mut p = crate::parser::Parser::new(l);
 
@@ -1333,23 +1339,23 @@ mod tests {
         eval_program(&program, env)
     }
 
-    fn assert_integer_object(obj: object::Object, expected: i64) {
+    fn assert_integer_object(obj: objects::Object, expected: i64) {
         match obj {
-            object::Object::Integer(o) => assert_eq!(o.value, expected),
+            objects::Object::Integer(o) => assert_eq!(o.value, expected),
             o => panic!("expected Integer. received {:?}", o),
         }
     }
 
-    fn assert_boolean_object(obj: object::Object, expected: bool) {
+    fn assert_boolean_object(obj: objects::Object, expected: bool) {
         match obj {
-            object::Object::Boolean(o) => assert_eq!(o.value, expected),
+            objects::Object::Boolean(o) => assert_eq!(o.value, expected),
             o => panic!("expected Boolean. received {:?}", o),
         }
     }
 
-    fn assert_null_object(obj: object::Object) {
+    fn assert_null_object(obj: objects::Object) {
         match obj {
-            object::Object::Null(_) => (),
+            objects::Object::Null(_) => (),
             o => panic!("expected Null. received {:?}", o),
         }
     }
@@ -1358,23 +1364,23 @@ mod tests {
         assert_eq!(err.to_string(), expected)
     }
 
-    fn assert_string_object(obj: object::Object, expected: &str) {
+    fn assert_string_object(obj: objects::Object, expected: &str) {
         match obj {
-            object::Object::StringLit(o) => assert_eq!(o.value, expected),
+            objects::Object::StringLit(o) => assert_eq!(o.value, expected),
             o => panic!("expected StringLit. received {:?}", o),
         }
     }
 
-    fn assert_integer_array_object(obj: object::Object, expected_arr: Vec<i64>) {
+    fn assert_integer_array_object(obj: objects::Object, expected_arr: Vec<i64>) {
         match obj {
-            object::Object::Array(o) => {
+            objects::Object::Array(o) => {
                 assert_eq!(o.elements.len(), expected_arr.len());
 
                 expected_arr
                     .into_iter()
                     .zip(o.elements)
                     .for_each(|(expected, ele)| match ele {
-                        object::Object::Integer(o) => assert_eq!(o.value, expected),
+                        objects::Object::Integer(o) => assert_eq!(o.value, expected),
                         o => panic!("expected Array<Integer>. received {:?}", o),
                     })
             }
@@ -1382,16 +1388,16 @@ mod tests {
         }
     }
 
-    fn assert_string_array_object(obj: object::Object, expected_arr: Vec<&str>) {
+    fn assert_string_array_object(obj: objects::Object, expected_arr: Vec<&str>) {
         match obj {
-            object::Object::Array(o) => {
+            objects::Object::Array(o) => {
                 assert_eq!(o.elements.len(), expected_arr.len());
 
                 expected_arr
                     .into_iter()
                     .zip(o.elements)
                     .for_each(|(expected, ele)| match ele {
-                        object::Object::StringLit(o) => assert_eq!(o.value, expected),
+                        objects::Object::StringLit(o) => assert_eq!(o.value, expected),
                         o => panic!("expected Array<Integer>. received {:?}", o),
                     })
             }

@@ -5,13 +5,13 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 
 use monkey::compiler;
 use monkey::evaluator;
-use monkey::evaluator::object;
+use monkey::evaluator::objects;
 use monkey::lexer;
 use monkey::parser;
 use monkey::vm;
 
-fn run_vm(input: String) -> object::Object {
-    let mut constants: Vec<object::Object> = vec![];
+fn run_vm(input: String) -> objects::Object {
+    let mut constants: Vec<objects::Object> = vec![];
     let mut globals: vm::GlobalSpace = Default::default();
     let symbol_table = Rc::new(RefCell::new(compiler::SymbolTable::new_with_builtin()));
 
@@ -30,7 +30,7 @@ fn run_vm(input: String) -> object::Object {
     machine.last_popped_stack_elem().clone()
 }
 
-fn run_evaluator(input: String) -> object::Object {
+fn run_evaluator(input: String) -> objects::Object {
     let env = Rc::new(RefCell::new(evaluator::env::Environment::new(None)));
     let lexer = lexer::Lexer::new(input);
     let mut parser = parser::Parser::new(lexer);

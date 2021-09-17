@@ -4,7 +4,7 @@ mod frame;
 pub mod opcode;
 
 use crate::evaluator::builtin;
-use crate::evaluator::object;
+use crate::evaluator::objects;
 use crate::vm::convert::Read;
 
 mod preludes {
@@ -17,13 +17,13 @@ use preludes::*;
 pub const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
 
-const TRUE: object::Boolean = object::Boolean { value: true };
-const FALSE: object::Boolean = object::Boolean { value: false };
-const NULL: object::Null = object::Null {};
+const TRUE: objects::Boolean = objects::Boolean { value: true };
+const FALSE: objects::Boolean = objects::Boolean { value: false };
+const NULL: objects::Null = objects::Null {};
 
 #[derive(Debug, Default)]
 struct Stack {
-    data: Vec<object::Object>,
+    data: Vec<objects::Object>,
     pointer: usize,
 }
 
@@ -35,7 +35,7 @@ impl Stack {
         }
     }
 
-    fn top(&self) -> Option<&object::Object> {
+    fn top(&self) -> Option<&objects::Object> {
         if self.pointer == 0 {
             None
         } else {
@@ -43,11 +43,11 @@ impl Stack {
         }
     }
 
-    fn last_popped(&self) -> &object::Object {
+    fn last_popped(&self) -> &objects::Object {
         &self.data[self.pointer]
     }
 
-    fn push(&mut self, o: object::Object) -> Result<()> {
+    fn push(&mut self, o: objects::Object) -> Result<()> {
         if self.pointer >= STACK_SIZE {
             return Err(anyhow::format_err!("stack overflow"));
         }
@@ -58,31 +58,31 @@ impl Stack {
         Ok(())
     }
 
-    fn pop(&mut self) -> &object::Object {
+    fn pop(&mut self) -> &objects::Object {
         let o = &self.data[self.pointer - 1];
         self.pointer -= 1;
         o
     }
 
-    fn pop_pair(&mut self) -> (&object::Object, &object::Object) {
+    fn pop_pair(&mut self) -> (&objects::Object, &objects::Object) {
         let o = (&self.data[self.pointer - 2], &self.data[self.pointer - 1]);
         self.pointer -= 2;
         o
     }
 
-    fn extract_array(&mut self, num_elements: usize) -> object::Array {
+    fn extract_array(&mut self, num_elements: usize) -> objects::Array {
         let elements = self.data[(self.pointer - num_elements)..self.pointer].into();
         self.pointer -= num_elements;
-        object::Array { elements }
+        objects::Array { elements }
     }
 
-    fn extract_hash(&mut self, num_elements: usize) -> Result<object::Hash> {
-        let elements: Vec<object::Object> =
+    fn extract_hash(&mut self, num_elements: usize) -> Result<objects::Hash> {
+        let elements: Vec<objects::Object> =
             self.data[(self.pointer - num_elements)..self.pointer].into();
 
         debug_assert_eq!(elements.len() % 2, 0);
 
-        let mut pairs = object::HashPairs::new();
+        let mut pairs = objects::HashPairs::new();
         for i in 0..(elements.len() / 2) {
             pairs.insert(
                 elements[i * 2].clone().try_into()?,
@@ -91,12 +91,12 @@ impl Stack {
         }
 
         self.pointer -= num_elements;
-        Ok(object::Hash { pairs })
+        Ok(objects::Hash { pairs })
     }
 }
 
 #[derive(Debug)]
-pub struct GlobalSpace(Vec<Option<object::Object>>);
+pub struct GlobalSpace(Vec<Option<objects::Object>>);
 
 impl Default for GlobalSpace {
     fn default() -> Self {
@@ -112,7 +112,7 @@ impl GlobalSpace {
 
 #[derive(Debug)]
 pub struct VM<'a> {
-    constants: Vec<object::Object>,
+    constants: Vec<objects::Object>,
     globals: &'a mut GlobalSpace,
     stack: Stack,
     stack_frame: frame::StackFrame,
@@ -123,12 +123,12 @@ impl<'a> VM<'a> {
         bytecode: bytecode::Bytecode,
         globals: &'a mut GlobalSpace,
     ) -> Self {
-        let main_fn = object::CompiledFunction {
+        let main_fn = objects::CompiledFunction {
             instructions: bytecode.instructions,
             num_locals: 0,
             num_parameters: 0,
         };
-        let closure = object::Closure {
+        let closure = objects::Closure {
             func: main_fn,
             ..Default::default()
         };
@@ -145,11 +145,11 @@ impl<'a> VM<'a> {
         }
     }
 
-    pub fn stack_top(&self) -> Option<&object::Object> {
+    pub fn stack_top(&self) -> Option<&objects::Object> {
         self.stack.top()
     }
 
-    pub fn last_popped_stack_elem(&self) -> &object::Object {
+    pub fn last_popped_stack_elem(&self) -> &objects::Object {
         self.stack.last_popped()
     }
 
@@ -283,7 +283,7 @@ impl<'a> VM<'a> {
                     let num_args = call.0;
                     let obj = &self.stack.data[self.stack.pointer - 1 - usize::from(num_args)];
                     match obj {
-                        object::Object::Closure(cl) => {
+                        objects::Object::Closure(cl) => {
                             if cl.func.num_parameters != num_args {
                                 return Err(anyhow::format_err!(
                                     "wrong number of arguments: want={}, got={}",
@@ -300,7 +300,7 @@ impl<'a> VM<'a> {
                             self.stack_frame.push(frame);
                             self.stack.pointer = bp + usize::from(cl.func.num_locals);
                         }
-                        object::Object::Builtin(builtin) => {
+                        objects::Object::Builtin(builtin) => {
                             self.stack_frame.current().borrow_mut().pointer += 1;
 
                             let start_p = self.stack.pointer - usize::from(num_args);
@@ -319,7 +319,7 @@ impl<'a> VM<'a> {
                                 }
                                 Err(e) => {
                                     self.stack
-                                        .push(object::Error::Standard(e.to_string()).into())?;
+                                        .push(objects::Error::Standard(e.to_string()).into())?;
                                 }
                             }
                         }
@@ -371,7 +371,7 @@ impl<'a> VM<'a> {
                 opcode::Opcode::Closure(closure) => {
                     let constant = &self.constants[usize::from(closure.0)];
                     match constant {
-                        object::Object::CompiledFunction(func) => {
+                        objects::Object::CompiledFunction(func) => {
                             let free = (0..usize::from(closure.1))
                                 .map(|i| {
                                     self.stack.data[self.stack.pointer - usize::from(closure.1) + i]
@@ -380,7 +380,7 @@ impl<'a> VM<'a> {
                                 .collect::<Vec<_>>();
                             self.stack.pointer -= usize::from(closure.1);
 
-                            let cl_obj = object::Closure {
+                            let cl_obj = objects::Closure {
                                 func: func.clone(),
                                 free,
                             };
@@ -412,11 +412,11 @@ impl<'a> VM<'a> {
 
     fn execute_binary_operation(&mut self, op: &opcode::Opcode) -> Result<()> {
         match self.stack.pop_pair() {
-            (object::Object::Integer(i1), object::Object::Integer(i2)) => {
+            (objects::Object::Integer(i1), objects::Object::Integer(i2)) => {
                 let int = Self::execute_binary_integer_operation(op, i1.value, i2.value)?;
                 self.stack.push(int.into())?;
             }
-            (object::Object::StringLit(s1), object::Object::StringLit(s2)) => {
+            (objects::Object::StringLit(s1), objects::Object::StringLit(s2)) => {
                 let string = Self::execute_binary_string_operation(op, &s1.value, &s2.value)?;
                 self.stack.push(string.into())?;
             }
@@ -436,7 +436,7 @@ impl<'a> VM<'a> {
         op: &opcode::Opcode,
         left_val: i64,
         right_val: i64,
-    ) -> Result<object::Integer> {
+    ) -> Result<objects::Integer> {
         let value = match op {
             opcode::Opcode::Add(_) => left_val + right_val,
             opcode::Opcode::Sub(_) => left_val - right_val,
@@ -450,27 +450,27 @@ impl<'a> VM<'a> {
             }
         };
 
-        Ok(object::Integer { value })
+        Ok(objects::Integer { value })
     }
 
     fn execute_binary_string_operation(
         op: &opcode::Opcode,
         left_val: &str,
         right_val: &str,
-    ) -> Result<object::StringLit> {
+    ) -> Result<objects::StringLit> {
         let value = match op {
             opcode::Opcode::Add(_) => left_val.to_string() + right_val,
             _ => return Err(anyhow::format_err!("unknown string operator. received {}",)),
         };
 
-        Ok(object::StringLit { value })
+        Ok(objects::StringLit { value })
     }
 
     fn execute_comparison(&mut self, op: &opcode::Opcode) -> Result<()> {
         let (right, left) = self.stack.pop_pair();
 
         match (left, right) {
-            (object::Object::Integer(l), object::Object::Integer(r)) => {
+            (objects::Object::Integer(l), objects::Object::Integer(r)) => {
                 let compared =
                     Self::execute_integer_comparison(op, &l.clone().into(), &r.clone().into())?;
                 self.stack.push(compared.into())?;
@@ -500,11 +500,11 @@ impl<'a> VM<'a> {
 
     fn execute_integer_comparison(
         op: &opcode::Opcode,
-        left: &object::Object,
-        right: &object::Object,
-    ) -> Result<object::Boolean> {
+        left: &objects::Object,
+        right: &objects::Object,
+    ) -> Result<objects::Boolean> {
         match (left, right) {
-            (object::Object::Integer(l), object::Object::Integer(r)) => match op {
+            (objects::Object::Integer(l), objects::Object::Integer(r)) => match op {
                 opcode::Opcode::Equal(_) => {
                     Ok(Self::native_bool_to_boolean_object(r.value == l.value))
                 }
@@ -533,7 +533,7 @@ impl<'a> VM<'a> {
         }
     }
 
-    fn native_bool_to_boolean_object(b: bool) -> object::Boolean {
+    fn native_bool_to_boolean_object(b: bool) -> objects::Boolean {
         if b {
             TRUE
         } else {
@@ -544,14 +544,14 @@ impl<'a> VM<'a> {
     fn execute_bang_oeprator(&mut self) -> Result<()> {
         let operand = self.stack.pop();
         match operand {
-            object::Object::Boolean(b) => {
+            objects::Object::Boolean(b) => {
                 if b.value {
                     self.stack.push(FALSE.into())?;
                 } else {
                     self.stack.push(TRUE.into())?;
                 }
             }
-            object::Object::Null(_) => {
+            objects::Object::Null(_) => {
                 self.stack.push(TRUE.into())?;
             }
             _other => self.stack.push(FALSE.into())?,
@@ -563,8 +563,8 @@ impl<'a> VM<'a> {
     fn execute_minus_operator(&mut self) -> Result<()> {
         let operand = self.stack.pop();
         match operand {
-            object::Object::Integer(i) => {
-                let int = object::Integer { value: -i.value };
+            objects::Object::Integer(i) => {
+                let int = objects::Integer { value: -i.value };
                 self.stack.push(int.into())?
             }
             unknown => {
@@ -580,14 +580,14 @@ impl<'a> VM<'a> {
 
     fn execute_index_expressions(
         &mut self,
-        left: object::Object,
-        index: object::Object,
+        left: objects::Object,
+        index: objects::Object,
     ) -> Result<()> {
         match (left, index) {
-            (object::Object::Array(arr), object::Object::Integer(idx)) => {
+            (objects::Object::Array(arr), objects::Object::Integer(idx)) => {
                 self.execute_array_index(arr, idx)?;
             }
-            (object::Object::Hash(hs), idx) => {
+            (objects::Object::Hash(hs), idx) => {
                 self.execute_hash_index(hs, idx)?;
             }
             (l, i) => {
@@ -602,7 +602,11 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn execute_array_index(&mut self, array: object::Array, index: object::Integer) -> Result<()> {
+    fn execute_array_index(
+        &mut self,
+        array: objects::Array,
+        index: objects::Integer,
+    ) -> Result<()> {
         if (0..i64::try_from(array.elements.len())?).contains(&index.value) {
             let ele = array.elements[usize::try_from(index.value)?].clone();
             self.stack.push(ele)?;
@@ -613,8 +617,8 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn execute_hash_index(&mut self, hash: object::Hash, index: object::Object) -> Result<()> {
-        let index = object::HashableObject::try_from(index)?;
+    fn execute_hash_index(&mut self, hash: objects::Hash, index: objects::Object) -> Result<()> {
+        let index = objects::HashableObject::try_from(index)?;
 
         match hash.pairs.get(&index) {
             Some(val) => self.stack.push(val.clone())?,
@@ -624,10 +628,10 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn is_truthy(obj: &object::Object) -> bool {
+    fn is_truthy(obj: &objects::Object) -> bool {
         match obj {
-            object::Object::Boolean(b) => b.value,
-            object::Object::Null(_) => false,
+            objects::Object::Boolean(b) => b.value,
+            objects::Object::Null(_) => false,
             _other => true,
         }
     }
@@ -1320,7 +1324,7 @@ mod tests {
         });
     }
 
-    fn test_object(actual: &object::Object, expected: &Expected) {
+    fn test_object(actual: &objects::Object, expected: &Expected) {
         match expected {
             Expected::Int(expected_int) => {
                 test_integer_object(actual, *expected_int);
@@ -1346,42 +1350,42 @@ mod tests {
         }
     }
 
-    fn test_integer_object(actual: &object::Object, expected: i64) {
+    fn test_integer_object(actual: &objects::Object, expected: i64) {
         let result = match actual {
-            object::Object::Integer(int) => int,
+            objects::Object::Integer(int) => int,
             obj => panic!("expected Integer. received {}", obj),
         };
 
         assert_eq!(result.value, expected);
     }
 
-    fn test_bool_object(actual: &object::Object, expected: bool) {
+    fn test_bool_object(actual: &objects::Object, expected: bool) {
         let result = match actual {
-            object::Object::Boolean(b) => b,
+            objects::Object::Boolean(b) => b,
             obj => panic!("expected Boolean. received {}", obj),
         };
         assert_eq!(result.value, expected);
     }
 
-    fn test_null_object(actual: &object::Object) {
+    fn test_null_object(actual: &objects::Object) {
         match actual {
-            object::Object::Null(_) => (),
+            objects::Object::Null(_) => (),
             obj => panic!("expected Null. received {}", obj),
         };
     }
 
-    fn test_string_object(actual: &object::Object, expected: &str) {
+    fn test_string_object(actual: &objects::Object, expected: &str) {
         match actual {
-            object::Object::StringLit(s) => {
+            objects::Object::StringLit(s) => {
                 assert_eq!(s.value, expected);
             }
             obj => panic!("expected String. received {}", obj),
         }
     }
 
-    fn test_int_array_object(actual: &object::Object, expected: &[i64]) {
+    fn test_int_array_object(actual: &objects::Object, expected: &[i64]) {
         match actual {
-            object::Object::Array(arr) => expected
+            objects::Object::Array(arr) => expected
                 .iter()
                 .zip(arr.elements.iter())
                 .for_each(|(expected, obj)| test_integer_object(obj, *expected)),
@@ -1389,16 +1393,16 @@ mod tests {
         }
     }
 
-    fn test_int_hash_object(actual: object::Object, expected: &[(i64, i64)]) {
+    fn test_int_hash_object(actual: objects::Object, expected: &[(i64, i64)]) {
         match actual {
-            object::Object::Hash(hash) => {
-                let mut expected_hash = object::HashPairs::new();
+            objects::Object::Hash(hash) => {
+                let mut expected_hash = objects::HashPairs::new();
                 expected
                     .iter()
                     .try_for_each::<_, anyhow::Result<()>>(|(key, val)| {
                         let key =
-                            object::Object::from(object::Integer { value: *key }).try_into()?;
-                        let val = object::Integer { value: *val }.into();
+                            objects::Object::from(objects::Integer { value: *key }).try_into()?;
+                        let val = objects::Integer { value: *val }.into();
                         expected_hash.insert(key, val);
 
                         Ok(())
@@ -1411,10 +1415,10 @@ mod tests {
         }
     }
 
-    fn test_err_object(actual: &object::Object, expected: &str) {
+    fn test_err_object(actual: &objects::Object, expected: &str) {
         match actual {
-            object::Object::Error(err) => match err {
-                object::Error::Standard(msg) => assert_eq!(msg, expected),
+            objects::Object::Error(err) => match err {
+                objects::Error::Standard(msg) => assert_eq!(msg, expected),
             },
             obj => panic!("expected error. received {}", obj),
         }
