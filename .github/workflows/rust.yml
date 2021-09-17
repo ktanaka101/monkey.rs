@@ -21,9 +21,6 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Select nightly
-        run: rustup default nightly
-
       - name: Build
         run: cargo build --verbose
 
