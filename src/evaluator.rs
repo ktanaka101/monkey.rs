@@ -60,9 +60,9 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
             env: Rc::clone(&env),
         }
         .into()),
-        ast::Expr::Hash(expr) => Ok(eval_hash_literal(&expr, Rc::clone(&env))?),
-        ast::Expr::Identifier(expr) => Ok(eval_identifier(&expr, Rc::clone(&env))?),
-        ast::Expr::If(expr) => Ok(eval_if_expr(&expr, Rc::clone(&env))?),
+        ast::Expr::Hash(expr) => Ok(eval_hash_literal(expr, Rc::clone(&env))?),
+        ast::Expr::Identifier(expr) => Ok(eval_identifier(expr, Rc::clone(&env))?),
+        ast::Expr::If(expr) => Ok(eval_if_expr(expr, Rc::clone(&env))?),
         ast::Expr::Index(expr) => {
             let left = eval_expr(&expr.left, Rc::clone(&env))?;
             let index = eval_expr(&expr.index, Rc::clone(&env))?;
@@ -88,7 +88,7 @@ fn eval_expr(expr: &ast::Expr, env: Rc<RefCell<Environment>>) -> Result<object::
 }
 
 pub(crate) fn new_error<T>(message: &str) -> Result<T> {
-    Err(object::Error::Standard(message.into()))?
+    return Err(object::Error::Standard(message.into()).into())
 }
 
 fn eval_program(program: &ast::Program, env: Rc<RefCell<Environment>>) -> Result<object::Object> {
@@ -395,7 +395,7 @@ fn eval_hash_index_expr<'a>(
     let key_type = key.o_type();
     match object::HashableObject::try_from(key.clone()) {
         Ok(o) => Ok(match hash.pairs.get(&o) {
-            Some(value) => &value,
+            Some(value) => value,
             None => &object::Object::Null(NULL),
         }),
         Err(_) => new_error(&format!("unusable as hash key: {}", key_type))?,
@@ -476,13 +476,13 @@ fn is_macro_definition(stmt: &ast::Stmt) -> bool {
 fn add_macro(stmt: &ast::Stmt, env: Rc<RefCell<Environment>>) -> Result<()> {
     let let_stmt = match stmt {
         ast::Stmt::Let(l) => l,
-        stmt => Err(anyhow::format_err!("expect Let. received {}", stmt))?,
+        stmt => return Err(anyhow::format_err!("expect Let. received {}", stmt)),
     };
     let ast::Let { name, value } = let_stmt;
 
     let m_macro = match value {
         ast::Expr::MacroLit(m) => m,
-        stmt => Err(anyhow::format_err!("expect Macro. received {}", stmt))?,
+        stmt => return Err(anyhow::format_err!("expect Macro. received {}", stmt)),
     };
     let ast::MacroLit { params, body, .. } = m_macro;
 
@@ -515,16 +515,16 @@ pub fn expand_macros(program: ast::Node, env: Rc<RefCell<Environment>>) -> Resul
         let eval_env = extend_macro_env(m_macro.clone(), args);
 
         let evaluated = eval_stmt(
-            &m_macro.body.clone().into(),
+            &m_macro.body.into(),
             Rc::new(RefCell::new(eval_env)),
         )?;
 
         let quote = match evaluated {
             object::Object::Quote(q) => q,
-            o => Err(anyhow::format_err!(
+            o => return Err(anyhow::format_err!(
                 "we only support returning AST-nodes from macros. {}",
                 o
-            ))?,
+            )),
         };
 
         Ok(quote.node)

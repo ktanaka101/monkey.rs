@@ -17,10 +17,10 @@ impl TryFrom<Expr> for Integer {
     fn try_from(value: Expr) -> Result<Self> {
         match value {
             Expr::Integer(int) => Ok(int),
-            expr => Err(ParserError::Convert(
+            expr => return Err(ParserError::Convert(
                 format!("{:?}", expr),
                 "Integer".into(),
-            ))?,
+            ).into()),
         }
     }
 }

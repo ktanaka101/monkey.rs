@@ -15,7 +15,7 @@ impl Display for Add {
 }
 
 impl vm::convert::Read<(), 0> for Add {
-    fn read(_: [vm::bytecode::Instruction; 0]) -> () {
-        ()
+    fn read(_: [vm::bytecode::Instruction; 0]) {
+        
     }
 }

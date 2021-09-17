@@ -15,7 +15,7 @@ where
 {
     fn try_read(bytes: &[bytecode::Instruction]) -> Result<T> {
         if bytes.len() < SIZE {
-            Err(anyhow::format_err!("expected bytes length >= {}", SIZE))?
+            return Err(anyhow::format_err!("expected bytes length >= {}", SIZE))
         }
 
         let mut b: [bytecode::Instruction; SIZE] = [0; SIZE];

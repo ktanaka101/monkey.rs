@@ -14,7 +14,7 @@ impl Display for GreaterThan {
 }
 
 impl vm::convert::Read<(), 0> for GreaterThan {
-    fn read(_: [vm::bytecode::Instruction; 0]) -> () {
-        ()
+    fn read(_: [vm::bytecode::Instruction; 0]) {
+        
     }
 }

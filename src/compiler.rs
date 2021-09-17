@@ -45,7 +45,7 @@ impl CompilationScope {
     }
 
     fn last_instruction_is(&self, opcode: &opcode::Opcode) -> bool {
-        if self.instructions.0.len() == 0 {
+        if self.instructions.0.is_empty() {
             return false;
         }
 
@@ -65,7 +65,7 @@ impl CompilationScope {
 
             Ok(())
         } else {
-            Err(anyhow::format_err!("uninitialized"))?
+            return Err(anyhow::format_err!("uninitialized"))
         }
     }
 
@@ -90,10 +90,10 @@ impl CompilationScope {
                 op.0 = operand;
                 self.replace_instructions(op_pos, op.into());
             }
-            _ => Err(anyhow::format_err!(
+            _ => return Err(anyhow::format_err!(
                 "Expected JumpNotTruthy or Jump. received {}",
                 op
-            ))?,
+            )),
         }
 
         Ok(())
@@ -102,7 +102,7 @@ impl CompilationScope {
     fn replace_last_pop_with_return(&mut self) -> Result<()> {
         let last_pos = match &self.last_instruction {
             Some(inst) => inst.position,
-            None => Err(anyhow::format_err!("uninitialized"))?,
+            None => return Err(anyhow::format_err!("uninitialized")),
         };
         self.replace_instructions(last_pos, opcode::ReturnValue.into());
 
@@ -256,7 +256,7 @@ impl<'a> Compiler<'a> {
                             ast::Operator::Equal => self.emit(opcode::Equal.into()),
                             ast::Operator::NotEqual => self.emit(opcode::NotEqual.into()),
                             ast::Operator::Lt => unreachable!(),
-                            unknown => Err(anyhow::format_err!("unknown operator {}", unknown))?,
+                            unknown => return Err(anyhow::format_err!("unknown operator {}", unknown)),
                         };
                     }
                 }
@@ -266,7 +266,7 @@ impl<'a> Compiler<'a> {
                     match expr.ope {
                         ast::Operator::Minus => self.emit(opcode::Minus.into()),
                         ast::Operator::Bang => self.emit(opcode::Bang.into()),
-                        unknown => Err(anyhow::format_err!("unknown operator {}", unknown))?,
+                        unknown => return Err(anyhow::format_err!("unknown operator {}", unknown)),
                     };
                 }
                 ast::Expr::If(expr) => {
@@ -326,7 +326,7 @@ impl<'a> Compiler<'a> {
                         Some(symbol) => {
                             self.load_symbol(&*symbol.borrow());
                         }
-                        None => Err(anyhow::format_err!("undefined variable {}", id.value))?,
+                        None => return Err(anyhow::format_err!("undefined variable {}", id.value)),
                     };
                 }
                 ast::Expr::Array(array) => {
@@ -462,7 +462,7 @@ impl<'a> Compiler<'a> {
     ) -> Self {
         Self {
             symbol_table: sym_table,
-            constants: constants,
+            constants,
             scopes: CompilationScopes::new(),
         }
     }

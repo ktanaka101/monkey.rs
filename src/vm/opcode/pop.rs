@@ -15,7 +15,7 @@ impl Display for Pop {
 }
 
 impl vm::convert::Read<(), 0> for Pop {
-    fn read(_: [vm::bytecode::Instruction; 0]) -> () {
-        ()
+    fn read(_: [vm::bytecode::Instruction; 0]) {
+        
     }
 }

@@ -49,7 +49,7 @@ impl Stack {
 
     fn push(&mut self, o: object::Object) -> Result<()> {
         if self.pointer >= STACK_SIZE {
-            Err(anyhow::format_err!("stack overflow"))?;
+            return Err(anyhow::format_err!("stack overflow"));
         }
 
         self.data[self.pointer] = o;
@@ -240,10 +240,10 @@ impl<'a> VM<'a> {
                         Some(obj) => {
                             self.stack.push(obj.clone())?;
                         }
-                        None => Err(anyhow::format_err!(
+                        None => return Err(anyhow::format_err!(
                             "Bytecode error. Undefined global object. {}",
                             global
-                        ))?,
+                        )),
                     }
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + global.readsize();
@@ -283,11 +283,11 @@ impl<'a> VM<'a> {
                     match obj {
                         object::Object::Closure(cl) => {
                             if cl.func.num_parameters != num_args {
-                                Err(anyhow::format_err!(
+                                return Err(anyhow::format_err!(
                                     "wrong number of arguments: want={}, got={}",
                                     cl.func.num_parameters,
                                     num_args
-                                ))?;
+                                ));
                             }
 
                             let frame = frame::Frame::new(
@@ -310,7 +310,7 @@ impl<'a> VM<'a> {
                             match result {
                                 Ok(result) => {
                                     if let Some(result) = result {
-                                        self.stack.push(result.into())?;
+                                        self.stack.push(result)?;
                                     } else {
                                         self.stack.push(NULL.into())?;
                                     }
@@ -321,10 +321,10 @@ impl<'a> VM<'a> {
                                 }
                             }
                         }
-                        other_obj => Err(anyhow::format_err!(
+                        other_obj => return Err(anyhow::format_err!(
                             "calling non-function. received {}",
                             other_obj
-                        ))?,
+                        )),
                     };
                 }
                 opcode::Opcode::ReturnValue(_) => {
@@ -382,7 +382,7 @@ impl<'a> VM<'a> {
                             };
                             self.stack.push(cl_obj.into())?;
                         }
-                        other => Err(anyhow::format_err!("not a function: {}", other))?,
+                        other => return Err(anyhow::format_err!("not a function: {}", other)),
                     }
 
                     self.stack_frame.current().borrow_mut().pointer += 1 + closure.readsize();
@@ -416,11 +416,11 @@ impl<'a> VM<'a> {
                 let string = Self::execute_binary_string_operation(op, &s1.value, &s2.value)?;
                 self.stack.push(string.into())?;
             }
-            (unknown_obj1, unknown_obj2) => Err(anyhow::format_err!(
+            (unknown_obj1, unknown_obj2) => return Err(anyhow::format_err!(
                 "unsupported types for binary operation: {} {}",
                 unknown_obj1,
                 unknown_obj2
-            ))?,
+            )),
         }
 
         Ok(())
@@ -436,10 +436,10 @@ impl<'a> VM<'a> {
             opcode::Opcode::Sub(_) => left_val - right_val,
             opcode::Opcode::Mul(_) => left_val * right_val,
             opcode::Opcode::Div(_) => left_val / right_val,
-            _ => Err(anyhow::format_err!(
+            _ => return Err(anyhow::format_err!(
                 "unknown integer operator. received {}",
                 op
-            ))?,
+            )),
         };
 
         Ok(object::Integer { value })
@@ -452,7 +452,7 @@ impl<'a> VM<'a> {
     ) -> Result<object::StringLit> {
         let value = match op {
             opcode::Opcode::Add(_) => left_val.to_string() + right_val,
-            _ => Err(anyhow::format_err!("unknown string operator. received {}",))?,
+            _ => return Err(anyhow::format_err!("unknown string operator. received {}",)),
         };
 
         Ok(object::StringLit { value })
@@ -476,12 +476,12 @@ impl<'a> VM<'a> {
                     let b = Self::native_bool_to_boolean_object(l != r);
                     self.stack.push(b.into())?;
                 }
-                unknown_op => Err(anyhow::format_err!(
+                unknown_op => return Err(anyhow::format_err!(
                     "unknown operator: {} ({} {})",
                     unknown_op,
                     l,
                     r
-                ))?,
+                )),
             },
         };
 
@@ -504,18 +504,18 @@ impl<'a> VM<'a> {
                 opcode::Opcode::GreaterThan(_) => {
                     Ok(Self::native_bool_to_boolean_object(r.value > l.value))
                 }
-                unknown_op => Err(anyhow::format_err!(
+                unknown_op => return Err(anyhow::format_err!(
                     "unknown operator: {} ({}  {})",
                     unknown_op,
                     l,
                     r
-                ))?,
+                )),
             },
-            (unknown_l, unknown_r) => Err(anyhow::format_err!(
+            (unknown_l, unknown_r) => return Err(anyhow::format_err!(
                 "expected (Integer, Integer). received ({}  {})",
                 unknown_l,
                 unknown_r
-            ))?,
+            )),
         }
     }
 
@@ -553,10 +553,10 @@ impl<'a> VM<'a> {
                 let int = object::Integer { value: -i.value };
                 self.stack.push(int.into())?
             }
-            unknown => Err(anyhow::format_err!(
+            unknown => return Err(anyhow::format_err!(
                 "unsupported type fot negation: {}",
                 unknown
-            ))?,
+            )),
         };
 
         Ok(())
@@ -574,11 +574,11 @@ impl<'a> VM<'a> {
             (object::Object::Hash(hs), idx) => {
                 self.execute_hash_index(hs, idx)?;
             }
-            (l, i) => Err(anyhow::format_err!(
+            (l, i) => return Err(anyhow::format_err!(
                 "index operator not supported: {:?}[{:?}]",
                 l,
                 i
-            ))?,
+            )),
         }
 
         Ok(())

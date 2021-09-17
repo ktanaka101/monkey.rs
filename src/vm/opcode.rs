@@ -140,7 +140,7 @@ impl TryFrom<u8> for OperandType {
             27 => Self::Closure,
             28 => Self::GetFree,
             29 => Self::CurrentClosure,
-            bad => Err(anyhow::format_err!("Unsupported id {}", bad))?,
+            bad => return Err(anyhow::format_err!("Unsupported id {}", bad)),
         })
     }
 }

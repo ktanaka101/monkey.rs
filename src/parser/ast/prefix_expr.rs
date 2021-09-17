@@ -18,10 +18,10 @@ impl TryFrom<Expr> for PrefixExpr {
     fn try_from(value: Expr) -> Result<Self> {
         match value {
             Expr::PrefixExpr(prefix_expr) => Ok(prefix_expr),
-            expr => Err(ParserError::Convert(
+            expr => return Err(ParserError::Convert(
                 format!("{:?}", expr),
                 "PrefixExpr".into(),
-            ))?,
+            ).into()),
         }
     }
 }

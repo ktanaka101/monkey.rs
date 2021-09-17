@@ -17,10 +17,10 @@ impl TryFrom<Expr> for StringLit {
     fn try_from(value: Expr) -> Result<Self> {
         match value {
             Expr::StringLit(string) => Ok(string),
-            expr => Err(ParserError::Convert(
+            expr => return Err(ParserError::Convert(
                 format!("{:?}", expr),
                 "StringLit".into(),
-            ))?,
+            ).into()),
         }
     }
 }

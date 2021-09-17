@@ -49,7 +49,7 @@ impl TryFrom<Object> for HashableObject {
             Object::Integer(i) => HashableObject::Integer(i),
             Object::Boolean(b) => HashableObject::Boolean(b),
             Object::StringLit(s) => HashableObject::StringLit(s),
-            _ => return Err(anyhow::format_err!("unusable as hash key.({:?})", value))?,
+            _ => return Err(anyhow::format_err!("unusable as hash key.({:?})", value)),
         })
     }
 }

@@ -15,7 +15,7 @@ impl Display for Return {
 }
 
 impl vm::convert::Read<(), 0> for Return {
-    fn read(_: [vm::bytecode::Instruction; 0]) -> () {
-        ()
+    fn read(_: [vm::bytecode::Instruction; 0]) {
+        
     }
 }

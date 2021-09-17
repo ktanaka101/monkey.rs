@@ -120,7 +120,7 @@ impl TryFrom<Node> for Expr {
     fn try_from(value: Node) -> Result<Self> {
         match value {
             Node::Expr(expr) => Ok(expr),
-            node => Err(ParserError::Convert(format!("{:?}", node), "Expr".into()))?,
+            node => return Err(ParserError::Convert(format!("{:?}", node), "Expr".into()).into()),
         }
     }
 }

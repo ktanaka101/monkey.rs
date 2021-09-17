@@ -57,7 +57,7 @@ impl Lexer {
                 '}' => Token::Rbrace,
                 '[' => Token::Lbracket,
                 ']' => Token::Rbracket,
-                '"' => Token::StringLiteral(self.read_string().into()),
+                '"' => Token::StringLiteral(self.read_string()),
                 _ => {
                     if Self::is_letter(c) {
                         let literal = self.read_identifier();

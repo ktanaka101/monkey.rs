@@ -74,7 +74,7 @@ impl SymbolTable {
         };
         let symbol = Rc::new(RefCell::new(symbol));
 
-        self.store.insert(name.clone(), Rc::clone(&symbol));
+        self.store.insert(name, Rc::clone(&symbol));
 
         self.num_definitions += 1;
 
@@ -109,7 +109,7 @@ impl SymbolTable {
     }
 
     pub fn resolve(&mut self, name: &str) -> Option<Rc<RefCell<Symbol>>> {
-        let result = self.store.get(name).map(|sym| Rc::clone(&sym));
+        let result = self.store.get(name).map(|sym| Rc::clone(sym));
         if result.is_some() {
             return result;
         }

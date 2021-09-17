@@ -118,10 +118,7 @@ fn first(args: &[object::Object]) -> Result<Option<object::Object>> {
     match &args[0] {
         object::Object::Array(arr) => {
             let res = arr.elements.first();
-            Ok(match res {
-                Some(o) => Some(o.clone()),
-                None => None,
-            })
+            Ok(res.map(|o| o.clone()))
         }
         not_arr => new_error(&format!(
             "argument to 'first' must be Array, got {}",
@@ -141,10 +138,7 @@ fn last(args: &[object::Object]) -> Result<Option<object::Object>> {
     match &args[0] {
         object::Object::Array(arr) => {
             let res = arr.elements.last();
-            Ok(match res {
-                Some(o) => Some(o.clone()),
-                None => None,
-            })
+            Ok(res.map(|o| o.clone()))
         }
         not_arr => new_error(&format!(
             "argument to 'last' must be Array, got {}",

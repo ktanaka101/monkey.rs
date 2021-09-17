@@ -25,7 +25,7 @@ where
                 block.statements = block
                     .statements
                     .into_iter()
-                    .map(|stmt| Ok(modify(stmt.into(), modifier)?.try_into()?))
+                    .map(|stmt| modify(stmt.into(), modifier)?.try_into())
                     .collect::<Result<Vec<Stmt>>>()?;
 
                 Stmt::from(block).into()
@@ -85,8 +85,8 @@ where
                     .params
                     .into_iter()
                     .map(|param| {
-                        Ok(Expr::try_from(modify(Expr::from(param).into(), modifier)?)?
-                            .try_into()?)
+                        Expr::try_from(modify(Expr::from(param).into(), modifier)?)?
+                            .try_into()
                     })
                     .collect::<Result<Vec<Identifier>>>()?;
 
@@ -99,7 +99,7 @@ where
                 arr.elements = arr
                     .elements
                     .into_iter()
-                    .map(|expr| Ok(modify(expr.into(), modifier)?.try_into()?))
+                    .map(|expr| modify(expr.into(), modifier)?.try_into())
                     .collect::<Result<Vec<Expr>>>()?;
 
                 Expr::from(arr).into()

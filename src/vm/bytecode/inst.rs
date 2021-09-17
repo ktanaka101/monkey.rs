@@ -125,7 +125,7 @@ impl Display for Instructions {
                 Ok(op) => {
                     let msg = format!("{:>04} {}¥n", pos, op);
                     buf.push_str(msg.as_str());
-                    pos = pos + 1 + usize::from(op.readsize());
+                    pos = pos + 1 + op.readsize();
                 }
                 Err(e) => {
                     let msg = format!("{:>04} Error: {}¥n", pos, e);
