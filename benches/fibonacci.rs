@@ -40,7 +40,7 @@ fn run_evaluator(input: String) -> object::Object {
     evaluated.unwrap()
 }
 
-const INPUT1: &'static str = "
+const INPUT1: &str = "
     let fibonacci = fn(x) {
         if (x == 0) {
             0
@@ -55,7 +55,7 @@ const INPUT1: &'static str = "
     fibonacci(5);
 ";
 
-const INPUT2: &'static str = "
+const INPUT2: &str = "
     let fibonacci = fn(x) {
         if (x == 0) {
             0
@@ -70,7 +70,7 @@ const INPUT2: &'static str = "
     fibonacci(20);
 ";
 
-const INPUT3: &'static str = "
+const INPUT3: &str = "
     let fibonacci = fn(x) {
         if (x == 0) {
             0
