@@ -109,7 +109,7 @@ impl SymbolTable {
     }
 
     pub fn resolve(&mut self, name: &str) -> Option<Rc<RefCell<Symbol>>> {
-        let result = self.store.get(name).map(|sym| Rc::clone(sym));
+        let result = self.store.get(name).map(Rc::clone);
         if result.is_some() {
             return result;
         }
