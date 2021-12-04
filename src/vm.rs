@@ -460,7 +460,12 @@ impl<'a> VM<'a> {
     ) -> Result<objects::StringLit> {
         let value = match op {
             opcode::Opcode::Add(_) => left_val.to_string() + right_val,
-            _ => return Err(anyhow::format_err!("unknown string operator. received {}", op)),
+            _ => {
+                return Err(anyhow::format_err!(
+                    "unknown string operator. received {}",
+                    op
+                ))
+            }
         };
 
         Ok(objects::StringLit { value })
