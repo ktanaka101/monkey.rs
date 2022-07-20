@@ -17,9 +17,7 @@ impl TryFrom<Stmt> for ExprStmt {
     fn try_from(value: Stmt) -> Result<Self> {
         match value {
             Stmt::ExprStmt(expr_stmt) => Ok(expr_stmt),
-            stmt => {
-                Err(ParserError::Convert(format!("{:?}", stmt), "ExprStmt".into()).into())
-            }
+            stmt => Err(ParserError::Convert(format!("{:?}", stmt), "ExprStmt".into()).into()),
         }
     }
 }

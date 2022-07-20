@@ -17,9 +17,7 @@ impl TryFrom<Expr> for Identifier {
     fn try_from(value: Expr) -> Result<Self> {
         match value {
             Expr::Identifier(ident) => Ok(ident),
-            expr => {
-                Err(ParserError::Convert(format!("{:?}", expr), "Identifier".into()).into())
-            }
+            expr => Err(ParserError::Convert(format!("{:?}", expr), "Identifier".into()).into()),
         }
     }
 }
