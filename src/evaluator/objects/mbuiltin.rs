@@ -4,7 +4,7 @@ use super::super::builtin;
 use super::prelude::*;
 use super::Object;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Builtin {
     pub func: builtin::Function,
 }

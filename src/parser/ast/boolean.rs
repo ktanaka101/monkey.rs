@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Boolean {
     pub value: bool,
 }
@@ -18,7 +18,7 @@ impl TryFrom<Expr> for Boolean {
         match value {
             Expr::Boolean(b) => Ok(b),
             expr => {
-                return Err(ParserError::Convert(format!("{:?}", expr), "Boolean".into()).into())
+                Err(ParserError::Convert(format!("{:?}", expr), "Boolean".into()).into())
             }
         }
     }

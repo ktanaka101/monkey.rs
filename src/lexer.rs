@@ -81,7 +81,7 @@ impl Lexer {
     }
 
     fn is_digit(ch: char) -> bool {
-        ch.is_digit(10)
+        ch.is_ascii_digit()
     }
 
     fn read_char(&mut self) {

@@ -236,7 +236,7 @@ impl Parser {
         match &self.cur_token {
             Token::True => Ok(ast::Boolean { value: true }),
             Token::False => Ok(ast::Boolean { value: false }),
-            t => return Err(ParserError::InvalidBooleanLiteral(format!("{:?}", t)).into()),
+            t => Err(ParserError::InvalidBooleanLiteral(format!("{:?}", t)).into()),
         }
     }
 
@@ -470,11 +470,11 @@ impl Parser {
             self.next_token();
             Ok(())
         } else {
-            return Err(ParserError::ExpectPeek(
+            Err(ParserError::ExpectPeek(
                 format!("{:?}", &token_t),
                 format!("{:?}", &self.peek_token),
             )
-            .into());
+            .into())
         }
     }
 

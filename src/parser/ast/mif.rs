@@ -24,7 +24,7 @@ impl TryFrom<Expr> for If {
     fn try_from(value: Expr) -> Result<Self> {
         match value {
             Expr::If(mif) => Ok(mif),
-            expr => return Err(ParserError::Convert(format!("{:?}", expr), "If".into()).into()),
+            expr => Err(ParserError::Convert(format!("{:?}", expr), "If".into()).into()),
         }
     }
 }

@@ -43,8 +43,9 @@ pub struct StackFrame {
 
 impl Default for StackFrame {
     fn default() -> Self {
+        let frame = Rc::new(RefCell::new(Frame::default()));
         Self {
-            frames: vec![Rc::new(RefCell::new(Frame::default())); MAX_FRAMES],
+            frames: vec![frame; MAX_FRAMES],
             pointer: 0,
         }
     }

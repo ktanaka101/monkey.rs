@@ -519,22 +519,18 @@ impl<'a> VM<'a> {
                 opcode::Opcode::GreaterThan(_) => {
                     Ok(Self::native_bool_to_boolean_object(r.value > l.value))
                 }
-                unknown_op => {
-                    return Err(anyhow::format_err!(
-                        "unknown operator: {} ({}  {})",
-                        unknown_op,
-                        l,
-                        r
-                    ))
-                }
+                unknown_op => Err(anyhow::format_err!(
+                    "unknown operator: {} ({}  {})",
+                    unknown_op,
+                    l,
+                    r
+                )),
             },
-            (unknown_l, unknown_r) => {
-                return Err(anyhow::format_err!(
-                    "expected (Integer, Integer). received ({}  {})",
-                    unknown_l,
-                    unknown_r
-                ))
-            }
+            (unknown_l, unknown_r) => Err(anyhow::format_err!(
+                "expected (Integer, Integer). received ({}  {})",
+                unknown_l,
+                unknown_r
+            )),
         }
     }
 

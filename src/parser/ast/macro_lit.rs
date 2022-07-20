@@ -31,7 +31,7 @@ impl TryFrom<Expr> for MacroLit {
         match value {
             Expr::MacroLit(m) => Ok(m),
             expr => {
-                return Err(ParserError::Convert(format!("{:?}", expr), "MacroLit".into()).into())
+                Err(ParserError::Convert(format!("{:?}", expr), "MacroLit".into()).into())
             }
         }
     }

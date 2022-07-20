@@ -18,7 +18,7 @@ impl TryFrom<Expr> for Index {
     fn try_from(value: Expr) -> Result<Self> {
         match value {
             Expr::Index(idx) => Ok(idx),
-            expr => return Err(ParserError::Convert(format!("{:?}", expr), "Index".into()).into()),
+            expr => Err(ParserError::Convert(format!("{:?}", expr), "Index".into()).into()),
         }
     }
 }

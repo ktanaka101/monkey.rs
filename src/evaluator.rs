@@ -464,13 +464,13 @@ pub fn define_macros(program: &mut ast::Program, env: Rc<RefCell<Environment>>) 
 }
 
 fn is_macro_definition(stmt: &ast::Stmt) -> bool {
-    return matches!(
+    matches!(
         stmt,
         ast::Stmt::Let(ast::Let {
             value: ast::Expr::MacroLit(_),
             ..
         })
-    );
+    )
 }
 
 fn add_macro(stmt: &ast::Stmt, env: Rc<RefCell<Environment>>) -> Result<()> {

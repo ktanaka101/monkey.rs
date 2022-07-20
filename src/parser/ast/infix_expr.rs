@@ -20,7 +20,7 @@ impl TryFrom<Expr> for InfixExpr {
         match value {
             Expr::InfixExpr(infix_expr) => Ok(infix_expr),
             expr => {
-                return Err(ParserError::Convert(format!("{:?}", expr), "InfixExpr".into()).into())
+                Err(ParserError::Convert(format!("{:?}", expr), "InfixExpr".into()).into())
             }
         }
     }

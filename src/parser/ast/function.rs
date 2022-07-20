@@ -38,7 +38,7 @@ impl TryFrom<Expr> for Function {
         match value {
             Expr::Function(func) => Ok(func),
             expr => {
-                return Err(ParserError::Convert(format!("{:?}", expr), "Function".into()).into())
+                Err(ParserError::Convert(format!("{:?}", expr), "Function".into()).into())
             }
         }
     }

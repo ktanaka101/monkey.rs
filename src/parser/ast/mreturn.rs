@@ -24,7 +24,7 @@ impl TryFrom<Stmt> for Return {
     fn try_from(value: Stmt) -> Result<Self> {
         match value {
             Stmt::Return(mreturn) => Ok(mreturn),
-            stmt => return Err(ParserError::Convert(format!("{:?}", stmt), "Return".into()).into()),
+            stmt => Err(ParserError::Convert(format!("{:?}", stmt), "Return".into()).into()),
         }
     }
 }

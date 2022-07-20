@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
     pub value: String,
 }
@@ -18,7 +18,7 @@ impl TryFrom<Expr> for Identifier {
         match value {
             Expr::Identifier(ident) => Ok(ident),
             expr => {
-                return Err(ParserError::Convert(format!("{:?}", expr), "Identifier".into()).into())
+                Err(ParserError::Convert(format!("{:?}", expr), "Identifier".into()).into())
             }
         }
     }

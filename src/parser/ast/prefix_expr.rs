@@ -19,7 +19,7 @@ impl TryFrom<Expr> for PrefixExpr {
         match value {
             Expr::PrefixExpr(prefix_expr) => Ok(prefix_expr),
             expr => {
-                return Err(ParserError::Convert(format!("{:?}", expr), "PrefixExpr".into()).into())
+                Err(ParserError::Convert(format!("{:?}", expr), "PrefixExpr".into()).into())
             }
         }
     }

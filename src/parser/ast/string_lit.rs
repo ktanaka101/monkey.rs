@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringLit {
     pub value: String,
 }
@@ -18,7 +18,7 @@ impl TryFrom<Expr> for StringLit {
         match value {
             Expr::StringLit(string) => Ok(string),
             expr => {
-                return Err(ParserError::Convert(format!("{:?}", expr), "StringLit".into()).into())
+                Err(ParserError::Convert(format!("{:?}", expr), "StringLit".into()).into())
             }
         }
     }

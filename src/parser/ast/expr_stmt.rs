@@ -18,7 +18,7 @@ impl TryFrom<Stmt> for ExprStmt {
         match value {
             Stmt::ExprStmt(expr_stmt) => Ok(expr_stmt),
             stmt => {
-                return Err(ParserError::Convert(format!("{:?}", stmt), "ExprStmt".into()).into())
+                Err(ParserError::Convert(format!("{:?}", stmt), "ExprStmt".into()).into())
             }
         }
     }

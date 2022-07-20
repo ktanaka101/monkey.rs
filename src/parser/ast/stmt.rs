@@ -49,7 +49,7 @@ impl TryFrom<Node> for Stmt {
         match value {
             Node::Stmt(stmt) => Ok(stmt),
             Node::Program(program) => {
-                return Err(ParserError::Convert(format!("{:?}", program), "Stmt".into()).into())
+                Err(ParserError::Convert(format!("{:?}", program), "Stmt".into()).into())
             }
             Node::Expr(expr) => Ok(Stmt::ExprStmt(ExprStmt { expr })),
         }

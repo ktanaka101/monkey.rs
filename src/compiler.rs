@@ -328,7 +328,7 @@ impl<'a> Compiler<'a> {
 
                     match symbol {
                         Some(symbol) => {
-                            self.load_symbol(&*symbol.borrow());
+                            self.load_symbol(&symbol.borrow());
                         }
                         None => return Err(anyhow::format_err!("undefined variable {}", id.value)),
                     };
@@ -383,7 +383,7 @@ impl<'a> Compiler<'a> {
                     let instructions = scope.borrow().instructions.clone();
 
                     free_symbols.iter().for_each(|sym| {
-                        self.load_symbol(&*sym.borrow());
+                        self.load_symbol(&sym.borrow());
                     });
 
                     let compiled_func = objects::CompiledFunction {

@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Integer {
     pub value: i64,
 }
@@ -18,7 +18,7 @@ impl TryFrom<Expr> for Integer {
         match value {
             Expr::Integer(int) => Ok(int),
             expr => {
-                return Err(ParserError::Convert(format!("{:?}", expr), "Integer".into()).into())
+                Err(ParserError::Convert(format!("{:?}", expr), "Integer".into()).into())
             }
         }
     }
