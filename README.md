@@ -3,11 +3,11 @@
 ## Summury
 
 We can learn how to make an interpreter and a compiler-vm in this book.  
-====> ☆☆☆  __["Writing An Interpreter in Go"](https://interpreterbook.com/)__  ☆☆☆  
-====> ☆☆☆  __["Writing A Compiler In Go"](https://compilerbook.com/)__  ☆☆☆  
+====> ☆☆☆ **["Writing An Interpreter in Go"](https://interpreterbook.com/)** ☆☆☆  
+====> ☆☆☆ **["Writing A Compiler In Go"](https://compilerbook.com/)** ☆☆☆  
 That interpreter and compiler-VM is called Monkey in the book.  
 The Monkey is written in Go in the book.  
-But in this repository it is written in Rust.  
+But in this repository it is written in Rust.
 
 ## Supports
 
@@ -50,10 +50,16 @@ let fibonacci = fn(x) {
       return 1;
     } else {
       fibonacci(x - 1) + fibonacci(x - 2);
-    } 
+    }
   }
 };
 fibonacci(15); #=> 610
+```
+
+## Run test
+
+```sh
+$ cargo test --workspace
 ```
 
 ## TODO

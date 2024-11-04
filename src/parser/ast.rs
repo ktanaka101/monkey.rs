@@ -1,11 +1,9 @@
 mod prelude {
-    pub use std::convert::{TryFrom, TryInto};
+    pub use std::convert::TryFrom;
     pub use std::fmt;
     pub use std::fmt::{Display, Formatter};
 
     pub use anyhow::{Error, Result};
-
-    pub use crate::lexer::token::Token;
 
     pub use super::super::error::ParserError;
     pub use super::{
