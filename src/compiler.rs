@@ -192,7 +192,7 @@ struct EmittedInstruction {
 
 type Pos = u16;
 
-impl<'a> Compiler<'a> {
+impl Compiler<'_> {
     pub fn compile(&mut self, node: ast::Node) -> Result<()> {
         match node {
             ast::Node::Program(pg) => {

@@ -385,7 +385,7 @@ mod tests {
             &first_local,
         ))));
 
-        let expected = vec![("a", 0), ("c", 1), ("e", 2), ("f", 3)];
+        let expected = [("a", 0), ("c", 1), ("e", 2), ("f", 3)];
         expected.iter().for_each(|(name, index)| {
             global.borrow_mut().define_builtin(*index, name.to_string());
         });
@@ -558,7 +558,7 @@ mod tests {
             }
         });
 
-        let expected_unresolvable = vec!["b", "d"];
+        let expected_unresolvable = ["b", "d"];
 
         expected_unresolvable.iter().for_each(|name| {
             if second_local.resolve(name).is_some() {

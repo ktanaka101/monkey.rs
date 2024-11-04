@@ -66,7 +66,7 @@ use vm::convert::{Read, TryRead};
 
 mod preludes {
     pub use super::super::preludes::*;
-    pub use crate::vm::bytecode::{Instruction, Instructions};
+    pub use crate::vm::bytecode::Instruction;
     pub use crate::vm::opcode::{OperandCode, OperandType};
 }
 
